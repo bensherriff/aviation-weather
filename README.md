@@ -1,0 +1,3 @@
+# Aviation Weather
+
+`cargo run`
