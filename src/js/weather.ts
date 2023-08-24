@@ -20,7 +20,10 @@ export async function getMetars(airports: Airport[]): Promise<Metar[]> {
     if (response != null && response != undefined) {
         const json = xml2json(response.data, { compact: true });
         const jsonObject = JSON.parse(json);
-        const metarData = jsonObject?.response?.data?.METAR;
+        let metarData = jsonObject?.response?.data?.METAR;
+        if (!Array.isArray(metarData)) {
+            metarData = [metarData];
+        }
         for (const data of metarData) {
             const sky_condition: {
                 sky_cover: string;

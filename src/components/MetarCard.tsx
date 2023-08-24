@@ -30,7 +30,7 @@ export default async function MetarCard({airports}: {airports: Airport[]}) {
                     className={`relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-4 py-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400`}
                 >
                     <div className="min-w-0 flex-1">
-                    <Link href={'#'}>
+                    <Link href={`/airport/${airport.icao}`}>
                         <span className="absolute inset-0" aria-hidden="true" />
                         <p className="text-gray-900 pb-1">{airport.name} ({airport.metar?.station_id})</p>
                         <p className='text-sm font-medium text-gray-500'>{airport.metar?.raw_text}</p>
