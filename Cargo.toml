@@ -6,9 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+dotenv = "0.15.0"
 env_logger = "0.10.0"
-gtk = { version = "0.7.2", package = "gtk4", features = ["v4_12"] }
 log = "0.4.20"
-regex = "1.9.3"
+quick-xml = { version = "0.30.0", features = ["serialize"] }
 reqwest = "0.11.19"
-tokio = { version = "1.32.0", features = ["full"] }
+serde = {version = "1.0.185", features = ["derive"]}
+tokio = { version = "1.32.0", features = ["macros", "rt"] }
