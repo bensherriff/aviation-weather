@@ -3,9 +3,6 @@ import { Metar, getMetars } from "@/js/weather"
 import Link from "next/link"
   
 export default async function MetarCard({airports}: {airports: Airport[]}) {
-    // await getMetars(defaultAirports).then((result) => {
-    //     setMetars(result);
-    // });
     const metars = await getMetars(airports);
     for (let i = 0; i < airports.length; i++) {
         airports[i].metar = metars[i];
@@ -35,7 +32,7 @@ export default async function MetarCard({airports}: {airports: Airport[]}) {
                     <div className="min-w-0 flex-1">
                     <Link href={'#'}>
                         <span className="absolute inset-0" aria-hidden="true" />
-                        <p className="text-gray-900 pb-1">{airport.metar?.station_id} - <span>{airport.name}</span></p>
+                        <p className="text-gray-900 pb-1">{airport.name} ({airport.metar?.station_id})</p>
                         <p className='text-sm font-medium text-gray-500'>{airport.metar?.raw_text}</p>
                         <div className='mt-2'>
                             <span className={`truncate text-sm text-white ${metarBGColor(airport.metar)} inline-block py-2 px-4 rounded-full`}>{airport.metar?.flight_category}</span>
