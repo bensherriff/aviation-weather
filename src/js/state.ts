@@ -1,9 +1,15 @@
-// import { atom } from "recoil";
 import { Airport } from "./airport";
 
-// export const airportsState = atom({
-//     key: 'airportsState',
-//     default: [] as Airport[]
-// });
+const airports: Map<string, Airport> = new Map();
 
-export const airports: Map<string, Airport> = new Map();
+export function setAirport(icao: string, airport: Airport) {
+    airports.set(icao, airport);
+}
+
+export function getAirport(icao: string): Airport | undefined {
+    return airports.get(icao);
+}
+
+export function getAirports(): Airport[] {
+    return [...airports.values()];
+}

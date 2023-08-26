@@ -52,8 +52,8 @@ export async function getMetars(airports: Airport[]): Promise<Metar[]> {
                 dewpoint_c: Number(data.dewpoint_c._text),
                 wind_dir_degrees: Number(data.wind_dir_degrees._text),
                 wind_speed_kt: Number(data.wind_speed_kt._text),
-                visibility_statute_mi: data.visibility_statute_mi._text,
-                altim_in_hg: Number(data.altim_in_hg._text),
+                visibility_statute_mi: data.visibility_statute_mi?._text,
+                altim_in_hg: Number(data.altim_in_hg?._text),
                 sea_level_pressure_mb: data.sea_level_pressure_mb?._text,
                 quality_control_flags: {
                     auto: data.quality_control_flags?.auto?._text == 'TRUE',
