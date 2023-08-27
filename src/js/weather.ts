@@ -15,12 +15,12 @@ export async function getMetars(airports: Airport[]): Promise<Metar[]> {
     const response = await axios
         .get(`${url}`)
         .catch((error) => console.error(`${error}`));
-    // const metars = new Map<string, Metar>();
     const metars: Metar[] = [];
     if (response != null && response != undefined) {
         const json = xml2json(response.data, { compact: true });
         const jsonObject = JSON.parse(json);
         let metarData = jsonObject?.response?.data?.METAR;
+        console.log(metarData);
         if (!Array.isArray(metarData)) {
             metarData = [metarData];
         }
@@ -50,7 +50,7 @@ export async function getMetars(airports: Airport[]): Promise<Metar[]> {
                 longitude: Number(data.longitude._text),
                 temp_c: Number(data.temp_c._text),
                 dewpoint_c: Number(data.dewpoint_c._text),
-                wind_dir_degrees: Number(data.wind_dir_degrees._text),
+                wind_dir_degrees: data.wind_dir_degrees._text,
                 wind_speed_kt: Number(data.wind_speed_kt._text),
                 visibility_statute_mi: data.visibility_statute_mi?._text,
                 altim_in_hg: Number(data.altim_in_hg?._text),
@@ -83,7 +83,7 @@ export interface Metar {
     longitude: number;
     temp_c: number;
     dewpoint_c: number;
-    wind_dir_degrees: number;
+    wind_dir_degrees: string;
     wind_speed_kt: number;
     visibility_statute_mi: string;
     altim_in_hg: number;

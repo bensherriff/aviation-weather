@@ -17,6 +17,9 @@ setAirport('KCJR', new Airport('Culpeper Regional Airport', 'KCJR'))
 setAirport('KHWY', new Airport('Warrenton-Fauquier Airport', 'KHWY'))
 setAirport('KRMN', new Airport('Stafford Regional Airport', 'KRMN'))
 setAirport('KEZF', new Airport('Shannon Airport', 'KEZF'))
+// setAirport('KMQI', new Airport('Test Airport', 'KMQI'))
+// setAirport('KEKQ', new Airport('Test Airport', 'KEKQ'))
+// setAirport('KCSV', new Airport('Test Airport', 'KCSV'))
 
 export default function Page() {
     return <>

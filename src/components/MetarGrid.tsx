@@ -3,7 +3,7 @@ import { getAirports, setAirport } from "@/js/state";
 import { Metar, getMetars } from "@/js/weather"
 import Link from "next/link"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faLocationArrow } from '@fortawesome/free-solid-svg-icons'
+import { faArrowsSpin, faLocationArrow } from '@fortawesome/free-solid-svg-icons'
 
 export default async function MetarGrid() {
     const airports: Airport[] = getAirports();
@@ -45,6 +45,14 @@ function MetarCard({ airport}: { airport: Airport}) {
         }
     }
 
+    function windColor(metar: Metar | undefined) {
+        if (Number(metar?.wind_speed_kt) <= 12) {
+            return 'bg-green-300';
+        } else if (Number(metar?.wind_speed_kt) > 12) {
+            return 'bg-orange-300';
+        }
+    }
+
     return (
         <div
             key={airport.metar?.station_id}
@@ -59,11 +67,15 @@ function MetarCard({ airport}: { airport: Airport}) {
                 <div className='mt-2'>
                     <span className={`truncate text-sm text-white ${metarBGColor(airport.metar)} inline-block py-2 px-4 rounded-full`}>{airport.metar?.flight_category? airport.metar?.flight_category : 'UNKN'}</span>
                     <span className="truncate inline-block py-2 px-2">
-                        {airport.metar && airport.metar.wind_dir_degrees && airport.metar.wind_dir_degrees != 0?
-                            // <FontAwesomeIcon icon={faLocationArrow} size="2xs" style={{rotate: `${-45 + airport.metar.wind_dir_degrees}deg`}}/> : <></>
-                            <FontAwesomeIcon icon={faLocationArrow} style={{rotate: `${-45 + airport.metar.wind_dir_degrees}deg`}} className="pr-1"/>: <></>
-                        }
-                        {airport.metar?.wind_speed_kt} KT
+                        <span className={`text-black ${windColor(airport.metar)} p-2 rounded-full mr-1`}>
+                            {airport.metar && airport.metar.wind_dir_degrees && Number(airport.metar.wind_dir_degrees) > 0?
+                                <FontAwesomeIcon className="pr-1" icon={faLocationArrow} style={{rotate: `${-45  + 180 + Number(airport.metar.wind_dir_degrees)}deg`}}/>: <></>
+                            }
+                            {airport.metar && airport.metar.wind_dir_degrees && airport.metar.wind_dir_degrees == 'VRB'?
+                                <FontAwesomeIcon className="pr-1" icon={faArrowsSpin}/>: <></>
+                            }
+                            {airport.metar?.wind_speed_kt != undefined && airport.metar?.wind_speed_kt > 0? `${airport.metar?.wind_speed_kt} KT` : "CALM"}
+                        </span>
                     </span>
                 </div>
             </Link>
