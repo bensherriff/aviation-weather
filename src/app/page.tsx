@@ -1,7 +1,7 @@
 import React from 'react';
-import { setAirport } from "@/js/state";
+import { getAirports, setAirport } from "@/js/state";
 import { Airport } from "@/js/airport";
-import MetarGrid from '@/components/MetarGrid';
+import Metar from '@/components/Metar';
 
 setAirport('KJYO', new Airport('Leesburg Executive Airport', 'KJYO'))
 setAirport('KHEF', new Airport('Manassas Regional Airpoirt', 'KHEF'))
@@ -17,17 +17,20 @@ setAirport('KCJR', new Airport('Culpeper Regional Airport', 'KCJR'))
 setAirport('KHWY', new Airport('Warrenton-Fauquier Airport', 'KHWY'))
 setAirport('KRMN', new Airport('Stafford Regional Airport', 'KRMN'))
 setAirport('KEZF', new Airport('Shannon Airport', 'KEZF'))
+setAirport('KDCA', new Airport('Ronald Reagan Washington National Airport', 'KDCA'))
 // setAirport('KMQI', new Airport('Test Airport', 'KMQI'))
 // setAirport('KEKQ', new Airport('Test Airport', 'KEKQ'))
 // setAirport('KCSV', new Airport('Test Airport', 'KCSV'))
 
 export default function Page() {
+    
+
     return <>
-        <div className="border-b border-gray-200 bg-gray-400 px-4 py-5 sm:px-6">
-            <h3 className="text-lg font-bold leading-6 text-gray-900">Airports</h3>
+        <div className="bg-gray-700 px-4 py-1 sm:px-6">
+            <h3 className="text-lg font-bold leading-6 text-gray-200">Metar Map</h3>
         </div>
-        <div className='p-4'>
-            <MetarGrid/>
+        <div>
+            <Metar/>
         </div>
     </>
 }

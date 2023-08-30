@@ -4,30 +4,44 @@ import { Metar, getMetars } from "@/js/weather"
 import Link from "next/link"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowsSpin, faLocationArrow } from '@fortawesome/free-solid-svg-icons'
+import dynamic from "next/dynamic";
 
-export default async function MetarGrid() {
-    const airports: Airport[] = getAirports();
-
+export default async function Metar() {
+    const Map = dynamic(() => import("@/components/MetarMap"), {
+        loading: () => <div className="grid min-h-full place-items-center px-6 py-24 sm:py-32 lg:px-8">
+            <div className="text-center"><p className="mt-4 text-3xl font-bold tracking-tight text-gray-300 sm:text-5xl">Loading...</p></div>
+        </div>,
+        ssr: false
+    });
+    
     async function update() {
         const airports: Airport[] = getAirports();
         const metars = await getMetars(airports);
         for (let i = 0; i < airports.length; i++) {
             airports[i].metar = metars[i];
+            airports[i].latitude = metars[i].latitude;
+            airports[i].longitude = metars[i].longitude;
             setAirport(airports[i].icao, airports[i]);
         }
-        // setTimeout(update, 30 * 60 * 1000);
-    //     setTimeout(update, 5000);
+        return getAirports();
     }
     await update();
-    
 
-    return (
+    return <>
+        <Map airportString={JSON.stringify(getAirports())}/>
+    </>
+}
+
+export async function MetarGrid() {
+    const airports: Airport[] = getAirports();
+
+    return <>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {airports.map((airport) => (
                 <MetarCard airport={airport}/>
             ))}
         </div>
-    );
+    </>
 }
 
 function MetarCard({ airport}: { airport: Airport}) {
@@ -46,10 +60,12 @@ function MetarCard({ airport}: { airport: Airport}) {
     }
 
     function windColor(metar: Metar | undefined) {
-        if (Number(metar?.wind_speed_kt) <= 12) {
+        if (Number(metar?.wind_speed_kt) <= 9) {
             return 'bg-green-300';
-        } else if (Number(metar?.wind_speed_kt) > 12) {
+        } else if (Number(metar?.wind_speed_kt) > 9) {
             return 'bg-orange-300';
+        } else if (Number(metar?.wind_speed_kt) > 12) {
+            return 'bg-red-300';
         }
     }
 

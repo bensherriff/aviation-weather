@@ -11,7 +11,8 @@ import 'styles/globals.css';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
-            <body className='bg-gray-200'>
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css" />
+            <body className='bg-gray-600'>
                 <RecoilRootWrapper>{children}</RecoilRootWrapper>
             </body>
         </html>
