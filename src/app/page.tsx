@@ -26,9 +26,6 @@ export default function Page() {
     
 
     return <>
-        <div className="bg-gray-700 px-4 py-1 sm:px-6">
-            <h3 className="text-lg font-bold leading-6 text-gray-200">Metar Map</h3>
-        </div>
         <div>
             <Metar/>
         </div>

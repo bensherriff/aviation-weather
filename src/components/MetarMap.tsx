@@ -4,6 +4,7 @@ import { Metar } from '@/js/weather';
 import { faArrowsSpin, faLocationArrow, faLocationPin } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DivIcon } from 'leaflet';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMapEvents } from 'react-leaflet';
@@ -117,9 +118,9 @@ function MapTiles({ airports }: {airports: Airport[] }) {
           <Tooltip className='metar-tooltip' direction="top" offset={[5, -5]} opacity={1}>{airport.icao}</Tooltip>
             <Popup>
               <div className="min-w-0 flex-1 select-none">
-                {/* <Link href={`/airport/${airport.icao}`}> */}
-                  <h1 className="text-lg text-gray-900 pb-1"><span className='font-semibold'>{airport.icao}</span> {airport.name}</h1>
-                {/* </Link> */}
+                <Link href={`/airport/${airport.icao}`}>
+                  <h1 className="text-base text-gray-900 pb-1"><span className='font-semibold'>{airport.icao}</span> {airport.name}</h1>
+                </Link>
                   <hr/>
                   <p className='text-sm font-medium text-gray-500'>{airport.metar?.raw_text}</p>
                   <div className='mt-2 flex'>
