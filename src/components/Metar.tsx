@@ -32,7 +32,7 @@ export default async function Metar() {
     </>
 }
 
-export async function MetarGrid() {
+export function MetarGrid() {
     const airports: Airport[] = getAirports();
 
     return <>

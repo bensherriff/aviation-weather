@@ -1,5 +1,5 @@
 import React from 'react';
-import { getAirports, setAirport } from "@/js/state";
+import { setAirport } from "@/js/state";
 import { Airport } from "@/js/airport";
 import Metar from '@/components/Metar';
 
@@ -18,9 +18,6 @@ setAirport('KHWY', new Airport('Warrenton-Fauquier Airport', 'KHWY'))
 setAirport('KRMN', new Airport('Stafford Regional Airport', 'KRMN'))
 setAirport('KEZF', new Airport('Shannon Airport', 'KEZF'))
 setAirport('KDCA', new Airport('Ronald Reagan Washington National Airport', 'KDCA'))
-// setAirport('KMQI', new Airport('Test Airport', 'KMQI'))
-// setAirport('KEKQ', new Airport('Test Airport', 'KEKQ'))
-// setAirport('KCSV', new Airport('Test Airport', 'KCSV'))
 
 export default function Page() {
     

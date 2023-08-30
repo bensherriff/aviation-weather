@@ -10,7 +10,7 @@ import ReactDOMServer from 'react-dom/server';
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMapEvents } from 'react-leaflet';
 
 export default function Map({ airportString }: { airportString: string }) {
-  const [airports, setAirports] = useState(JSON.parse(airportString));
+  const [airports, setAirports] = useState<Airport[]>(JSON.parse(airportString));
 
   useEffect(() => {
   }, []);
