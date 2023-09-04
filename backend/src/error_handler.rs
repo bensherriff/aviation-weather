@@ -1,11 +1,11 @@
 use actix_web::http::StatusCode;
 use actix_web::{HttpResponse, ResponseError};
 use diesel::result::Error as DieselError;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fmt;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CustomError {
     pub error_status_code: u16,
     pub error_message: String,
@@ -31,7 +31,7 @@ impl From<DieselError> for CustomError {
         match error {
             DieselError::DatabaseError(_, err) => CustomError::new(409, err.message().to_string()),
             DieselError::NotFound => {
-                CustomError::new(404, "The employee record not found".to_string())
+                CustomError::new(404, "The airport record was not found".to_string())
             }
             err => CustomError::new(500, format!("Unknown Diesel error: {}", err)),
         }
