@@ -18,8 +18,17 @@ build:  ## Install the dependencies and build
 start:  ## Start the dev instance
 	npm run dev
 
+up:
+	docker compose up -d
+
+down:
+	docker compose down
+
+connect:
+	docker exec -it aviation_weather_db psql -U postgres
+
 lint:  ## Run the linter
 	npm run lint
 
 clean:  ## Remove node modules
-	rm -rf node_modules
+	rm -rf data node_modules backend/target
