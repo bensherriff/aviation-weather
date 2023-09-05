@@ -17,7 +17,7 @@ export default async function Metar() {
     async function update() {
         const airports: Airport[] = getAirports();
         const metars = await getMetars(airports);
-        for (let i = 0; i < airports.length; i++) {
+        for (let i = 0; i < metars.length; i++) {
             airports[i].metar = metars[i];
             airports[i].latitude = metars[i].latitude;
             airports[i].longitude = metars[i].longitude;

@@ -23,3 +23,4 @@ serde_json = "1.0.105"
 tokio = { version = "1.32.0", features = ["macros", "rt"] }
 uuid = { version = "1.4.1", features = ["serde", "v4"] }
 log = "0.4.20"
+actix-cors = "0.6.4"

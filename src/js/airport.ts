@@ -7,11 +7,11 @@ export class Airport {
     longitude: number;
     metar: Metar | undefined;
 
-    constructor(name: string, icao: string) {
+    constructor(name: string, icao: string, latitude: number, longitude: number) {
         this.name = name;
         this.icao = icao;
-        this.latitude = 0;
-        this.longitude = 0;
+        this.latitude = latitude;
+        this.longitude = longitude;
         this.metar = undefined;
     }
 }
