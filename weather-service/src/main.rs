@@ -6,6 +6,7 @@ extern crate diesel_migrations;
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, middleware::Logger};
 use dotenv::dotenv;
+use env_logger::Env;
 use listenfd::ListenFd;
 use log::debug;
 use std::env;
@@ -22,7 +23,7 @@ async fn main() -> std::io::Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "info,actix=info,diesel_migrations=warn,reqwest=warn,hyper=warn");
     }
-    env_logger::init();
+    env_logger::init_from_env(Env::default().default_filter_or("info"));
     db::init();
 
     let mut listenfd = ListenFd::from_env();

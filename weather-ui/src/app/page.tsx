@@ -4,7 +4,7 @@ import { Airport } from "@/js/airport";
 import Metar from '@/components/Metar';
 
 // setAirport('KJYO', new Airport('Leesburg Executive Airport', 'KJYO'))
-setAirport('KHEF', new Airport('Manassas Regional Airpoirt', 'KHEF', 38.724, -77517))
+// setAirport('KHEF', new Airport('Manassas Regional Airpoirt', 'KHEF', 38.724, -77517))
 // setAirport('KIAD', new Airport('Dulles International Airport', 'KIAD'))
 // setAirport('KFDK', new Airport('Frederick Municipal Airport', 'KFDK'))
 // setAirport('KMRB', new Airport('Eastern West Virginia Regional Airport', 'KMRB'))
