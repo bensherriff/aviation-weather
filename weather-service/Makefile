@@ -1,5 +1,7 @@
 #!make
 
+include .env
+
 SHELL := /bin/bash
 
 .PHONY: help build start stop lint
@@ -8,15 +10,6 @@ help: ## This info
 	@echo
 	@cat Makefile | grep -E '^[a-zA-Z\/_-]+:.*?## .*$$' | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	@echo
-
-install:  ## Install the dependencies
-	npm install
-
-build:  ## Install the dependencies and build
-	npm run build
-
-start:  ## Start the dev instance
-	npm run dev
 
 up:
 	docker compose up -d
@@ -30,5 +23,7 @@ connect:
 lint:  ## Run the linter
 	npm run lint
 
-clean:  ## Remove node modules
-	rm -rf data node_modules backend/target
+clean-db:  ## Remove database and Cargo packages
+	docker exec -i ${DATABASE_HOST} sh -c 'PGPASSWORD=${DATABASE_PASSWORD} psql -U ${DATABASE_USER} -d postgres -c "DROP DATABASE IF EXISTS \"${DATABASE_NAME}\";"'  || true
+
+	

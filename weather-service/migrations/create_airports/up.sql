@@ -1,4 +1,4 @@
-CREATE TABLE "airports" (
+CREATE TABLE IF NOT EXISTS airports (
     id SERIAL PRIMARY KEY,
     full_name TEXT NOT NULL,
     icao TEXT NOT NULL,

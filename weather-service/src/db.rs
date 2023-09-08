@@ -13,8 +13,11 @@ diesel_migrations::embed_migrations!();
 
 lazy_static! {
     static ref POOL: Pool = {
-        let db_url = env::var("DATABASE_URL").expect("Database url not set");
-        let manager = ConnectionManager::<PgConnection>::new(db_url);
+        let username = env::var("DATABASE_USER").expect("Database username is not set");
+        let password = env::var("DATABASE_PASSWORD").expect("Database password is not set");
+        let name = env::var("DATABASE_NAME").expect("Database name is not set");
+        let url = format!("postgres://{}:{}@localhost:5433/{}", username, password, name);
+        let manager = ConnectionManager::<PgConnection>::new(url);
         Pool::new(manager).expect("Failed to create db pool")
     };
 }

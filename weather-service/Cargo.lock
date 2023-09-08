@@ -270,30 +270,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
-name = "aviation-weather-backend"
-version = "0.1.0"
-dependencies = [
- "actix-cors",
- "actix-rt",
- "actix-web",
- "chrono",
- "diesel",
- "diesel_migrations",
- "dotenv",
- "env_logger",
- "lazy_static",
- "listenfd",
- "log",
- "quick-xml",
- "r2d2",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "uuid 1.4.1",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1845,6 +1821,30 @@ name = "wasm-bindgen-shared"
 version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
+
+[[package]]
+name = "weather-service"
+version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-rt",
+ "actix-web",
+ "chrono",
+ "diesel",
+ "diesel_migrations",
+ "dotenv",
+ "env_logger",
+ "lazy_static",
+ "listenfd",
+ "log",
+ "quick-xml",
+ "r2d2",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid 1.4.1",
+]
 
 [[package]]
 name = "web-sys"

@@ -1,4 +1,4 @@
-CREATE TABLE "metars" (
+CREATE TABLE IF NOT EXISTS metars (
     id SERIAL PRIMARY KEY,
     icao TEXT NOT NULL,
     raw_text TEXT NOT NULL,
