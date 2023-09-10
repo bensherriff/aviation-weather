@@ -1,17 +1,17 @@
 'use client';
+import { getAirports } from '@/js/api/airport';
 import { Airport } from '@/js/api/airport.types';
+import { getMetars } from '@/js/api/metar';
 import { Metar } from '@/js/api/metar.types';
 import { faArrowsSpin, faLocationArrow, faLocationPin } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { DivIcon } from 'leaflet';
+import { DivIcon, LatLngBounds } from 'leaflet';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ReactDOMServer from 'react-dom/server';
-import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 
-export default function Map({ airportString }: { airportString: string }) {
-  const [airports] = useState<Airport[]>(JSON.parse(airportString));
-
+export default function Map() {
   return (
     <MapContainer
       center={[38.7209, -77.5133]}
@@ -23,26 +23,47 @@ export default function Map({ airportString }: { airportString: string }) {
       className='overflow-y-hidden overflow-x-hidden'
       attributionControl={false}
     >
-      <MapTiles airports={airports} />
+      <MapTiles />
     </MapContainer>
   );
 }
 
-function MapTiles({ airports }: { airports: Airport[] }) {
+function MapTiles() {
+  const [airports, setAirports] = useState<Airport[]>([]);
   const [zoomLevel, setZoomLevel] = useState(8);
   // const [dragging, setDragging] = useState(false);
-  // const [center, setCenter] = useState([50, 10.5]);
+  const map = useMap();
+
   const mapEvents = useMapEvents({
     zoomend: () => {
       setZoomLevel(mapEvents.getZoom());
     },
-    moveend: () => {
-      console.log(mapEvents.getBounds());
+    movestart: () => {
+      // setDragging(true);
+    },
+    moveend: async () => {
+      // setDragging(false);
+      await updateAirports(mapEvents.getBounds());
     }
-    // mouseup: () => {
-    //   setCenter([mapEvents.getCenter().lat, mapEvents.getCenter().lng]);
-    // }
   });
+
+  async function updateAirports(bounds: LatLngBounds) {
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    const _airports = await getAirports({
+      ne_lat: ne.lat,
+      ne_lon: ne.lng,
+      sw_lat: sw.lat,
+      sw_lon: sw.lng,
+      limit: 10,
+      page: 1
+    });
+    const metars = await getMetars(_airports);
+    for (let i = 0; i < metars.length; i++) {
+      _airports[i].metar = metars[i];
+    }
+    setAirports(_airports);
+  }
 
   function metarBGColor(metar: Metar | undefined) {
     if (metar?.flight_category == 'VFR') {
@@ -109,6 +130,10 @@ function MapTiles({ airports }: { airports: Airport[] }) {
     });
   }
 
+  useEffect(() => {
+    updateAirports(map.getBounds());
+  }, []);
+
   return (
     <>
       <TileLayer
@@ -116,54 +141,52 @@ function MapTiles({ airports }: { airports: Airport[] }) {
         url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
       />
       {airports.map((airport) => (
-        <>
-          <Marker key={airport.icao} position={[airport.latitude, airport.longitude]} icon={icon(airport)}>
-            <Tooltip className='metar-tooltip' direction='top' offset={[5, -5]} opacity={1}>
-              {airport.icao}
-            </Tooltip>
-            <Popup>
-              <div className='min-w-0 flex-1 select-none'>
-                <Link href={`/airport/${airport.icao}`}>
-                  <h1 className='text-base text-gray-900 pb-1'>
-                    <span className='font-semibold'>{airport.icao}</span> {airport.name}
-                  </h1>
-                </Link>
-                <hr />
-                <p className='text-sm font-medium text-gray-500'>{airport.metar?.raw_text}</p>
-                <div className='mt-2 flex'>
-                  <span
-                    className={`flex inline-block text-sm text-white ${metarBGColor(
-                      airport.metar
-                    )} py-2 px-4 rounded-full`}
-                  >
-                    {airport.metar?.flight_category ? airport.metar?.flight_category : 'UNKN'}
+        <Marker key={airport.icao} position={[airport.latitude, airport.longitude]} icon={icon(airport)}>
+          <Tooltip className='metar-tooltip' direction='top' offset={[5, -5]} opacity={1}>
+            {airport.icao}
+          </Tooltip>
+          <Popup>
+            <div className='min-w-0 flex-1 select-none'>
+              <Link href={`/airport/${airport.icao}`}>
+                <h1 className='text-base text-gray-900 pb-1'>
+                  <span className='font-semibold'>{airport.icao}</span> {airport.name}
+                </h1>
+              </Link>
+              <hr />
+              <p className='text-sm font-medium text-gray-500'>{airport.metar?.raw_text}</p>
+              <div className='mt-2 flex'>
+                <span
+                  className={`flex inline-block text-sm text-white ${metarBGColor(
+                    airport.metar
+                  )} py-2 px-4 rounded-full`}
+                >
+                  {airport.metar?.flight_category ? airport.metar?.flight_category : 'UNKN'}
+                </span>
+                <div className='flex inline-block px-2'>
+                  <span className={`text-sm text-black ${windColor(airport.metar)} py-2 px-2 rounded-full`}>
+                    {airport.metar && airport.metar.wind_dir_degrees && Number(airport.metar.wind_dir_degrees) > 0 ? (
+                      <FontAwesomeIcon
+                        className='pr-1'
+                        icon={faLocationArrow}
+                        style={{ rotate: `${-45 + 180 + Number(airport.metar.wind_dir_degrees)}deg` }}
+                      />
+                    ) : (
+                      <></>
+                    )}
+                    {airport.metar && airport.metar.wind_dir_degrees && airport.metar.wind_dir_degrees == 'VRB' ? (
+                      <FontAwesomeIcon className='pr-1' icon={faArrowsSpin} />
+                    ) : (
+                      <></>
+                    )}
+                    {airport.metar?.wind_speed_kt != undefined && airport.metar?.wind_speed_kt > 0
+                      ? `${airport.metar?.wind_speed_kt} KT`
+                      : 'CALM'}
                   </span>
-                  <div className='flex inline-block px-2'>
-                    <span className={`text-sm text-black ${windColor(airport.metar)} py-2 px-2 rounded-full`}>
-                      {airport.metar && airport.metar.wind_dir_degrees && Number(airport.metar.wind_dir_degrees) > 0 ? (
-                        <FontAwesomeIcon
-                          className='pr-1'
-                          icon={faLocationArrow}
-                          style={{ rotate: `${-45 + 180 + Number(airport.metar.wind_dir_degrees)}deg` }}
-                        />
-                      ) : (
-                        <></>
-                      )}
-                      {airport.metar && airport.metar.wind_dir_degrees && airport.metar.wind_dir_degrees == 'VRB' ? (
-                        <FontAwesomeIcon className='pr-1' icon={faArrowsSpin} />
-                      ) : (
-                        <></>
-                      )}
-                      {airport.metar?.wind_speed_kt != undefined && airport.metar?.wind_speed_kt > 0
-                        ? `${airport.metar?.wind_speed_kt} KT`
-                        : 'CALM'}
-                    </span>
-                  </div>
                 </div>
               </div>
-            </Popup>
-          </Marker>
-        </>
+            </div>
+          </Popup>
+        </Marker>
       ))}
     </>
   );

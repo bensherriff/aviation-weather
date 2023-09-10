@@ -1,7 +1,4 @@
-import { Airport } from '@/js/api/airport.types';
-import { getAirports } from '@/js/api/airport';
 import { Metar } from '@/js/api/metar.types';
-import { getMetars } from '@/js/api/metar';
 import dynamic from 'next/dynamic';
 
 export default async function Metar() {
@@ -16,16 +13,5 @@ export default async function Metar() {
     ssr: false
   });
 
-  let airports: Airport[] = [];
-
-  async function update() {
-    airports = await getAirports({ limit: 10, page: 1 });
-    const metars = await getMetars(airports);
-    for (let i = 0; i < metars.length; i++) {
-      airports[i].metar = metars[i];
-    }
-  }
-  await update();
-
-  return <Map airportString={JSON.stringify(airports)} />;
+  return <Map />;
 }

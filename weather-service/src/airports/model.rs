@@ -40,8 +40,20 @@ pub struct Airports {
   pub longitude: f64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Bounds {
+  pub north_east: LatLng,
+  pub south_west: LatLng,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LatLng {
+  pub lat: f32,
+  pub lon: f32
+}
+
 impl Airports {
-  pub fn find_all(limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
+  pub fn find_all(bounds: Bounds, limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
     let conn = db::connection()?;
     let airports = airports::table
       .limit(limit as i64)
