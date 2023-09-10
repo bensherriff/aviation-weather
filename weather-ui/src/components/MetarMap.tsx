@@ -17,7 +17,7 @@ export default function Map() {
       center={[38.7209, -77.5133]}
       zoom={8}
       maxZoom={12}
-      minZoom={3}
+      minZoom={1}
       zoomControl={false}
       style={{ height: '96.5vh' }}
       className='overflow-y-hidden overflow-x-hidden'
@@ -55,13 +55,17 @@ function MapTiles() {
       ne_lon: ne.lng,
       sw_lat: sw.lat,
       sw_lon: sw.lng,
-      limit: 10,
+      limit: 100,
       page: 1
     });
     const metars = await getMetars(_airports);
-    for (let i = 0; i < metars.length; i++) {
-      _airports[i].metar = metars[i];
-    }
+    metars.forEach((metar) => {
+      _airports.forEach((airport) => {
+        if (metar.station_id == airport.icao) {
+          airport.metar = metar;
+        }
+      });
+    });
     setAirports(_airports);
   }
 
@@ -89,7 +93,7 @@ function MapTiles() {
     } else if (metar?.flight_category == 'LIFR') {
       return 'text-red-700';
     } else {
-      return 'text-black';
+      return 'text-black/50';
     }
   }
 
@@ -141,15 +145,15 @@ function MapTiles() {
         url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
       />
       {airports.map((airport) => (
-        <Marker key={airport.icao} position={[airport.latitude, airport.longitude]} icon={icon(airport)}>
+        <Marker key={airport.icao} position={[airport.point.y, airport.point.x]} icon={icon(airport)}>
           <Tooltip className='metar-tooltip' direction='top' offset={[5, -5]} opacity={1}>
-            {airport.icao}
+            <b>{airport.icao}</b> - {airport.full_name}
           </Tooltip>
           <Popup>
             <div className='min-w-0 flex-1 select-none'>
               <Link href={`/airport/${airport.icao}`}>
                 <h1 className='text-base text-gray-900 pb-1'>
-                  <span className='font-semibold'>{airport.icao}</span> {airport.name}
+                  <span className='font-semibold'>{airport.icao}</span> {airport.full_name}
                 </h1>
               </Link>
               <hr />

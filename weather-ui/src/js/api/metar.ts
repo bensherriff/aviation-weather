@@ -6,5 +6,5 @@ export async function getMetars(airports: Airport[]): Promise<Metar[]> {
   const stationICAOs: string = airports.map((airport) => airport.icao).join(',');
   const url = `http://localhost:5000/metars/${stationICAOs}`;
   const response = await axios.get(url).catch((error) => console.error(error));
-  return response?.data;
+  return response?.data || [];
 }

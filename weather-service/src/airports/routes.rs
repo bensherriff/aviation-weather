@@ -1,17 +1,24 @@
-use crate::{airports::{Airport, Airports, Bounds, LatLng}, db};
+use crate::{airports::{Airport, Airports}, db};
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest};
 use log::error;
+use postgis_diesel::types::{Polygon, Point};
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct FindAllParams {
-  ne_lat: f32,
-  ne_lon: f32,
-  sw_lat: f32,
-  sw_lon: f32,
+  ne_lat: f64,
+  ne_lon: f64,
+  sw_lat: f64,
+  sw_lon: f64,
   limit: i32,
   page: i32
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+struct Coordinate {
+  lon: f64,
+  lat: f64
 }
 
 #[get("/setup")]
@@ -23,11 +30,13 @@ async fn setup() -> HttpResponse {
 #[get("/airports")]
 async fn find_all(req: HttpRequest) -> HttpResponse {
   let params = web::Query::<FindAllParams>::from_query(req.query_string()).unwrap();
-  let bounds = Bounds {
-    north_east: LatLng { lat: params.ne_lat, lon: params.ne_lon },
-    south_west: LatLng { lat: params.sw_lat, lon: params.sw_lon }
-  };
-  match web::block(move || Airports::find_all(bounds, params.limit, params.page)).await.unwrap() {
+  let mut polygon: Polygon<Point> = Polygon::new(Some(4326));
+  polygon.add_point(Point { x: params.sw_lon, y: params.sw_lat, srid: Some(4326) });
+  polygon.add_point(Point { x: params.ne_lon, y: params.sw_lat, srid: Some(4326) });
+  polygon.add_point(Point { x: params.ne_lon, y: params.ne_lat, srid: Some(4326) });
+  polygon.add_point(Point { x: params.sw_lon, y: params.ne_lat, srid: Some(4326) });
+  polygon.add_point(Point { x: params.sw_lon, y: params.sw_lat, srid: Some(4326) });
+  match web::block(move || Airports::find_all(polygon, params.limit, params.page)).await.unwrap() {
     Ok(a) => HttpResponse::Ok().json(a),
     Err(err) => {
       error!("{}", err);

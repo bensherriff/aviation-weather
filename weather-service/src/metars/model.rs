@@ -14,18 +14,17 @@ pub struct QualityControlFlags {
 #[derive(Serialize, Deserialize, AsChangeset, Insertable)]
 #[diesel(table_name = metars)]
 pub struct Metar {
-    pub icao: String,
     pub raw_text: String,
     pub station_id: String,
     pub observation_time: String,
     pub latitude: f64,
     pub longitude: f64,
-    pub temp_c: f64,
-    pub dewpoint_c: f64,
-    pub wind_dir_degrees: i32,
-    pub wind_speed_kt: i32,
-    pub visibility_statute_mi: String,
-    pub altim_in_hg: f64,
+    pub temp_c: Option<f64>,
+    pub dewpoint_c: Option<f64>,
+    pub wind_dir_degrees: Option<String>,
+    pub wind_speed_kt: Option<i32>,
+    pub visibility_statute_mi: Option<String>,
+    pub altim_in_hg: Option<f64>,
     pub sea_level_pressure_mb: Option<f64>,
     // pub quality_control_flags: Option<QualityControlFlags>,
     pub wx_string: Option<String>,
@@ -35,7 +34,7 @@ pub struct Metar {
     pub metar_type: String,
     #[serde(rename = "maxT_c")]
     pub max_t_c: Option<f64>,
-    #[serde(rename = "minT_c")]
+    #[serde(rename = "  ")]
     pub min_t_c: Option<f64>,
     pub precip_in: Option<f64>,
     pub elevation_m: i32
@@ -43,19 +42,17 @@ pub struct Metar {
 
 #[derive(Serialize, Deserialize, Queryable)]
 pub struct Metars {
-    // pub id: i32,
-    // pub icao: String,
     pub raw_text: String,
     pub station_id: String,
     pub observation_time: String,
     pub latitude: f64,
     pub longitude: f64,
-    pub temp_c: f64,
-    pub dewpoint_c: f64,
-    pub wind_dir_degrees: i32,
-    pub wind_speed_kt: i32,
-    pub visibility_statute_mi: String,
-    pub altim_in_hg: f64,
+    pub temp_c: Option<f64>,
+    pub dewpoint_c: Option<f64>,
+    pub wind_dir_degrees: Option<String>,
+    pub wind_speed_kt: Option<i32>,
+    pub visibility_statute_mi: Option<String>,
+    pub altim_in_hg: Option<f64>,
     pub sea_level_pressure_mb: Option<f64>,
     pub quality_control_flags: Option<QualityControlFlags>,
     pub wx_string: Option<String>,
@@ -119,8 +116,10 @@ impl Metars {
                             let metar_bytes = Metars::read_to_end_into_buffer(&mut reader, &e, &mut junk_buf).unwrap();
                             let str = std::str::from_utf8(&metar_bytes).unwrap();
                             let mut deserializer = Deserializer::from_str(str);
-                            let metar = Metars::deserialize(&mut deserializer).unwrap();
-                            metars.push(metar);
+                            match Metars::deserialize(&mut deserializer) {
+                                Ok(m) => metars.push(m),
+                                Err(err) => warn!("{}", err)
+                            };
                         },
                         _ => ()
                     }

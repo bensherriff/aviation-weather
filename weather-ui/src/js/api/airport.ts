@@ -28,7 +28,7 @@ export async function getAirports({
   page = 1
 }: GetAirportsProps): Promise<Airport[]> {
   const response = await axios
-    .get(`http://localhost:5000/airports`, { params: { ne_lat, ne_lon, sw_lat, sw_lon, page, limit } })
+    .get(`http://localhost:5000/airports`, { params: { ne_lat, ne_lon, sw_lat, sw_lon, limit, page } })
     .catch((error) => console.error(error));
-  return response?.data;
+  return response?.data || [];
 }

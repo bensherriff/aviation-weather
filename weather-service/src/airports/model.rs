@@ -3,6 +3,7 @@ use crate::error_handler::CustomError;
 use crate::schema::airports;
 use diesel::prelude::*;
 use postgis_diesel::types::*;
+use postgis_diesel::functions::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, AsChangeset, Insertable)]
@@ -39,24 +40,12 @@ pub struct Airports {
   pub point: Point
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Bounds {
-  pub north_east: LatLng,
-  pub south_west: LatLng,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct LatLng {
-  pub lat: f32,
-  pub lon: f32
-}
-
 impl Airports {
-  pub fn find_all(bounds: Bounds, limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
+  pub fn find_all(bounds: Polygon<Point>, limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
     let mut conn = db::connection()?;
     let airports = airports::table
       .limit(limit as i64)
-      .filter(airports::id.gt(page * limit))
+      .filter(airports::id.gt(page * limit).and(st_contains(bounds, airports::point)))
       .load::<Airports>(&mut conn)?;
     Ok(airports)
   }
