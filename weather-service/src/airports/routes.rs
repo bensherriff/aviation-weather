@@ -1,4 +1,4 @@
-use crate::airports::{Airport, Airports, Bounds, LatLng};
+use crate::{airports::{Airport, Airports, Bounds, LatLng}, db};
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest};
 use log::error;
 use serde::{Serialize, Deserialize};
@@ -14,7 +14,11 @@ struct FindAllParams {
   page: i32
 }
 
-
+#[get("/setup")]
+async fn setup() -> HttpResponse {
+  db::import_data();
+  HttpResponse::Ok().finish()
+}
 
 #[get("/airports")]
 async fn find_all(req: HttpRequest) -> HttpResponse {
@@ -82,4 +86,5 @@ pub fn init_routes(config: &mut web::ServiceConfig) {
   config.service(create);
   config.service(update);
   config.service(delete);
+  config.service(setup);
 }

@@ -12,7 +12,7 @@ pub struct QualityControlFlags {
 }
 
 #[derive(Serialize, Deserialize, AsChangeset, Insertable)]
-#[table_name = "metars"]
+#[diesel(table_name = metars)]
 pub struct Metar {
     pub icao: String,
     pub raw_text: String,

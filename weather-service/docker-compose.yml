@@ -1,8 +1,8 @@
 version: '3'
 
 services:
-  db:
-    image: postgres:latest
+  weather-db:
+    image: postgis/postgis:latest
     container_name: weather.db
     env_file:
       - .env
@@ -11,12 +11,12 @@ services:
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
     volumes:
-     - db_weather:/var/lib/postgresql/data
-     - db_logs_weather:/var/log
+     - db:/var/lib/postgresql/data
+     - db_logs:/var/log
     ports:
-      - "5433:5432"
+      - "${DATABASE_PORT}:5432"
     restart: unless-stopped
 
 volumes:
-  db_weather:
-  db_logs_weather:
+  db:
+  db_logs:

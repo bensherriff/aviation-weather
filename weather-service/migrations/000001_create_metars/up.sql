@@ -21,4 +21,4 @@ CREATE TABLE IF NOT EXISTS metars (
     min_t_c DOUBLE PRECISION,
     precip_in DOUBLE PRECISION,
     elevation_m INTEGER
-)
+);

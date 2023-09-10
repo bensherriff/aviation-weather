@@ -1,7 +1,9 @@
 diesel::table! {
-  airports (id) {
-    id -> Integer,
+  use postgis_diesel::sql_types::*;
+  use diesel::sql_types::*;
+  airports (icao) {
     icao -> Text,
+    id -> Integer,
     category -> Text,
     full_name -> Text,
     elevation_ft -> Nullable<Integer>,
@@ -12,8 +14,7 @@ diesel::table! {
     gps_code -> Text,
     iata_code -> Text,
     local_code -> Text,
-    latitude -> Double,
-    longitude -> Double,
+    point -> Geometry,
   }
 }
 

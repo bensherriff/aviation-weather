@@ -1,33 +1,35 @@
 use crate::{error_handler::CustomError, airports::{Airport, Airports}};
-use diesel::pg::PgConnection;
-use diesel::r2d2::ConnectionManager;
+use diesel::{r2d2::ConnectionManager, PgConnection};
+use crate::diesel_migrations::MigrationHarness;
 use lazy_static::lazy_static;
-use log::{error, info, debug};
+use log::{error, debug, info};
 use r2d2;
 use std::env;
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 pub type DbConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
 
-diesel_migrations::embed_migrations!();
+pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations = embed_migrations!();
 
 lazy_static! {
   static ref POOL: Pool = {
     let username = env::var("DATABASE_USER").expect("Database username is not set");
     let password = env::var("DATABASE_PASSWORD").expect("Database password is not set");
+    let host = env::var("DATABASE_HOST").expect("Database host is not set");
     let name = env::var("DATABASE_NAME").expect("Database name is not set");
-    let url = format!("postgres://{}:{}@localhost:5433/{}", username, password, name);
+    let port = env::var("DATABASE_PORT").expect("Database port is not set");
+    let url = format!("postgres://{}:{}@{}:{}/{}", username, password, host, port, name);
     let manager = ConnectionManager::<PgConnection>::new(url);
-    Pool::new(manager).expect("Failed to create db pool")
+    Pool::builder().test_on_check_out(true).build(manager).expect("Failed to create db pool")
   };
 }
 
 pub fn init() {
   lazy_static::initialize(&POOL);
-  let conn = connection().expect("Failed to get db connection");
-  match embedded_migrations::run(&conn) {
+  let mut pool: DbConnection = connection().expect("Failed to get db connection");
+  match pool.run_pending_migrations(MIGRATIONS) {
     Ok(_) => info!("Database initialized"),
-    Err(err) => error!("Failed to initialize database; {}", err),
+    Err(err) => error!("Failed to initialize database; {}", err)
   };
 }
 
