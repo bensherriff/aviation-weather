@@ -1,11 +1,19 @@
 use crate::airports::{Airport, Airports};
-use actix_web::{delete, get, post, put, web, HttpResponse};
+use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest};
 use log::error;
+use serde::{Serialize, Deserialize};
 use serde_json::json;
 
+#[derive(Debug, Serialize, Deserialize)]
+struct FindAllParams {
+    limit: i32,
+    page: i32
+}
+
 #[get("/airports")]
-async fn find_all() -> HttpResponse {
-    match web::block(|| Airports::find_all()).await.unwrap() {
+async fn find_all(req: HttpRequest) -> HttpResponse {
+    let params = web::Query::<FindAllParams>::from_query(req.query_string()).unwrap();
+    match web::block(move || Airports::find_all(params.limit, params.page)).await.unwrap() {
         Ok(a) => HttpResponse::Ok().json(a),
         Err(err) => {
             error!("{}", err);

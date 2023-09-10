@@ -7,8 +7,17 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, AsChangeset, Insertable)]
 #[table_name = "airports"]
 pub struct Airport {
-  pub full_name: String,
   pub icao: String,
+  pub category: String,
+  pub full_name: String,
+  pub elevation_ft: Option<i32>,
+  pub continent: String,
+  pub iso_country: String,
+  pub iso_region: String,
+  pub municipality: String,
+  pub gps_code: String,
+  pub iata_code: String,
+  pub local_code: String,
   pub latitude: f64,
   pub longitude: f64,
 }
@@ -16,16 +25,28 @@ pub struct Airport {
 #[derive(Serialize, Deserialize, Queryable)]
 pub struct Airports {
   pub id: i32,
-  pub full_name: String,
   pub icao: String,
+  pub category: String,
+  pub full_name: String,
+  pub elevation_ft: Option<i32>,
+  pub continent: String,
+  pub iso_country: String,
+  pub iso_region: String,
+  pub municipality: String,
+  pub gps_code: String,
+  pub iata_code: String,
+  pub local_code: String,
   pub latitude: f64,
   pub longitude: f64,
 }
 
 impl Airports {
-  pub fn find_all() -> Result<Vec<Self>, CustomError> {
+  pub fn find_all(limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
     let conn = db::connection()?;
-    let airports = airports::table.load::<Airports>(&conn)?;
+    let airports = airports::table
+      .limit(limit as i64)
+      .filter(airports::id.gt(page * limit))
+      .load::<Airports>(&conn)?;
     Ok(airports)
   }
 

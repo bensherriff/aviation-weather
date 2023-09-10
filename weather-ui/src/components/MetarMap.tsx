@@ -10,7 +10,7 @@ import ReactDOMServer from 'react-dom/server';
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMapEvents } from 'react-leaflet';
 
 export default function Map({ airportString }: { airportString: string }) {
-  const [airports, setAirports] = useState<Airport[]>(JSON.parse(airportString));
+  const [airports] = useState<Airport[]>(JSON.parse(airportString));
 
   return (
     <MapContainer
@@ -35,6 +35,9 @@ function MapTiles({ airports }: { airports: Airport[] }) {
   const mapEvents = useMapEvents({
     zoomend: () => {
       setZoomLevel(mapEvents.getZoom());
+    },
+    moveend: () => {
+      console.log(mapEvents.getBounds());
     }
     // mouseup: () => {
     //   setCenter([mapEvents.getCenter().lat, mapEvents.getCenter().lng]);
@@ -114,7 +117,7 @@ function MapTiles({ airports }: { airports: Airport[] }) {
       />
       {airports.map((airport) => (
         <>
-          <Marker position={[airport.latitude, airport.longitude]} icon={icon(airport)}>
+          <Marker key={airport.icao} position={[airport.latitude, airport.longitude]} icon={icon(airport)}>
             <Tooltip className='metar-tooltip' direction='top' offset={[5, -5]} opacity={1}>
               {airport.icao}
             </Tooltip>

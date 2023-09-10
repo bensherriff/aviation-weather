@@ -1,8 +1,17 @@
 diesel::table! {
   airports (id) {
     id -> Integer,
-    full_name -> Text,
     icao -> Text,
+    category -> Text,
+    full_name -> Text,
+    elevation_ft -> Nullable<Integer>,
+    continent -> Text,
+    iso_country -> Text,
+    iso_region -> Text,
+    municipality -> Text,
+    gps_code -> Text,
+    iata_code -> Text,
+    local_code -> Text,
     latitude -> Double,
     longitude -> Double,
   }
