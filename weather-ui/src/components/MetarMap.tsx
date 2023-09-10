@@ -55,7 +55,7 @@ function MapTiles() {
       ne_lon: ne.lng,
       sw_lat: sw.lat,
       sw_lon: sw.lng,
-      limit: 100,
+      limit: 500,
       page: 1
     });
     const metars = await getMetars(_airports);
@@ -75,9 +75,9 @@ function MapTiles() {
     } else if (metar?.flight_category == 'MVFR') {
       return 'bg-blue-600';
     } else if (metar?.flight_category == 'IFR') {
-      return 'bg-orange-600';
-    } else if (metar?.flight_category == 'LIFR') {
       return 'bg-red-600';
+    } else if (metar?.flight_category == 'LIFR') {
+      return 'bg-purple-600';
     } else {
       return 'bg-black';
     }
@@ -89,9 +89,9 @@ function MapTiles() {
     } else if (metar?.flight_category == 'MVFR') {
       return 'text-blue-700';
     } else if (metar?.flight_category == 'IFR') {
-      return 'text-orange-700';
-    } else if (metar?.flight_category == 'LIFR') {
       return 'text-red-700';
+    } else if (metar?.flight_category == 'LIFR') {
+      return 'text-purple-700';
     } else {
       return 'text-black/50';
     }

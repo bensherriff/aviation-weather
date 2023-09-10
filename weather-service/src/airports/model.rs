@@ -41,11 +41,17 @@ pub struct Airports {
 }
 
 impl Airports {
-  pub fn find_all(bounds: Polygon<Point>, limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
+  pub fn find_all(bounds: Option<Polygon<Point>>, limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
     let mut conn = db::connection()?;
     let airports = airports::table
       .limit(limit as i64)
-      .filter(airports::id.gt(page * limit).and(st_contains(bounds, airports::point)))
+      .filter(airports::id.gt(page * limit).and(match bounds {
+        Some(b) => st_contains(b, airports::point),
+        None => {
+          let polygon: Polygon<Point> = Polygon::new(Some(4326));
+          st_contains(polygon, airports::point)
+        }
+      }))
       .load::<Airports>(&mut conn)?;
     Ok(airports)
   }

@@ -36,7 +36,7 @@ async fn find_all(req: HttpRequest) -> HttpResponse {
   polygon.add_point(Point { x: params.ne_lon, y: params.ne_lat, srid: Some(4326) });
   polygon.add_point(Point { x: params.sw_lon, y: params.ne_lat, srid: Some(4326) });
   polygon.add_point(Point { x: params.sw_lon, y: params.sw_lat, srid: Some(4326) });
-  match web::block(move || Airports::find_all(polygon, params.limit, params.page)).await.unwrap() {
+  match web::block(move || Airports::find_all(Some(polygon), params.limit, params.page)).await.unwrap() {
     Ok(a) => HttpResponse::Ok().json(a),
     Err(err) => {
       error!("{}", err);
