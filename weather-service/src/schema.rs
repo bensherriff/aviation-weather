@@ -21,7 +21,6 @@ diesel::table! {
 diesel::table! {
   metars (id) {
     id -> Integer,
-    icao -> Text,
     raw_text -> Text,
     station_id -> Text,
     observation_time -> Text,

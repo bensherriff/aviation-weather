@@ -1,5 +1,6 @@
-use crate::error_handler::CustomError;
+use crate::{error_handler::CustomError, db};
 use crate::schema::metars;
+use diesel::prelude::*;
 use log::warn;
 use std::io::BufRead;
 use quick_xml::{Reader, events::{Event, BytesStart}, Writer, de::Deserializer};
@@ -42,6 +43,7 @@ pub struct Metar {
 
 #[derive(Serialize, Deserialize, Queryable)]
 pub struct Metars {
+    pub id: i32,
     pub raw_text: String,
     pub station_id: String,
     pub observation_time: String,
@@ -54,7 +56,7 @@ pub struct Metars {
     pub visibility_statute_mi: Option<String>,
     pub altim_in_hg: Option<f64>,
     pub sea_level_pressure_mb: Option<f64>,
-    pub quality_control_flags: Option<QualityControlFlags>,
+    // pub quality_control_flags: Option<QualityControlFlags>,
     pub wx_string: Option<String>,
     // pub sky_condition: Option<Vec<String>>, // TODO work on attributes
     pub flight_category: String,
@@ -70,7 +72,15 @@ pub struct Metars {
 
 impl Metars {
     pub async fn get_all(icaos: String) -> Result<Vec<Self>, CustomError> {
-        // let station_string = station_icaos.join(",");
+        let station_icaos: Vec<&str> = icaos.split(',').collect();
+        let mut conn = db::connection()?;
+        let db_metars: Vec<Metars> = match metars::table
+            .filter(metars::station_id.eq_any(station_icaos))
+            .order(metars::id.asc())
+            .load::<Metars>(&mut conn) {
+                Ok(m) => m,
+                Err(err) => return Err(CustomError { error_status_code: 500, error_message: format!("{}", err) })
+            };
         let url = format!("https://beta.aviationweather.gov/cgi-bin/data/metar.php?ids={}&format=xml", icaos);
         let metars: Vec<Metars> = match reqwest::get(url).await {
             Ok(r) => match r.text().await {
@@ -93,6 +103,41 @@ impl Metars {
                 vec![]
             }
         };
+        for metar in &metars {
+            let _ = diesel::insert_into(metars::table)
+            .values(Metar {
+                raw_text: metar.raw_text.to_string(),
+                station_id: metar.station_id.to_string(),
+                observation_time: metar.observation_time.to_string(),
+                latitude: metar.latitude,
+                longitude: metar.longitude,
+                temp_c: metar.temp_c,
+                dewpoint_c: metar.dewpoint_c,
+                wind_dir_degrees: match &metar.wind_dir_degrees {
+                    Some(d) => Some(d.to_string()),
+                    None => None
+                },
+                wind_speed_kt: metar.wind_speed_kt,
+                visibility_statute_mi: match &metar.visibility_statute_mi {
+                    Some(d) => Some(d.to_string()),
+                    None => None
+                },
+                altim_in_hg: metar.altim_in_hg,
+                sea_level_pressure_mb: metar.sea_level_pressure_mb,
+                wx_string: match &metar.wx_string {
+                    Some(d) => Some(d.to_string()),
+                    None => None
+                },
+                flight_category: metar.flight_category.to_string(),
+                three_hr_pressure_tendency_mb: metar.three_hr_pressure_tendency_mb,
+                metar_type: metar.metar_type.to_string(),
+                max_t_c: metar.max_t_c,
+                min_t_c: metar.min_t_c,
+                precip_in: metar.precip_in,
+                elevation_m: metar.elevation_m,
+            })
+            .execute(&mut conn);
+        }
         Ok(metars)
     }
 
