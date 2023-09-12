@@ -39,7 +39,9 @@ pub fn connection() -> Result<DbConnection, CustomError> {
 }
 
 pub fn import_data() {
-  let contents: String = std::fs::read_to_string("airport-codes.json").expect("Failed to read file");
+  let path = "airport-codes.json";
+  debug!("Importing data from {}", path);
+  let contents: String = std::fs::read_to_string(path).expect("Failed to read file");
   let airports: Vec<Airport> = serde_json::from_str(&contents).expect("JSON was not well formed.");
   for airport in airports {
     match Airports::create(airport) {
@@ -47,5 +49,5 @@ pub fn import_data() {
       Err(err) => error!("Error inserting airport; {}", err)
     };
   }
-  debug!("Imported data");
+  debug!("Import complete");
 }
