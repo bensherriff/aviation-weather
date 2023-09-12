@@ -66,13 +66,6 @@ function MapTiles() {
         }
       });
     });
-    const temp: string[] = [];
-    _airports.forEach((airport) => {
-      if (!airport.metar) {
-        temp.push(airport.icao);
-      }
-    });
-    console.log(`delete from airports where icao = ANY('{${temp}}'::text[]);`);
     setAirports(_airports);
   }
 

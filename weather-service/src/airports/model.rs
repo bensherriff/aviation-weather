@@ -53,8 +53,6 @@ impl Airports {
         }
       }))
       .load::<Airports>(&mut conn)?;
-    // let string = serde_json::to_string(&airports).unwrap();
-    // std::fs::write("test.json", string);
     Ok(airports)
   }
 
