@@ -55,7 +55,7 @@ function MapTiles() {
       ne_lon: ne.lng,
       sw_lat: sw.lat,
       sw_lon: sw.lng,
-      limit: 500,
+      limit: 100,
       page: 1
     });
     const metars = await getMetars(_airports);
@@ -66,6 +66,13 @@ function MapTiles() {
         }
       });
     });
+    const temp: string[] = [];
+    _airports.forEach((airport) => {
+      if (!airport.metar) {
+        temp.push(airport.icao);
+      }
+    });
+    console.log(`delete from airports where icao = ANY('{${temp}}'::text[]);`);
     setAirports(_airports);
   }
 
