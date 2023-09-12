@@ -56,9 +56,9 @@ impl Airports {
     Ok(airports)
   }
 
-  pub fn find(id: i32) -> Result<Self, CustomError> {
+  pub fn find(icao: String) -> Result<Self, CustomError> {
     let mut conn = db::connection()?;
-    let airport = airports::table.filter(airports::id.eq(id)).first(&mut conn)?;
+    let airport = airports::table.filter(airports::icao.eq(icao)).first(&mut conn)?;
     Ok(airport)
 }
 

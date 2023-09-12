@@ -1,7 +1,7 @@
 use crate::{error_handler::CustomError, db};
 use crate::schema::metars;
 use diesel::prelude::*;
-use log::warn;
+use log::{warn, error, debug};
 use std::io::BufRead;
 use quick_xml::{Reader, events::{Event, BytesStart}, Writer, de::Deserializer};
 use serde::{Deserialize, Serialize};
@@ -171,11 +171,15 @@ impl Metars {
                 vec![]
             }
         };
+        match diesel::insert_into(metars::table).values(&metars).execute(&mut conn) {
+            Ok(rows) => debug!("Inserted {} metar rows", rows),
+            Err(err) => error!("Unable to insert metar data; {}", err)
+        };
         let mut returned_metars: Vec<Self> = vec![];
         for metar in &metars {
-            let _ = diesel::insert_into(metars::table)
-            .values(metar)
-            .execute(&mut conn);
+            // let _ = diesel::insert_into(metars::table)
+            // .values(metar)
+            // .execute(&mut conn);
             returned_metars.push(Self {
                 id: 0,
                 raw_text: metar.raw_text.to_string(),

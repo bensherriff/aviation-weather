@@ -45,9 +45,9 @@ async fn find_all(req: HttpRequest) -> HttpResponse {
   }
 }
 
-#[get("/airports/{id}")]
-async fn find(id: web::Path<i32>) -> HttpResponse {
-  match Airports::find(id.into_inner()) {
+#[get("/airports/{icao}")]
+async fn find(icao: web::Path<String>) -> HttpResponse {
+  match Airports::find(icao.into_inner()) {
     Ok(a) => HttpResponse::Ok().json(a),
     Err(err) => {
       error!("{}", err);

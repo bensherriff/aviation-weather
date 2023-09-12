@@ -141,8 +141,8 @@ function MapTiles() {
   return (
     <>
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+        attribution='&copy; <a href="https://www.osm.org/copyright">OpenStreetMap</a> contributors'
+        url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'
       />
       {airports.map((airport) => (
         <Marker key={airport.icao} position={[airport.point.y, airport.point.x]} icon={icon(airport)}>

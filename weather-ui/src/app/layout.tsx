@@ -18,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className='bg-gray-600'>
         <div className='flex justify-between bg-gray-700 px-4 py-1 sm:px-6 select-none'>
-          <h3 className='text-lg font-bold leading-6 text-gray-200'>Aviation Weather</h3>
+          <Link href={'/'}>
+            <h3 className='text-lg font-bold leading-6 text-gray-200'>Aviation Weather</h3>
+          </Link>
           <Link className='text-base text-gray-200' href={'/profile'}>
             Profile
           </Link>
