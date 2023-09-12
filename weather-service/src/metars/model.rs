@@ -72,6 +72,9 @@ pub struct Metars {
 
 impl Metars {
     pub async fn get_all(icaos: String) -> Result<Vec<Self>, CustomError> {
+        if icaos.is_empty() {
+            return Ok(vec![]);
+        }
         let station_icaos: Vec<&str> = icaos.split(',').collect();
         let mut conn = db::connection()?;
         let db_metars: Vec<Metars> = match metars::table
