@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 actix-web = "4.4.0"
 actix-rt = "2.9.0"
-chrono = { version = "0.4.28", features = ["serde"] }
+chrono = { version = "0.4.30", features = ["serde"] }
 dotenv = "0.15.0"
 diesel = { version = "2.0", features = ["postgres", "r2d2", "uuid", "chrono"] }
 postgis_diesel = { version = "2.2.1", features = ["serde"] }

@@ -1,7 +1,8 @@
 use crate::{error_handler::CustomError, db};
 use crate::schema::metars;
-use diesel::prelude::*;
-use log::{warn, error, debug};
+use diesel::{prelude::*, sql_query};
+use log::{warn, trace};
+use std::collections::HashSet;
 use std::io::BufRead;
 use quick_xml::{Reader, events::{Event, BytesStart}, Writer, de::Deserializer};
 use serde::{Deserialize, Serialize};
@@ -64,7 +65,7 @@ impl Metar {
                             let mut deserializer = Deserializer::from_str(str);
                             match Self::deserialize(&mut deserializer) {
                                 Ok(m) => metars.push(m),
-                                Err(err) => warn!("{}", err)
+                                Err(err) => warn!("Error deserializing; {}", err)
                             };
                         },
                         _ => ()
@@ -106,7 +107,8 @@ impl Metar {
     }
 }
 
-#[derive(Serialize, Deserialize, Queryable)]
+#[derive(Serialize, Deserialize, Queryable, QueryableByName)]
+#[diesel(table_name = metars)]
 pub struct Metars {
     pub id: i32,
     pub raw_text: String,
@@ -141,15 +143,44 @@ impl Metars {
             return Ok(vec![]);
         }
         let station_icaos: Vec<&str> = icaos.split(',').collect();
+        let station_query: Vec<String> = station_icaos.iter().map(|icao| format!("'{}'", icao.to_string())).collect();
+        
         let mut conn = db::connection()?;
-        let db_metars: Vec<Metars> = match metars::table
-            .filter(metars::station_id.eq_any(station_icaos))
-            .order(metars::id.asc())
-            .load::<Metars>(&mut conn) {
-                Ok(m) => m,
-                Err(err) => return Err(CustomError { error_status_code: 500, error_message: format!("{}", err) })
-            };
-        let url = format!("https://beta.aviationweather.gov/cgi-bin/data/metar.php?ids={}&format=xml", icaos);
+        let mut db_metars: Vec<Metars> = match sql_query(format!("SELECT DISTINCT ON (station_id) * FROM metars WHERE station_id IN ({}) ORDER BY station_id, observation_time DESC", station_query.join(","))).load(&mut conn) {
+            Ok(m) => m,
+            Err(err) => return Err(CustomError { error_status_code: 500, error_message: format!("{}", err) })
+        };
+        fn get_missing_metar_icaos(db_metars: &Vec<Metars>, station_icaos: Vec<&str>) -> Vec<String> {
+            let mut missing_metar_icaos: Vec<String> = vec![];
+            let current_time = chrono::Local::now().naive_local().timestamp();
+            let db_metars_set: HashSet<&str> = db_metars.iter().map(|icao| icao.station_id.as_str()).collect();
+            let station_icaos_set: HashSet<&str> = station_icaos.into_iter().collect();
+            for difference in db_metars_set.symmetric_difference(&station_icaos_set) {
+                missing_metar_icaos.push(difference.to_string());
+            }
+            for metar in db_metars {
+                match chrono::NaiveDateTime::parse_and_remainder(&metar.observation_time, "%Y-%m-%dT%H:%M:%S") {
+                    Ok((time, _)) => {
+                        if current_time > (time.timestamp() + 3600) {
+                            trace!("{} METAR data is outdated", metar.station_id);
+                            missing_metar_icaos.push(metar.station_id.to_string());
+                        }
+                    },
+                    Err(err) => {
+                        warn!("Parsing METAR timestamp failed; {}", err);
+                        missing_metar_icaos.push(metar.station_id.to_string());
+                    }
+                };
+            }
+            return missing_metar_icaos;
+        }
+        let missing_icaos = get_missing_metar_icaos(&db_metars, station_icaos);
+        if missing_icaos.is_empty() {
+            return Ok(db_metars);
+        }
+        trace!("Retrieving missing METAR data for {:?}", missing_icaos);
+        let missing_icaos_string: Vec<String> = missing_icaos.iter().map(|icao| format!("'{}'", icao.to_string())).collect();
+        let url = format!("https://beta.aviationweather.gov/cgi-bin/data/metar.php?ids={}&format=xml", missing_icaos_string.join(","));
         let metars: Vec<Metar> = match reqwest::get(url).await {
             Ok(r) => match r.text().await {
                 Ok(r) => {
@@ -171,15 +202,14 @@ impl Metars {
                 vec![]
             }
         };
-        match diesel::insert_into(metars::table).values(&metars).execute(&mut conn) {
-            Ok(rows) => debug!("Inserted {} metar rows", rows),
-            Err(err) => error!("Unable to insert metar data; {}", err)
-        };
+        if metars.len() > 0 {
+            match diesel::insert_into(metars::table).values(&metars).execute(&mut conn) {
+                Ok(rows) => trace!("Inserted {} metar rows", rows),
+                Err(err) => warn!("Unable to insert metar data; {}", err)
+            };
+        }
         let mut returned_metars: Vec<Self> = vec![];
         for metar in &metars {
-            // let _ = diesel::insert_into(metars::table)
-            // .values(metar)
-            // .execute(&mut conn);
             returned_metars.push(Self {
                 id: 0,
                 raw_text: metar.raw_text.to_string(),
@@ -213,6 +243,7 @@ impl Metars {
                 elevation_m: metar.elevation_m,
             })
         }
+        returned_metars.append(&mut db_metars);
         Ok(returned_metars)
     }
 }
