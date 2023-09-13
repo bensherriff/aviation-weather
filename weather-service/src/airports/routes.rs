@@ -11,6 +11,7 @@ struct FindAllParams {
   ne_lon: f64,
   sw_lat: f64,
   sw_lon: f64,
+  category: Option<String>,
   limit: i32,
   page: i32
 }
@@ -36,7 +37,12 @@ async fn find_all(req: HttpRequest) -> HttpResponse {
   polygon.add_point(Point { x: params.ne_lon, y: params.ne_lat, srid: Some(4326) });
   polygon.add_point(Point { x: params.sw_lon, y: params.ne_lat, srid: Some(4326) });
   polygon.add_point(Point { x: params.sw_lon, y: params.sw_lat, srid: Some(4326) });
-  match web::block(move || Airports::find_all(Some(polygon), params.limit, params.page)).await.unwrap() {
+  let category = match &params.category {
+    Some(c) => Some(c.to_string()),
+    None => None
+  };
+
+  match web::block(move || Airports::find_all(Some(polygon), category, params.limit, params.page)).await.unwrap() {
     Ok(a) => HttpResponse::Ok().json(a),
     Err(err) => {
       error!("{}", err);

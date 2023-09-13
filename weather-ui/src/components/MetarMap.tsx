@@ -18,7 +18,6 @@ export default function Map() {
       zoom={8}
       maxZoom={12}
       minZoom={1}
-      zoomControl={false}
       style={{ height: '96.5vh' }}
       className='overflow-y-hidden overflow-x-hidden'
       attributionControl={false}
@@ -35,8 +34,9 @@ function MapTiles() {
   const map = useMap();
 
   const mapEvents = useMapEvents({
-    zoomend: () => {
+    zoomend: async () => {
       setZoomLevel(mapEvents.getZoom());
+      await updateAirports(mapEvents.getBounds());
     },
     movestart: () => {
       // setDragging(true);
@@ -51,10 +51,10 @@ function MapTiles() {
     const ne = bounds.getNorthEast();
     const sw = bounds.getSouthWest();
     const _airports = await getAirports({
-      ne_lat: ne.lat,
-      ne_lon: ne.lng,
-      sw_lat: sw.lat,
-      sw_lon: sw.lng,
+      bounds: {
+        northEast: { lat: ne.lat, lon: ne.lng },
+        southWest: { lat: sw.lat, lon: sw.lng }
+      },
       limit: 100,
       page: 1
     });

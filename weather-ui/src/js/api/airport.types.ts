@@ -1,8 +1,14 @@
 import { Metar } from './metar.types';
 
+export enum AirportCategory {
+  SMALL = 'small_airport',
+  MEDIUM = 'medium_airport',
+  LARGE = 'large_airport'
+}
+
 export interface Airport {
   icao: string;
-  category: string;
+  category: AirportCategory;
   full_name: string;
   elevation_ft: string;
   continent: string;

@@ -150,6 +150,7 @@ impl Metars {
             Ok(m) => m,
             Err(err) => return Err(CustomError { error_status_code: 500, error_message: format!("{}", err) })
         };
+
         fn get_missing_metar_icaos(db_metars: &Vec<Metars>, station_icaos: Vec<&str>) -> Vec<String> {
             let mut missing_metar_icaos: Vec<String> = vec![];
             let current_time = chrono::Local::now().naive_local().timestamp();
