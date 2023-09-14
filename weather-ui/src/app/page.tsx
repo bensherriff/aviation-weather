@@ -1,12 +1,6 @@
 import React from 'react';
-import Metar from '@/components/Metar';
+import Metar from '@/components/Metars';
 
 export default function Page() {
-  return (
-    <>
-      <div>
-        <Metar />
-      </div>
-    </>
-  );
+  return <Metar />;
 }

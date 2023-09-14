@@ -9,18 +9,16 @@
         "lint": "next lint"
     },
     "dependencies": {
-        "@fortawesome/fontawesome-svg-core": "^6.4.2",
-        "@fortawesome/free-regular-svg-icons": "^6.4.2",
-        "@fortawesome/free-solid-svg-icons": "^6.4.2",
-        "@fortawesome/react-fontawesome": "^0.2.0",
+        "@ant-design/cssinjs": "^1.17.0",
+        "antd": "^5.9.0",
         "axios": "^1.4.0",
         "leaflet": "^1.9.4",
         "next": "^13.4.19",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
+        "react-icons": "^4.11.0",
         "react-leaflet": "^4.2.1",
-        "recoil": "^0.7.7",
-        "xml-js": "^1.6.11"
+        "recoil": "^0.7.7"
     },
     "devDependencies": {
         "@types/leaflet": "^1.9.3",
