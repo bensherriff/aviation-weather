@@ -1,5 +1,5 @@
-import { Airport } from '@/js/api/airport.types';
-import { Metar } from '@/js/api/metar.types';
+import { Airport } from '@/app/_api/airport.types';
+import { Metar } from '@/app/_api/metar.types';
 import { FaArrowsSpin, FaLocationArrow } from 'react-icons/fa6';
 import { Modal } from 'antd';
 
@@ -34,7 +34,7 @@ export default function MetarDialog({ airport, isOpen, onClose }: MetarDialogPro
     }
   }
   return (
-    <Modal title={`${airport.icao} ${airport.full_name}`} open={isOpen} onCancel={onClose} footer={[]}>
+    <Modal title={`${airport.icao} ${airport.full_name}`} open={isOpen} onCancel={onClose} closable={false} footer={[]}>
       <div className='min-w-0 flex-1 select-none'>
         <hr />
         <p className='text-sm font-medium text-gray-500'>{airport.metar?.raw_text}</p>
@@ -45,23 +45,25 @@ export default function MetarDialog({ airport, isOpen, onClose }: MetarDialogPro
             {airport.metar?.flight_category ? airport.metar?.flight_category : 'UNKN'}
           </span>
           <div className='flex inline-block px-2'>
-            <span className={`text-sm text-black ${windColor(airport.metar)} py-2 px-2 rounded-full`}>
+            <span className={`text-sm text-black ${windColor(airport.metar)} py-2 px-3 rounded-full`}>
               {airport.metar && airport.metar.wind_dir_degrees && Number(airport.metar.wind_dir_degrees) > 0 ? (
                 <FaLocationArrow
-                  className='pr-1'
+                  className='align-middle'
                   style={{ rotate: `${-45 + 180 + Number(airport.metar.wind_dir_degrees)}deg` }}
                 />
               ) : (
                 <></>
               )}
               {airport.metar && airport.metar.wind_dir_degrees && airport.metar.wind_dir_degrees == 'VRB' ? (
-                <FaArrowsSpin className='pr-1' />
+                <FaArrowsSpin className='align-middle' />
               ) : (
                 <></>
               )}
-              {airport.metar?.wind_speed_kt != undefined && airport.metar?.wind_speed_kt > 0
-                ? `${airport.metar?.wind_speed_kt} KT`
-                : 'CALM'}
+              <span className='align-middle pl-1.5'>
+                {airport.metar?.wind_speed_kt != undefined && airport.metar?.wind_speed_kt > 0
+                  ? `${airport.metar?.wind_speed_kt} KT`
+                  : 'CALM'}
+              </span>
             </span>
           </div>
         </div>

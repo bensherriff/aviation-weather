@@ -1,63 +1,115 @@
-use crate::{airports::{Airport, Airports}, db};
+use crate::{airports::{Airport, Airports}, db::{self, Metadata}};
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest};
-use log::error;
+use log::{error, warn};
 use postgis_diesel::types::{Polygon, Point};
 use serde::{Serialize, Deserialize};
-use serde_json::json;
 
 #[derive(Debug, Serialize, Deserialize)]
-struct FindAllParams {
-  ne_lat: f64,
-  ne_lon: f64,
-  sw_lat: f64,
-  sw_lon: f64,
+struct GetAllParameters {
+  filter: Option<String>,
+  bounds: Option<String>,
   category: Option<String>,
   limit: i32,
   page: i32
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-struct Coordinate {
-  lon: f64,
-  lat: f64
+#[get("/import")]
+async fn import() -> HttpResponse {
+  db::import_data();
+  HttpResponse::Ok().body({})
 }
 
-#[get("/setup")]
-async fn setup() -> HttpResponse {
-  db::import_data();
-  HttpResponse::Ok().finish()
+#[derive(Serialize, Deserialize)]
+pub struct AirportsResponse {
+    pub data: Vec<Airports>,
+    pub meta: Metadata
 }
 
 #[get("/airports")]
-async fn find_all(req: HttpRequest) -> HttpResponse {
-  let params = web::Query::<FindAllParams>::from_query(req.query_string()).unwrap();
-  let mut polygon: Polygon<Point> = Polygon::new(Some(4326));
-  polygon.add_point(Point { x: params.sw_lon, y: params.sw_lat, srid: Some(4326) });
-  polygon.add_point(Point { x: params.ne_lon, y: params.sw_lat, srid: Some(4326) });
-  polygon.add_point(Point { x: params.ne_lon, y: params.ne_lat, srid: Some(4326) });
-  polygon.add_point(Point { x: params.sw_lon, y: params.ne_lat, srid: Some(4326) });
-  polygon.add_point(Point { x: params.sw_lon, y: params.sw_lat, srid: Some(4326) });
+async fn get_all(req: HttpRequest) -> HttpResponse {
+  let params = web::Query::<GetAllParameters>::from_query(req.query_string()).unwrap();
+  let polygon: Option<Polygon<Point>> = match &params.bounds {
+    Some(b) => {
+      let bounds: Vec<&str> = b.split(",").collect();
+      if bounds.len() != 4 {
+        warn!("Expected 4 bounds, received {}: {}", bounds.len(), b);
+        return HttpResponse::UnprocessableEntity().body(format!("Received {}; expected NE_LAT,NE_LON,SW_LAT,SW_LON", b))
+      }
+      let ne_lat = match bounds[0].parse::<f64>() {
+        Ok(b) => b,
+        Err(err) => {
+          warn!("{}", err);
+          return HttpResponse::UnprocessableEntity().body(format!("{}", err))
+        }
+      };
+      let ne_lon = match bounds[1].parse::<f64>() {
+        Ok(b) => b,
+        Err(err) => {
+          warn!("{}", err);
+          return HttpResponse::UnprocessableEntity().body(format!("{}", err))
+        }
+      };
+      let sw_lat = match bounds[2].parse::<f64>() {
+        Ok(b) => b,
+        Err(err) => {
+          warn!("{}", err);
+          return HttpResponse::UnprocessableEntity().body(format!("{}", err))
+        }
+      };
+      let sw_lon = match bounds[3].parse::<f64>() {
+        Ok(b) => b,
+        Err(err) => {
+          warn!("{}", err);
+          return HttpResponse::UnprocessableEntity().body(format!("{}", err))
+        }
+      };
+      let mut polygon: Polygon<Point> = Polygon::new(Some(4326));
+      polygon.add_point(Point { x: sw_lon, y: sw_lat, srid: Some(4326) });
+      polygon.add_point(Point { x: ne_lon, y: sw_lat, srid: Some(4326) });
+      polygon.add_point(Point { x: ne_lon, y: ne_lat, srid: Some(4326) });
+      polygon.add_point(Point { x: sw_lon, y: ne_lat, srid: Some(4326) });
+      polygon.add_point(Point { x: sw_lon, y: sw_lat, srid: Some(4326) });
+      Some(polygon)
+    },
+    None => None
+  };
   let category = match &params.category {
     Some(c) => Some(c.to_string()),
     None => None
   };
+  let filter = match &params.filter {
+    Some(f) => Some(f.to_string()),
+    None => None
+  };
 
-  match web::block(move || Airports::find_all(Some(polygon), category, params.limit, params.page)).await.unwrap() {
-    Ok(a) => HttpResponse::Ok().json(a),
+  match web::block(move || Airports::get_all(polygon, category, filter, params.limit, params.page)).await.unwrap() {
+    Ok(a) => HttpResponse::Ok().json(AirportsResponse {
+      data: a,
+      meta: Metadata { page: 0, limit: 0, pages: 0, total: 0 }
+    }),
     Err(err) => {
       error!("{}", err);
-      HttpResponse::InternalServerError().finish()
+      err.to_http_response()
     }
   }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct AirportResponse {
+    pub data: Airports,
+    pub meta: Metadata
+}
+
 #[get("/airports/{icao}")]
-async fn find(icao: web::Path<String>) -> HttpResponse {
+async fn get(icao: web::Path<String>) -> HttpResponse {
   match Airports::find(icao.into_inner()) {
-    Ok(a) => HttpResponse::Ok().json(a),
+    Ok(a) => HttpResponse::Ok().json(AirportResponse {
+      data: a,
+      meta: Metadata { page: 0, limit: 0, pages: 0, total: 0 }
+    }),
     Err(err) => {
       error!("{}", err);
-      HttpResponse::InternalServerError().finish()
+      err.to_http_response()
     }
   }
 }
@@ -65,10 +117,10 @@ async fn find(icao: web::Path<String>) -> HttpResponse {
 #[post("/airports")]
 async fn create(airport: web::Json<Airport>) -> HttpResponse {
   match Airports::create(airport.into_inner()) {
-    Ok(a) => HttpResponse::Ok().json(a),
+    Ok(a) => HttpResponse::Created().json(a),
     Err(err) => {
       error!("{}", err);
-      HttpResponse::InternalServerError().finish()
+      err.to_http_response()
     }
   }
 }
@@ -79,7 +131,7 @@ async fn update(id: web::Path<i32>, airport: web::Json<Airport>) -> HttpResponse
     Ok(a) => HttpResponse::Ok().json(a),
     Err(err) => {
       error!("{}", err);
-      HttpResponse::InternalServerError().finish()
+      err.to_http_response()
     }
   }
 }
@@ -87,19 +139,19 @@ async fn update(id: web::Path<i32>, airport: web::Json<Airport>) -> HttpResponse
 #[delete("/airports/{id}")]
 async fn delete(id: web::Path<i32>) -> HttpResponse {
   match Airports::delete(id.into_inner()) {
-    Ok(a) => HttpResponse::Ok().json(json!({ "deleted": a })),
+    Ok(_) => HttpResponse::NoContent().finish(),
     Err(err) => {
       error!("{}", err);
-      HttpResponse::InternalServerError().finish()
+      err.to_http_response()
     }
   }
 }
 
 pub fn init_routes(config: &mut web::ServiceConfig) {
-  config.service(find_all);
-  config.service(find);
+  config.service(get_all);
+  config.service(get);
   config.service(create);
   config.service(update);
   config.service(delete);
-  config.service(setup);
+  config.service(import);
 }

@@ -6,6 +6,16 @@ export enum AirportCategory {
   LARGE = 'large_airport'
 }
 
+export interface Bounds {
+  northEast: Coordinate;
+  southWest: Coordinate;
+}
+
+export interface Coordinate {
+  lat: number;
+  lon: number;
+}
+
 export interface Airport {
   icao: string;
   category: AirportCategory;
@@ -24,4 +34,12 @@ export interface Airport {
     srid: number;
   };
   metar?: Metar;
+}
+
+export interface GetAirportResponse {
+  data: Airport;
+}
+
+export interface GetAirportsResponse {
+  data: Airport[];
 }

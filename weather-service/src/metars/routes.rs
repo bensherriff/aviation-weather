@@ -1,16 +1,32 @@
-use crate::error_handler::CustomError;
+use crate::{error_handler::CustomError, db::Metadata};
 use crate::metars::Metars;
 use actix_web::{get, web, HttpResponse, Responder};
+use log::error;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct MetarsResponse {
+    pub data: Vec<Metars>,
+    pub meta: Metadata
+}
 
 #[get("metars/{ids}")]
 async fn get_all(ids: web::Path<String>) -> impl Responder {
-    let airports = web::block(|| Ok::<_, CustomError>(async {Metars::get_all(ids.into_inner()).await}))
+    let airports = match web::block(|| Ok::<_, CustomError>(async {Metars::get_all(ids.into_inner()).await}))
         .await
         .unwrap()
         .unwrap()
-        .await
-        .unwrap();
-    HttpResponse::Ok().json(airports)
+        .await {
+            Ok(a) => a,
+            Err(err) => {
+                error!("{}", err);
+                return err.to_http_response();
+            }
+        };
+    HttpResponse::Ok().json(MetarsResponse {
+        data: airports,
+        meta: Metadata { page: 0, limit: 0, pages: 0, total: 0 }
+    })
 }
 
 pub fn init_routes(config: &mut web::ServiceConfig) {

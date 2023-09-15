@@ -1,5 +1,6 @@
 use crate::{error_handler::CustomError, airports::{Airport, Airports}};
 use diesel::{r2d2::ConnectionManager, PgConnection};
+use serde::{Deserialize, Serialize};
 use crate::diesel_migrations::MigrationHarness;
 use lazy_static::lazy_static;
 use log::{error, debug, info};
@@ -50,4 +51,18 @@ pub fn import_data() {
     };
   }
   debug!("Import complete");
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Metadata {
+  pub page: i32,
+  pub limit: i32,
+  pub pages: i32,
+  pub total: i32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct Coordinate {
+  pub lon: f64,
+  pub lat: f64
 }

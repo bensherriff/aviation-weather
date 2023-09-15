@@ -27,9 +27,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@api/*": ["src/app/_api"],
       "@app/*": ["./src/app/*"],
-      "@components/*": ["src/components/*"],
-      "@js/*": ["src/js"]
+      "@components/*": ["src/app/_components/*"],
+      "@lib/*": ["src/app/_components/*"]
     }
   },
   "include": [

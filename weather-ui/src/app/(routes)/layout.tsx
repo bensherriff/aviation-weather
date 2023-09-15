@@ -1,10 +1,10 @@
 import React from 'react';
 import RecoilRootWrapper from '@app/recoil-root-wrapper';
-import Sidebar from '@/components/Sidebar';
-import Topbar from '@/components/Topbar';
+import Sidebar from '@/app/_components/Sidebar';
+import Topbar from '@/app/_components/Topbar';
 import 'styles/globals.css';
 import 'styles/leaflet.css';
-import StyledComponentsRegistry from '@/lib/AntdRegistry';
+import StyledComponentsRegistry from '@/app/_lib/AntdRegistry';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'] });

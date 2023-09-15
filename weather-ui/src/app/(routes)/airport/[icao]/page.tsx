@@ -1,9 +1,8 @@
-import { getAirport } from '@/js/api/airport';
-import { Airport } from '@/js/api/airport.types';
+import { getAirport } from '@/app/_api/airport';
 import Link from 'next/link';
 
 export default async function Page({ params }: { params: { icao: string } }) {
-  const airport: Airport = await getAirport({ icao: params.icao });
+  const { data: airport } = await getAirport({ icao: params.icao });
   return (
     <>
       <div className='border-b border-gray-200 bg-gray-400 px-4 py-5 sm:px-6 flex justify-between'>

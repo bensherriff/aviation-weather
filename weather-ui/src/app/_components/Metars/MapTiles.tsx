@@ -1,9 +1,9 @@
 'use client';
 
-import { getAirports } from '@/js/api/airport';
-import { Airport } from '@/js/api/airport.types';
-import { getMetars } from '@/js/api/metar';
-import { Metar } from '@/js/api/metar.types';
+import { getAirports } from '@/app/_api/airport';
+import { Airport } from '@/app/_api/airport.types';
+import { getMetars } from '@/app/_api/metar';
+import { Metar } from '@/app/_api/metar.types';
 import { FaLocationPin } from 'react-icons/fa6';
 import { DivIcon, LatLngBounds } from 'leaflet';
 import { useEffect, useState } from 'react';
@@ -41,7 +41,7 @@ export default function MapTiles() {
   async function updateAirports(bounds: LatLngBounds) {
     const ne = bounds.getNorthEast();
     const sw = bounds.getSouthWest();
-    const _airports = await getAirports({
+    const { data: _airports } = await getAirports({
       bounds: {
         northEast: { lat: ne.lat, lon: ne.lng },
         southWest: { lat: sw.lat, lon: sw.lng }
@@ -49,7 +49,7 @@ export default function MapTiles() {
       limit: 100,
       page: 1
     });
-    const metars = await getMetars(_airports);
+    const { data: metars } = await getMetars(_airports);
     metars.forEach((metar) => {
       _airports.forEach((airport) => {
         if (metar.station_id == airport.icao) {

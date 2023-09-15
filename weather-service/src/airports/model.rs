@@ -2,6 +2,7 @@ use crate::db;
 use crate::error_handler::CustomError;
 use crate::schema::airports;
 use diesel::prelude::*;
+use log::trace;
 use postgis_diesel::types::*;
 use postgis_diesel::functions::*;
 use serde::{Deserialize, Serialize};
@@ -23,7 +24,8 @@ pub struct Airport {
   pub point: Point
 }
 
-#[derive(Serialize, Deserialize, Queryable)]
+#[derive(Serialize, Deserialize, Queryable, QueryableByName)]
+#[diesel(table_name = airports)]
 pub struct Airports {
   pub icao: String,
   pub id: i32,
@@ -41,32 +43,28 @@ pub struct Airports {
 }
 
 impl Airports {
-  pub fn find_all(bounds: Option<Polygon<Point>>, category: Option<String>, limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
+  pub fn get_all(bounds: Option<Polygon<Point>>, category: Option<String>, filter: Option<String>, limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
     let mut conn = db::connection()?;
-    let airports;
-      if let Some(category) = category {
-        airports = airports::table
-          .limit(limit as i64)
-          .filter(airports::id.gt(page * limit).and(match bounds {
-            Some(b) => st_contains(b, airports::point),
-            None => {
-              let polygon: Polygon<Point> = Polygon::new(Some(4326));
-              st_contains(polygon, airports::point)
-            }
-          }).and(airports::category.eq(category))).load::<Airports>(&mut conn)?;
-      } else {
-        airports = airports::table
-          .order(airports::category.asc())
-          .limit(limit as i64)
-          .filter(airports::id.gt(page * limit).and(match bounds {
-            Some(b) => st_contains(b, airports::point),
-            None => {
-              let polygon: Polygon<Point> = Polygon::new(Some(4326));
-              st_contains(polygon, airports::point)
-            }
-          }))
-          .load::<Airports>(&mut conn)?;
-      }
+    let mut query = airports::table
+      .limit(limit as i64)
+      .into_boxed();
+    query = query.filter(airports::id.gt(page * limit));
+
+    if let Some(bounds) = bounds {
+      query = query.filter(st_contains(bounds, airports::point));
+    }
+    if let Some(category) = category {
+      query = query.filter(airports::category.eq(category));
+    }
+    if let Some(filter) = filter {
+      query = query.filter(airports::icao
+        .ilike(format!("%{}%", filter))
+        .or(airports::full_name.ilike(format!("%{}%", filter)))
+      )
+    }
+    let debug = diesel::debug_query::<diesel::pg::Pg, _>(&query);
+    trace!("{}", debug);
+    let airports: Vec<Airports> = query.order(airports::category.asc()).load::<Airports>(&mut conn)?;
     Ok(airports)
   }
 

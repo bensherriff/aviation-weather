@@ -1,6 +1,7 @@
 use actix_web::http::StatusCode;
 use actix_web::{HttpResponse, ResponseError};
 use diesel::result::Error as DieselError;
+use log::warn;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fmt;
@@ -17,6 +18,17 @@ impl CustomError {
             error_status_code,
             error_message,
         }
+    }
+
+    pub fn to_http_response(&self) -> HttpResponse {
+        let status_code = match StatusCode::from_u16(self.error_status_code) {
+            Ok(s) => s,
+            Err(err) => {
+                warn!("{}", err);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        };
+        HttpResponse::build(status_code).body(self.error_message.to_string())
     }
 }
 
