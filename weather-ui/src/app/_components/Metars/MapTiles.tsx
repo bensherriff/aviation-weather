@@ -118,7 +118,15 @@ export default function MapTiles() {
           position={[airport.point.y, airport.point.x]}
           icon={icon(airport)}
           eventHandlers={{
-            click: () => handleOpen(airport)
+            click: () => {
+              mapEvents.eachLayer((l) => {
+                if (l.getTooltip() && l.isTooltipOpen()) {
+                  console.log('l', l);
+                  l.closeTooltip();
+                }
+              });
+              handleOpen(airport);
+            }
           }}
         >
           {!isOpen && (

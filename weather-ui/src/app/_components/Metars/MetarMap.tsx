@@ -9,8 +9,8 @@ export default function Map({ className = '' }: { className?: string }) {
       <MapContainer
         center={[38.7209, -77.5133]}
         zoom={8}
-        maxZoom={12}
-        minZoom={1}
+        maxZoom={14} // Zoomed in
+        minZoom={3} // Zoomed out
         id='map-container'
         style={{ height: '94.5vh' }}
         className={`${className} overflow-y-hidden overflow-x-hidden`}

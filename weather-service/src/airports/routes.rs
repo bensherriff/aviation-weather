@@ -1,4 +1,4 @@
-use crate::{airports::{Airport, Airports}, db::{self, Metadata}};
+use crate::{airports::{InsertAirport, QueryAirport}, db::{self, Metadata}};
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest};
 use log::{error, warn};
 use postgis_diesel::types::{Polygon, Point};
@@ -21,7 +21,7 @@ async fn import() -> HttpResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct AirportsResponse {
-    pub data: Vec<Airports>,
+    pub data: Vec<QueryAirport>,
     pub meta: Metadata
 }
 
@@ -82,7 +82,7 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
     None => None
   };
 
-  match web::block(move || Airports::get_all(polygon, category, filter, params.limit, params.page)).await.unwrap() {
+  match web::block(move || QueryAirport::get_all(polygon, category, filter, params.limit, params.page)).await.unwrap() {
     Ok(a) => HttpResponse::Ok().json(AirportsResponse {
       data: a,
       meta: Metadata { page: 0, limit: 0, pages: 0, total: 0 }
@@ -96,13 +96,13 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct AirportResponse {
-    pub data: Airports,
+    pub data: QueryAirport,
     pub meta: Metadata
 }
 
 #[get("/airports/{icao}")]
 async fn get(icao: web::Path<String>) -> HttpResponse {
-  match Airports::find(icao.into_inner()) {
+  match QueryAirport::find(icao.into_inner()) {
     Ok(a) => HttpResponse::Ok().json(AirportResponse {
       data: a,
       meta: Metadata { page: 0, limit: 0, pages: 0, total: 0 }
@@ -115,8 +115,8 @@ async fn get(icao: web::Path<String>) -> HttpResponse {
 }
 
 #[post("/airports")]
-async fn create(airport: web::Json<Airport>) -> HttpResponse {
-  match Airports::create(airport.into_inner()) {
+async fn create(airport: web::Json<InsertAirport>) -> HttpResponse {
+  match QueryAirport::create(airport.into_inner()) {
     Ok(a) => HttpResponse::Created().json(a),
     Err(err) => {
       error!("{}", err);
@@ -125,9 +125,9 @@ async fn create(airport: web::Json<Airport>) -> HttpResponse {
   }
 }
 
-#[put("/airports/{id}")]
-async fn update(id: web::Path<i32>, airport: web::Json<Airport>) -> HttpResponse {
-  match Airports::update(id.into_inner(), airport.into_inner()) {
+#[put("/airports/{icao}")]
+async fn update(icao: web::Path<i32>, airport: web::Json<InsertAirport>) -> HttpResponse {
+  match QueryAirport::update(icao.into_inner(), airport.into_inner()) {
     Ok(a) => HttpResponse::Ok().json(a),
     Err(err) => {
       error!("{}", err);
@@ -136,9 +136,9 @@ async fn update(id: web::Path<i32>, airport: web::Json<Airport>) -> HttpResponse
   }
 }
 
-#[delete("/airports/{id}")]
-async fn delete(id: web::Path<i32>) -> HttpResponse {
-  match Airports::delete(id.into_inner()) {
+#[delete("/airports/{icao}")]
+async fn delete(icao: web::Path<i32>) -> HttpResponse {
+  match QueryAirport::delete(icao.into_inner()) {
     Ok(_) => HttpResponse::NoContent().finish(),
     Err(err) => {
       error!("{}", err);

@@ -1,6 +1,6 @@
 diesel::table! {
-  use postgis_diesel::sql_types::*;
   use diesel::sql_types::*;
+  use postgis_diesel::sql_types::*;
   airports (icao) {
     icao -> Text,
     id -> Integer,
@@ -41,5 +41,17 @@ diesel::table! {
     min_t_c -> Nullable<Double>,
     precip_in -> Nullable<Double>,
     elevation_m -> Integer,
+  }
+}
+
+diesel::table! {
+  use diesel::sql_types::*;
+  use crate::users::PgUserType;
+  users (id) {
+    id -> Uuid,
+    first_name -> Text,
+    last_name -> Text,
+    user_type -> PgUserType,
+    favorites -> Array<Text>
   }
 }

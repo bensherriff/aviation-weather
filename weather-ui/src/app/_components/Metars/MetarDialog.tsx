@@ -36,12 +36,16 @@ export default function MetarDialog({ airport, isOpen, onClose }: MetarDialogPro
   }
 
   function windColor(metar: Metar | undefined) {
-    if (Number(metar?.wind_speed_kt) <= 9) {
-      return 'bg-green-300';
-    } else if (Number(metar?.wind_speed_kt) > 9) {
-      return 'bg-orange-300';
-    } else if (Number(metar?.wind_speed_kt) > 12) {
-      return 'bg-red-300';
+    if (metar) {
+      if (Number(metar.wind_speed_kt) <= 9) {
+        return 'bg-green-300';
+      } else if (Number(metar.wind_speed_kt) <= 12) {
+        return 'bg-orange-300';
+      } else {
+        return 'bg-red-300';
+      }
+    } else {
+      return 'gb-gray-100';
     }
   }
   return (

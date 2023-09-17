@@ -1,4 +1,4 @@
-use crate::{error_handler::CustomError, db};
+use crate::{error_handler::ServiceError, db};
 use crate::schema::metars;
 use diesel::{prelude::*, sql_query};
 use log::{warn, trace};
@@ -15,7 +15,7 @@ pub struct QualityControlFlags {
 
 #[derive(Serialize, Deserialize, AsChangeset, Insertable)]
 #[diesel(table_name = metars)]
-pub struct Metar {
+pub struct InsertMetar {
     pub raw_text: String,
     pub station_id: String,
     pub observation_time: String,
@@ -42,10 +42,10 @@ pub struct Metar {
     pub elevation_m: i32
 }
 
-impl Metar {
-    pub fn parse(input: String) -> Result<Vec<Self>, CustomError> {
+impl InsertMetar {
+    pub fn parse(input: String) -> Result<Vec<Self>, ServiceError> {
         if input.is_empty() {
-            return Err(CustomError::new(500, "Input is empty".to_string()))
+            return Err(ServiceError::new(500, "Input is empty".to_string()))
         }
 
         let mut reader = Reader::from_str(&input);
@@ -109,7 +109,7 @@ impl Metar {
 
 #[derive(Serialize, Deserialize, Queryable, QueryableByName)]
 #[diesel(table_name = metars)]
-pub struct Metars {
+pub struct QueryMetar {
     pub id: i32,
     pub raw_text: String,
     pub station_id: String,
@@ -137,8 +137,8 @@ pub struct Metars {
     pub elevation_m: i32
 }
 
-impl Metars {
-    pub async fn get_all(icaos: String) -> Result<Vec<Self>, CustomError> {
+impl QueryMetar {
+    pub async fn get_all(icaos: String) -> Result<Vec<Self>, ServiceError> {
         if icaos.is_empty() {
             return Ok(vec![]);
         }
@@ -146,12 +146,12 @@ impl Metars {
         let station_query: Vec<String> = station_icaos.iter().map(|icao| format!("'{}'", icao.to_string())).collect();
         
         let mut conn = db::connection()?;
-        let mut db_metars: Vec<Metars> = match sql_query(format!("SELECT DISTINCT ON (station_id) * FROM metars WHERE station_id IN ({}) ORDER BY station_id, observation_time DESC", station_query.join(","))).load(&mut conn) {
+        let mut db_metars: Vec<QueryMetar> = match sql_query(format!("SELECT DISTINCT ON (station_id) * FROM metars WHERE station_id IN ({}) ORDER BY station_id, observation_time DESC", station_query.join(","))).load(&mut conn) {
             Ok(m) => m,
-            Err(err) => return Err(CustomError { error_status_code: 500, error_message: format!("{}", err) })
+            Err(err) => return Err(ServiceError { error_status_code: 500, error_message: format!("{}", err) })
         };
 
-        fn get_missing_metar_icaos(db_metars: &Vec<Metars>, station_icaos: Vec<&str>) -> Vec<String> {
+        fn get_missing_metar_icaos(db_metars: &Vec<QueryMetar>, station_icaos: Vec<&str>) -> Vec<String> {
             let mut missing_metar_icaos: Vec<String> = vec![];
             let current_time = chrono::Local::now().naive_local().timestamp();
             let db_metars_set: HashSet<&str> = db_metars.iter().map(|icao| icao.station_id.as_str()).collect();
@@ -182,10 +182,10 @@ impl Metars {
         trace!("Retrieving missing METAR data for {:?}", missing_icaos);
         let missing_icaos_string: Vec<String> = missing_icaos.iter().map(|icao| format!("'{}'", icao.to_string())).collect();
         let url = format!("https://beta.aviationweather.gov/cgi-bin/data/metar.php?ids={}&format=xml", missing_icaos_string.join(","));
-        let metars: Vec<Metar> = match reqwest::get(url).await {
+        let metars: Vec<InsertMetar> = match reqwest::get(url).await {
             Ok(r) => match r.text().await {
                 Ok(r) => {
-                    match Metar::parse(r) {
+                    match InsertMetar::parse(r) {
                         Ok(m) => m,
                         Err(err) => {
                             warn!("{}", err);

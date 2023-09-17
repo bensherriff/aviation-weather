@@ -1,4 +1,4 @@
-use crate::{error_handler::CustomError, airports::{Airport, Airports}};
+use crate::{error_handler::ServiceError, airports::{InsertAirport, QueryAirport}};
 use diesel::{r2d2::ConnectionManager, PgConnection};
 use serde::{Deserialize, Serialize};
 use crate::diesel_migrations::MigrationHarness;
@@ -34,18 +34,18 @@ pub fn init() {
   };
 }
 
-pub fn connection() -> Result<DbConnection, CustomError> {
+pub fn connection() -> Result<DbConnection, ServiceError> {
   POOL.get()
-    .map_err(|e| CustomError::new(500, format!("Failed getting db connection: {}", e)))
+    .map_err(|e| ServiceError::new(500, format!("Failed getting db connection: {}", e)))
 }
 
 pub fn import_data() {
   let path = "airport-codes.json";
   debug!("Importing data from {}", path);
   let contents: String = std::fs::read_to_string(path).expect("Failed to read file");
-  let airports: Vec<Airport> = serde_json::from_str(&contents).expect("JSON was not well formed.");
+  let airports: Vec<InsertAirport> = serde_json::from_str(&contents).expect("JSON was not well formed.");
   for airport in airports {
-    match Airports::create(airport) {
+    match QueryAirport::create(airport) {
       Ok(_) => {},
       Err(err) => error!("Error inserting airport; {}", err)
     };

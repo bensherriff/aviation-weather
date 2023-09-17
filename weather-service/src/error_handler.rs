@@ -7,14 +7,14 @@ use serde_json::json;
 use std::fmt;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct CustomError {
+pub struct ServiceError {
     pub error_status_code: u16,
     pub error_message: String,
 }
 
-impl CustomError {
-    pub fn new(error_status_code: u16, error_message: String) -> CustomError {
-        CustomError {
+impl ServiceError {
+    pub fn new(error_status_code: u16, error_message: String) -> ServiceError {
+        ServiceError {
             error_status_code,
             error_message,
         }
@@ -32,25 +32,25 @@ impl CustomError {
     }
 }
 
-impl fmt::Display for CustomError {
+impl fmt::Display for ServiceError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.error_message.as_str())
     }
 }
 
-impl From<DieselError> for CustomError {
-    fn from(error: DieselError) -> CustomError {
+impl From<DieselError> for ServiceError {
+    fn from(error: DieselError) -> ServiceError {
         match error {
-            DieselError::DatabaseError(_, err) => CustomError::new(409, err.message().to_string()),
+            DieselError::DatabaseError(_, err) => ServiceError::new(409, err.message().to_string()),
             DieselError::NotFound => {
-                CustomError::new(404, "The airport record was not found".to_string())
+                ServiceError::new(404, "The record was not found".to_string())
             }
-            err => CustomError::new(500, format!("Unknown Diesel error: {}", err)),
+            err => ServiceError::new(500, format!("Unknown Diesel error: {}", err)),
         }
     }
 }
 
-impl ResponseError for CustomError {
+impl ResponseError for ServiceError {
     fn error_response(&self) -> HttpResponse {
         let status_code = match StatusCode::from_u16(self.error_status_code) {
             Ok(status_code) => status_code,

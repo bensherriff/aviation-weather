@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 actix-web = "4.4.0"
 actix-rt = "2.9.0"
+actix-cors = "0.6.4"
+actix-identity = "0.5.0"
 chrono = { version = "0.4.30", features = ["serde"] }
 dotenv = "0.15.0"
 diesel = { version = "2.0", features = ["postgres", "r2d2", "uuid", "chrono"] }
@@ -24,4 +26,3 @@ serde_json = "1.0.105"
 tokio = { version = "1.32.0", features = ["macros", "rt"] }
 uuid = { version = "1.4.1", features = ["serde", "v4"] }
 log = "0.4.20"
-actix-cors = "0.6.4"

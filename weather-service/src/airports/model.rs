@@ -1,15 +1,15 @@
 use crate::db;
-use crate::error_handler::CustomError;
+use crate::error_handler::ServiceError;
 use crate::schema::airports;
 use diesel::prelude::*;
-use log::trace;
+// use log::trace;
 use postgis_diesel::types::*;
 use postgis_diesel::functions::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, AsChangeset, Insertable)]
 #[diesel(table_name = airports)]
-pub struct Airport {
+pub struct InsertAirport {
   pub icao: String,
   pub category: String,
   pub full_name: String,
@@ -26,7 +26,7 @@ pub struct Airport {
 
 #[derive(Serialize, Deserialize, Queryable, QueryableByName)]
 #[diesel(table_name = airports)]
-pub struct Airports {
+pub struct QueryAirport {
   pub icao: String,
   pub id: i32,
   pub category: String,
@@ -42,13 +42,13 @@ pub struct Airports {
   pub point: Point
 }
 
-impl Airports {
-  pub fn get_all(bounds: Option<Polygon<Point>>, category: Option<String>, filter: Option<String>, limit: i32, page: i32) -> Result<Vec<Self>, CustomError> {
+impl QueryAirport {
+  pub fn get_all(bounds: Option<Polygon<Point>>, category: Option<String>, filter: Option<String>, limit: i32, page: i32) -> Result<Vec<Self>, ServiceError> {
     let mut conn = db::connection()?;
     let mut query = airports::table
       .limit(limit as i64)
       .into_boxed();
-    query = query.filter(airports::id.gt(page * limit));
+    query = query.filter(airports::id.gt(std::cmp::max(1, page - 1) * limit));
 
     if let Some(bounds) = bounds {
       query = query.filter(st_contains(bounds, airports::point));
@@ -62,28 +62,28 @@ impl Airports {
         .or(airports::full_name.ilike(format!("%{}%", filter)))
       )
     }
-    let debug = diesel::debug_query::<diesel::pg::Pg, _>(&query);
-    trace!("{}", debug);
-    let airports: Vec<Airports> = query.order(airports::category.asc()).load::<Airports>(&mut conn)?;
+    // let debug = diesel::debug_query::<diesel::pg::Pg, _>(&query);
+    // trace!("{}", debug);
+    let airports: Vec<QueryAirport> = query.order(airports::category.asc()).load::<QueryAirport>(&mut conn)?;
     Ok(airports)
   }
 
-  pub fn find(icao: String) -> Result<Self, CustomError> {
+  pub fn find(icao: String) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = airports::table.filter(airports::icao.eq(icao)).first(&mut conn)?;
     Ok(airport)
 }
 
-pub fn create(airport: Airport) -> Result<Self, CustomError> {
+pub fn create(airport: InsertAirport) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
-    let airport = Airport::from(airport);
+    let airport = InsertAirport::from(airport);
     let airport = diesel::insert_into(airports::table)
         .values(airport)
         .get_result(&mut conn)?;
     Ok(airport)
 }
 
-pub fn update(id: i32, airport: Airport) -> Result<Self, CustomError> {
+pub fn update(id: i32, airport: InsertAirport) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = diesel::update(airports::table)
         .filter(airports::id.eq(id))
@@ -92,7 +92,7 @@ pub fn update(id: i32, airport: Airport) -> Result<Self, CustomError> {
     Ok(airport)
 }
 
-pub fn delete(id: i32) -> Result<usize, CustomError> {
+pub fn delete(id: i32) -> Result<usize, ServiceError> {
     let mut conn = db::connection()?;
     let res = diesel::delete(airports::table.filter(airports::id.eq(id))).execute(&mut conn)?;
     Ok(res)
