@@ -43,8 +43,16 @@ pub struct QueryAirport {
 }
 
 impl QueryAirport {
-  pub fn get_all(bounds: Option<Polygon<Point>>, category: Option<String>, filter: Option<String>, limit: i32, page: i32) -> Result<Vec<Self>, ServiceError> {
+  pub fn get_all(bounds: Option<Polygon<Point>>, category: Option<String>, filter: Option<String>, limit: Option<i32>, page: Option<i32>) -> Result<Vec<Self>, ServiceError> {
     let mut conn = db::connection()?;
+    let limit = match limit {
+      Some(l) => l,
+      None => 100
+    };
+    let page = match page {
+      Some(p) => p,
+      None => 1
+    };
     let mut query = airports::table
       .limit(limit as i64)
       .into_boxed();

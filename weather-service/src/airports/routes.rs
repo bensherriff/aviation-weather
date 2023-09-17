@@ -9,8 +9,8 @@ struct GetAllParameters {
   filter: Option<String>,
   bounds: Option<String>,
   category: Option<String>,
-  limit: i32,
-  page: i32
+  limit: Option<i32>,
+  page: Option<i32>
 }
 
 #[get("/import")]
