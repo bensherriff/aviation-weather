@@ -1,6 +1,6 @@
 use crate::{error_handler::ServiceError, db::Metadata};
 use crate::metars::Metar;
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{get, web, HttpResponse};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,7 @@ pub struct MetarsResponse {
 }
 
 #[get("metars/{ids}")]
-async fn get_all(ids: web::Path<String>) -> impl Responder {
+async fn get_all(ids: web::Path<String>) -> HttpResponse {
     let airports = match web::block(|| Ok::<_, ServiceError>(async {Metar::get_all(ids.into_inner()).await}))
         .await
         .unwrap()
