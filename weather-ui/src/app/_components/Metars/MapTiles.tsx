@@ -3,13 +3,12 @@
 import { getAirports } from '@/app/_api/airport';
 import { Airport } from '@/app/_api/airport.types';
 import { getMetars } from '@/app/_api/metar';
-import { Metar } from '@/app/_api/metar.types';
-import { FaLocationPin } from 'react-icons/fa6';
 import { DivIcon, LatLngBounds } from 'leaflet';
 import { useEffect, useState } from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import MetarDialog from './MetarDialog';
+import { BsCircle, BsCircleFill } from 'react-icons/bs';
 
 export default function MapTiles() {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,21 +59,8 @@ export default function MapTiles() {
     setAirports(_airports);
   }
 
-  function metarTextColor(metar: Metar | undefined) {
-    if (metar?.flight_category == 'VFR') {
-      return 'text-emerald-700';
-    } else if (metar?.flight_category == 'MVFR') {
-      return 'text-blue-700';
-    } else if (metar?.flight_category == 'IFR') {
-      return 'text-red-700';
-    } else if (metar?.flight_category == 'LIFR') {
-      return 'text-purple-700';
-    } else {
-      return 'text-black/50';
-    }
-  }
-
   function iconSize() {
+    console.log('zoom', zoomLevel);
     if (zoomLevel <= 4) {
       return 'text-xs';
     } else if (zoomLevel <= 5) {
@@ -92,13 +78,53 @@ export default function MapTiles() {
     }
   }
 
-  function icon(airport: Airport) {
-    return new DivIcon({
-      html: ReactDOMServer.renderToString(
-        <FaLocationPin className={`${iconSize()} ${metarTextColor(airport.metar)}`} />
-      ),
-      className: 'metar-marker-icon'
-    });
+  function metarIcon(airport: Airport) {
+    if (airport.metar?.flight_category == 'VFR') {
+      return new DivIcon({
+        html: ReactDOMServer.renderToString(
+          <div>
+            <BsCircle className={`${iconSize()} rounded-full bg-emerald-700`} />
+            <span className={`${iconSize()} text-white`}>V</span>
+          </div>
+        ),
+        className: 'metar-marker-icon'
+      });
+    } else if (airport.metar?.flight_category == 'MVFR') {
+      return new DivIcon({
+        html: ReactDOMServer.renderToString(
+          <div>
+            <BsCircle className={`${iconSize()} rounded-full bg-blue-700`} />
+            <span className={`${iconSize()} text-white`}>M</span>
+          </div>
+        ),
+        className: 'metar-marker-icon'
+      });
+    } else if (airport.metar?.flight_category == 'IFR') {
+      return new DivIcon({
+        html: ReactDOMServer.renderToString(
+          <div>
+            <BsCircle className={`${iconSize()} rounded-full bg-red-700`} />
+            <span className={`${iconSize()} text-white`}>I</span>
+          </div>
+        ),
+        className: 'metar-marker-icon'
+      });
+    } else if (airport.metar?.flight_category == 'LIFR') {
+      return new DivIcon({
+        html: ReactDOMServer.renderToString(
+          <div>
+            <BsCircle className={`${iconSize()} rounded-full bg-purple-700`} />
+            <span className={`${iconSize()} text-white`}>L</span>
+          </div>
+        ),
+        className: 'metar-marker-icon'
+      });
+    } else {
+      return new DivIcon({
+        html: ReactDOMServer.renderToString(<BsCircleFill className={`text-black`} />),
+        className: 'metar-marker-icon'
+      });
+    }
   }
 
   useEffect(() => {
@@ -116,17 +142,9 @@ export default function MapTiles() {
         <Marker
           key={airport.icao}
           position={[airport.point.y, airport.point.x]}
-          icon={icon(airport)}
+          icon={metarIcon(airport)}
           eventHandlers={{
-            click: () => {
-              mapEvents.eachLayer((l) => {
-                if (l.getTooltip() && l.isTooltipOpen()) {
-                  console.log('l', l);
-                  l.closeTooltip();
-                }
-              });
-              handleOpen(airport);
-            }
+            click: () => handleOpen(airport)
           }}
         >
           {!isOpen && (

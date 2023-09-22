@@ -20,7 +20,7 @@ export interface Metar {
     sky_cover: string;
     cloud_base_ft_agl: number;
   }[];
-  flight_category: string;
+  flight_category: 'VFR' | 'MVFR' | 'LIFR' | 'IFR' | 'UNKN';
   three_hr_pressure_tendency_mb: number;
   metar_type: string;
   maxT_c: number;
