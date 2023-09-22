@@ -25,7 +25,7 @@ services:
     ports:
       - "${SERVICE_PORT}:${SERVICE_PORT}"
     build:
-      context: ./
+      context: service
     depends_on:
       - db
     restart: unless-stopped

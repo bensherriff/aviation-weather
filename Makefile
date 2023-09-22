@@ -21,13 +21,7 @@ down: ## Stop Docker service containers
 	docker compose down
 
 connect: ## Connect to the Weather DB
-	docker exec -it aviation_weather_db psql -U postgres
-
-lint:  ## Run the linter
-	npm run lint
-
-clean: ## Clean up the service
-	rm -rf target
+	docker exec -it ${DATABASE_CONTAINER} psql -U postgres
 
 clean-db:  ## Remove database
 	docker exec -i ${DATABASE_CONTAINER} sh -c 'PGPASSWORD=${DATABASE_PASSWORD} psql -U ${DATABASE_USER} -d postgres -c "DROP DATABASE IF EXISTS \"${DATABASE_NAME}\";"'
