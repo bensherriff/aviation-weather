@@ -1,4 +1,4 @@
-import { getAirport } from '@/app/_api/airport';
+import { getAirport } from '@/api/airport';
 import Link from 'next/link';
 
 export default async function Page({ params }: { params: { icao: string } }) {

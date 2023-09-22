@@ -4,7 +4,7 @@ import { AutoComplete, Avatar } from 'antd';
 import Link from 'next/link';
 import { AiOutlineUser } from 'react-icons/ai';
 import { useState } from 'react';
-import { getAirports } from '@/app/_api/airport';
+import { getAirports } from '@/api/airport';
 import { useRouter } from 'next/navigation';
 
 const DEFAULT_ICON_SIZE = 40;

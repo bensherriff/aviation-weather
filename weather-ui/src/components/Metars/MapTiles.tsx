@@ -1,8 +1,8 @@
 'use client';
 
-import { getAirports } from '@/app/_api/airport';
-import { Airport } from '@/app/_api/airport.types';
-import { getMetars } from '@/app/_api/metar';
+import { getAirports } from '@/api/airport';
+import { Airport } from '@/api/airport.types';
+import { getMetars } from '@/api/metar';
 import { DivIcon, LatLngBounds } from 'leaflet';
 import { useEffect, useState } from 'react';
 import ReactDOMServer from 'react-dom/server';

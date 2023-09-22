@@ -1,7 +1,7 @@
 'use client';
 
-import { Airport } from '@/app/_api/airport.types';
-import { Metar } from '@/app/_api/metar.types';
+import { Airport } from '@/api/airport.types';
+import { Metar } from '@/api/metar.types';
 import { FaArrowsSpin, FaLocationArrow } from 'react-icons/fa6';
 import { Col, Grid, Modal, Row, Tooltip } from 'antd';
 import Link from 'next/link';

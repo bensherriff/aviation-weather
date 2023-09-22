@@ -27,10 +27,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@api/*": ["src/app/_api"],
+      "@api/*": ["src/api"],
       "@app/*": ["./src/app/*"],
-      "@components/*": ["src/app/_components/*"],
-      "@lib/*": ["src/app/_components/*"]
+      "@components/*": ["src/components/*"],
+      "@lib/*": ["src/components/*"]
     }
   },
   "include": [
