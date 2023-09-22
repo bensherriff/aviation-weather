@@ -3,19 +3,19 @@
 import { Airport } from '@/api/airport.types';
 import { Metar } from '@/api/metar.types';
 import { FaArrowsSpin, FaLocationArrow } from 'react-icons/fa6';
-import { Col, Grid, Modal, Row, Tooltip } from 'antd';
 import Link from 'next/link';
 import { AiFillStar, AiOutlineStar } from 'react-icons/ai';
 import { BsFillCloudRainFill, BsFillCloudRainHeavyFill, BsFillCloudSleetFill, BsFillCloudSnowFill, BsQuestionLg } from 'react-icons/bs';
 import { useState } from 'react';
+import { Grid, Modal, Tooltip } from '@mantine/core';
 
-interface MetarDialogProps {
+interface MetarModalProps {
   airport: Airport;
   isOpen: boolean;
   onClose(): void;
 }
 
-export default function MetarDialog({ airport, isOpen, onClose }: MetarDialogProps) {
+export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps) {
   const [isFavorite, setIsFavorite] = useState(false);
 
   function handleFavorite(value: boolean) {
@@ -44,10 +44,8 @@ export default function MetarDialog({ airport, isOpen, onClose }: MetarDialogPro
           )}
         </span>
       }
-      open={isOpen}
-      onCancel={onClose}
-      closable={false}
-      footer={[]}
+      opened={isOpen}
+      onClose={onClose}
       className='select-none'
     >
       <div className='min-w-0 flex-1'>
@@ -131,8 +129,8 @@ function MetarInfo({ metar }: { metar: Metar }) {
   return (
     <div>
       <p className='text-xs font-small text-gray-500'>{metar.raw_text}</p>
-      <Row gutter={18}>
-        <Col className='gutter-row' span={6}>
+      <Grid gutter={18}>
+        <Grid.Col className='gutter-row' span={6}>
           <span
             className={`text-sm text-white py-2 px-4 rounded-full 
               ${metarBGColor(metar)}
@@ -140,15 +138,11 @@ function MetarInfo({ metar }: { metar: Metar }) {
           >
             {metar.flight_category ? metar.flight_category : 'UNKN'}
           </span>
-        </Col>
-        <Col className='gutter-row' span={12}>
+        </Grid.Col>
+        <Grid.Col className='gutter-row' span={12}>
           {metar.wx_string && metar.wx_string.split(' ').map((wx) => <MetarIcon wx={wx} />)}
-        </Col>
-      </Row>
-      <Row gutter={2}>Compass TBD Compass TBD Compass TBD Compass TBD Compass TB</Row>
-      <Row gutter={2}>
-        <Col></Col>
-      </Row>
+        </Grid.Col>
+      </Grid>
     </div>
   );
 }
@@ -215,7 +209,7 @@ function MetarIcon({ wx }: { wx: string }) {
   //   color = '';
   // }
   return (
-    <Tooltip title={title}>
+    <Tooltip label={title}>
       <span className={`rounded-full`}>{icon}</span>
     </Tooltip>
   );

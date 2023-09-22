@@ -1,20 +1,18 @@
 'use client';
 
-import { AutoComplete, Avatar } from 'antd';
 import Link from 'next/link';
 import { AiOutlineUser } from 'react-icons/ai';
 import { useState } from 'react';
 import { getAirports } from '@/api/airport';
 import { useRouter } from 'next/navigation';
-
-const DEFAULT_ICON_SIZE = 40;
+import { Autocomplete, Avatar } from '@mantine/core';
 
 export default function Topbar() {
   const [searchValue, setSearchValue] = useState('');
   const [airports, setAirports] = useState<{ key: string; value: string; label: string }[]>([]);
   const router = useRouter();
 
-  async function onSearch(value: string) {
+  async function onChange(value: string) {
     setSearchValue(value);
     const airportData = await getAirports({ filter: value });
     setAirports(
@@ -26,34 +24,32 @@ export default function Topbar() {
     );
   }
 
-  function onSelect(value: string) {
-    setSearchValue('');
+  function onClick(value: string) {
     router.push(`/airport/${value}`);
   }
 
   return (
-    <>
-      <nav className='w-screen flex bg-gray-700 text-gray-200 justify-between'>
-        <div className='flex'>
-          <Link href={'/'} className='align-middle pt-2.5 px-6 text-lg'>
-            <span>Aviation Weather</span>
-          </Link>
-          <AutoComplete
-            className='w-72 relative top-2'
-            autoFocus
-            defaultActiveFirstOption
-            value={searchValue}
-            options={airports}
-            onSelect={onSelect}
-            onSearch={onSearch}
-            onBlur={() => setSearchValue('')}
-            placeholder='Search Airports...'
-          />
-        </div>
-        <Link className='my-1 mr-2' href={'/profile'}>
-          <Avatar shape='circle' size={DEFAULT_ICON_SIZE} icon={<AiOutlineUser />} />
+    <nav style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex' }}>
+        <Link href={'/'} style={{ paddingLeft: '2em', paddingRight: '2em', margin: 'auto' }}>
+          <span>Aviation Weather</span>
         </Link>
-      </nav>
-    </>
+        <Autocomplete
+          autoFocus
+          radius='xl'
+          placeholder='Search Airports...'
+          limit={10}
+          data={airports}
+          value={searchValue}
+          onChange={onChange}
+          onBlur={() => setSearchValue('')}
+        />
+      </div>
+      <Link className='' href={'/profile'}>
+        <Avatar>
+          <AiOutlineUser />
+        </Avatar>
+      </Link>
+    </nav>
   );
 }

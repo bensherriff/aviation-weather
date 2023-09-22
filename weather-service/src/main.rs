@@ -44,8 +44,8 @@ async fn main() -> std::io::Result<()> {
     server = match listenfd.take_tcp_listener(0)? {
         Some(listener) => server.listen(listener)?,
         None => {
-            let host = std::env::var("HOST").expect("Please set host in .env");
-            let port = std::env::var("PORT").expect("Please set port in .env");
+            let host = std::env::var("SERVICE_HOST").expect("Please set host in .env");
+            let port = std::env::var("SERVICE_PORT").expect("Please set port in .env");
             debug!("Binding server to {}:{}", host, port);
             server.bind(format!("{}:{}", host, port))?
         }

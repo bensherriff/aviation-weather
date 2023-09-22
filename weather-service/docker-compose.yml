@@ -1,9 +1,10 @@
 version: '3'
 
+name: weather
 services:
-  weather-db:
+  db:
     image: postgis/postgis:latest
-    container_name: weather.db
+    container_name: weather-db
     env_file:
       - .env
     environment:
@@ -17,6 +18,22 @@ services:
       - "${DATABASE_PORT}:5432"
     restart: unless-stopped
 
+  service:
+    container_name: weather-service
+    env_file:
+      - .env
+    ports:
+      - "${SERVICE_PORT}:${SERVICE_PORT}"
+    build:
+      context: ./
+    depends_on:
+      - db
+    restart: unless-stopped
+
 volumes:
   db:
   db_logs:
+
+networks:
+  default:
+    name: weather-backend

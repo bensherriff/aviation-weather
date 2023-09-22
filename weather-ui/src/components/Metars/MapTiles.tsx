@@ -7,7 +7,7 @@ import { DivIcon, LatLngBounds } from 'leaflet';
 import { useEffect, useState } from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
-import MetarDialog from './MetarDialog';
+import MetarModal from './MetarModal';
 import { BsCircle, BsCircleFill } from 'react-icons/bs';
 
 export default function MapTiles() {
@@ -133,7 +133,7 @@ export default function MapTiles() {
 
   return (
     <>
-      {selectedAirport && <MetarDialog isOpen={isOpen} onClose={() => setIsOpen(false)} airport={selectedAirport} />}
+      {selectedAirport && <MetarModal isOpen={isOpen} onClose={() => setIsOpen(false)} airport={selectedAirport} />}
       <TileLayer
         attribution='&copy; <a href="https://www.osm.org/copyright">OpenStreetMap</a> contributors'
         url='http://{s}.tile.osm.org/{z}/{x}/{y}.png'

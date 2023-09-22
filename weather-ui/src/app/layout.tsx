@@ -2,17 +2,19 @@ import React from 'react';
 import RecoilRootWrapper from '@app/recoil-root-wrapper';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
+import { Inter } from 'next/font/google';
+import { MantineProvider } from '@mantine/core';
+import { ModalsProvider } from '@mantine/modals';
 import 'styles/globals.css';
 import 'styles/leaflet.css';
-import StyledComponentsRegistry from '@/lib/AntdRegistry';
-import { Inter } from 'next/font/google';
-
-const inter = Inter({ subsets: ['latin'] });
+import '@mantine/core/styles.css';
 
 export const metadata = {
   title: 'Aviation Weather',
   description: ''
 };
+
+const inter = Inter({ subsets: ['latin'] });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -22,11 +24,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.className} wrapper h-full`}>
         <RecoilRootWrapper>
-          <StyledComponentsRegistry>
-            <Topbar />
-            <Sidebar />
-            {children}
-          </StyledComponentsRegistry>
+          <MantineProvider>
+            <ModalsProvider>
+              <Topbar />
+              <Sidebar />
+              {children}
+            </ModalsProvider>
+          </MantineProvider>
         </RecoilRootWrapper>
       </body>
     </html>
