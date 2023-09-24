@@ -23,6 +23,13 @@ down: ## Stop Docker service containers
 connect: ## Connect to the Weather DB
 	docker exec -it ${DATABASE_CONTAINER} psql -U postgres
 
+clean: ## Cleanup Docker containers
+	docker compose down && \
+	docker image rm weather-ui || \
+	docker image rm weather-service || \
+	docker network rm weather-frontend || \
+	docker network rm weather-backend
+
 clean-db:  ## Remove database
 	docker exec -i ${DATABASE_CONTAINER} sh -c 'PGPASSWORD=${DATABASE_PASSWORD} psql -U ${DATABASE_USER} -d postgres -c "DROP DATABASE IF EXISTS \"${DATABASE_NAME}\";"'
 	docker exec -i ${DATABASE_CONTAINER} sh -c 'PGPASSWORD=${DATABASE_PASSWORD} psql -U ${DATABASE_USER} -d postgres -c "CREATE DATABASE \"${DATABASE_NAME}\";"'  || true

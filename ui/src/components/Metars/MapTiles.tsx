@@ -60,7 +60,6 @@ export default function MapTiles() {
   }
 
   function iconSize() {
-    console.log('zoom', zoomLevel);
     if (zoomLevel <= 4) {
       return 'text-xs';
     } else if (zoomLevel <= 5) {

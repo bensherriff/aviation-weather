@@ -45,7 +45,8 @@ async fn main() -> std::io::Result<()> {
         Some(listener) => server.listen(listener)?,
         None => {
             let host = std::env::var("SERVICE_HOST").expect("Please set host in .env");
-            let port = std::env::var("SERVICE_PORT").expect("Please set port in .env");
+            // let port = std::env::var("SERVICE_PORT").expect("Please set port in .env");
+            let port = 5000;
             debug!("Binding server to {}:{}", host, port);
             server.bind(format!("{}:{}", host, port))?
         }
