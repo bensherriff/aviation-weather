@@ -1,0 +1,26 @@
+version: '3'
+
+name: weather
+services:
+  ui:
+    container_name: weather-ui
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    ports:
+      - ${UI_PORT:-8080}:3000
+    build:
+      context: ./
+      target: dev
+    command: "npm run dev"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./styles:/app/styles
+    networks:
+      - weather-frontend
+    restart: unless-stopped
+
+networks:
+  weather-frontend: {}

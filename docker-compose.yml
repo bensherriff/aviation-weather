@@ -45,8 +45,6 @@ services:
       - ${UI_PORT}:3000
     build:
       context: ui
-      target: dev
-    command: npm run dev
     depends_on:
       - service
     networks:
