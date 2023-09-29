@@ -2,6 +2,8 @@
   display: flex;
   justify-content: space-between;
   height: 46px;
+  background-color: #0057a3;
+  color: white;
 }
 
 .navbar .left {
@@ -16,4 +18,10 @@
 
 .navbar .left .search {
   margin: auto;
+}
+
+.navbar .avatar {
+  padding-right: 2em;
+  margin-top: auto;
+  margin-bottom: auto;
 }

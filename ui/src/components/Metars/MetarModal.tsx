@@ -85,15 +85,15 @@ export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps
 function MetarInfo({ metar }: { metar: Metar }) {
   function metarBGColor(metar: Metar | undefined) {
     if (metar?.flight_category == 'VFR') {
-      return 'bg-emerald-600';
+      return 'green';
     } else if (metar?.flight_category == 'MVFR') {
-      return 'bg-blue-600';
+      return 'blue';
     } else if (metar?.flight_category == 'IFR') {
-      return 'bg-red-600';
+      return 'red';
     } else if (metar?.flight_category == 'LIFR') {
-      return 'bg-purple-600';
+      return 'purple';
     } else {
-      return 'bg-black';
+      return 'black';
     }
   }
 
@@ -121,16 +121,23 @@ function MetarInfo({ metar }: { metar: Metar }) {
 
   return (
     <div>
-      <p className='text-xs font-small text-gray-500'>{metar.raw_text}</p>
+      <p style={{ fontWeight: '200', fontSize: '0.8em', color: 'gray' }}>{metar.raw_text}</p>
       <Grid gutter={18}>
-        <Grid.Col className='gutter-row' span={6}>
+        <Grid.Col className='gutter-row' span={6} style={{ marginTop: '0.5em' }}>
           <span
-            className={`text-sm text-white py-2 px-4 rounded-full 
-              ${metarBGColor(metar)}
-            `}
+            style={{
+              color: 'white',
+              backgroundColor: metarBGColor(metar),
+              borderRadius: '25px',
+              padding: '0.4em 0.8em 0.4em 0.8em'
+            }}
           >
             {metar.flight_category ? metar.flight_category : 'UNKN'}
           </span>
+          <span style={{ marginLeft: '0.5em' }}>
+            {metar.wind_speed_kt != undefined && metar.wind_speed_kt > 0 ? `${metar.wind_speed_kt} KT` : 'CALM'}
+          </span>
+          {/* {metar.sky_condition != undefined && metar.sky_condition.map((skyCondition) => <>test</>)} */}
         </Grid.Col>
         <Grid.Col className='gutter-row' span={12}>
           {metar.wx_string && metar.wx_string.split(' ').map((wx) => <MetarIcon wx={wx} />)}

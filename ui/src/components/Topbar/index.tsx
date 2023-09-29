@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { AiOutlineUser } from 'react-icons/ai';
 import { useState } from 'react';
 import { getAirports } from '@/api/airport';
-// import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Autocomplete, Avatar } from '@mantine/core';
 import './topbar.css';
 
 export default function Topbar() {
   const [searchValue, setSearchValue] = useState('');
   const [airports, setAirports] = useState<{ key: string; value: string; label: string }[]>([]);
-  // const router = useRouter();
+  const router = useRouter();
 
   async function onChange(value: string) {
     setSearchValue(value);
@@ -25,9 +25,10 @@ export default function Topbar() {
     );
   }
 
-  // function onClick(value: string) {
-  //   router.push(`/airport/${value}`);
-  // }
+  function onClick(value: string) {
+    router.push(`/airport/${value}`);
+    setSearchValue('');
+  }
 
   return (
     <nav className='navbar'>
@@ -37,19 +38,19 @@ export default function Topbar() {
         </Link>
         <div className='search'>
           <Autocomplete
-            autoFocus
             radius='xl'
             placeholder='Search Airports...'
-            limit={10}
             data={airports}
+            limit={10}
             value={searchValue}
             onChange={onChange}
+            onOptionSubmit={onClick}
             onBlur={() => setSearchValue('')}
           />
         </div>
       </div>
       <Link className='avatar' href={'/profile'}>
-        <Avatar>
+        <Avatar variant='filled'>
           <AiOutlineUser />
         </Avatar>
       </Link>

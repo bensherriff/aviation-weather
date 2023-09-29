@@ -14,6 +14,7 @@ export default function MapTiles() {
   const [isOpen, setIsOpen] = useState(false);
   const [airports, setAirports] = useState<Airport[]>([]);
   const [selectedAirport, setSelectedAirport] = useState<Airport | undefined>();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [zoomLevel, setZoomLevel] = useState(8);
   // const [dragging, setDragging] = useState(false);
   const map = useMap();
@@ -59,70 +60,29 @@ export default function MapTiles() {
     setAirports(_airports);
   }
 
-  function iconSize() {
-    if (zoomLevel <= 5) {
-      return 'xs';
-    } else {
-      return 'sm';
-    }
-  }
-
   function metarIcon(airport: Airport) {
+    function innerIcon({ tag, color, size = 'sm' }: { tag: string; color: string; size?: string }) {
+      return new DivIcon({
+        html: ReactDOMServer.renderToString(
+          <MantineProvider>
+            <Avatar variant='filled' color={color} radius='xl' size={size}>
+              {tag}
+            </Avatar>
+          </MantineProvider>
+        ),
+        className: 'metar-marker-icon'
+      });
+    }
     if (airport.metar?.flight_category == 'VFR') {
-      return new DivIcon({
-        html: ReactDOMServer.renderToString(
-          <MantineProvider>
-            <Avatar variant='filled' color='green' radius='xl' size={iconSize()}>
-              V
-            </Avatar>
-          </MantineProvider>
-        ),
-        className: 'metar-marker-icon'
-      });
+      return innerIcon({ tag: 'V', color: 'green' });
     } else if (airport.metar?.flight_category == 'MVFR') {
-      return new DivIcon({
-        html: ReactDOMServer.renderToString(
-          <MantineProvider>
-            <Avatar variant='filled' color='blue' radius='xl' size={iconSize()}>
-              M
-            </Avatar>
-          </MantineProvider>
-        ),
-        className: 'metar-marker-icon'
-      });
+      return innerIcon({ tag: 'M', color: 'blue' });
     } else if (airport.metar?.flight_category == 'IFR') {
-      return new DivIcon({
-        html: ReactDOMServer.renderToString(
-          <MantineProvider>
-            <Avatar variant='filled' color='red' radius='xl' size={iconSize()}>
-              I
-            </Avatar>
-          </MantineProvider>
-        ),
-        className: 'metar-marker-icon'
-      });
+      return innerIcon({ tag: 'I', color: 'red' });
     } else if (airport.metar?.flight_category == 'LIFR') {
-      return new DivIcon({
-        html: ReactDOMServer.renderToString(
-          <MantineProvider>
-            <Avatar variant='filled' color='purple' radius='xl' size={iconSize()}>
-              L
-            </Avatar>
-          </MantineProvider>
-        ),
-        className: 'metar-marker-icon'
-      });
+      return innerIcon({ tag: 'L', color: 'purple' });
     } else {
-      return new DivIcon({
-        html: ReactDOMServer.renderToString(
-          <MantineProvider>
-            <Avatar variant='filled' color='black' radius='xl' size={iconSize()}>
-              U
-            </Avatar>
-          </MantineProvider>
-        ),
-        className: 'metar-marker-icon'
-      });
+      return innerIcon({ tag: 'U', color: 'black', size: 'xs' });
     }
   }
 
