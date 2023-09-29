@@ -1,0 +1,19 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  height: 46px;
+}
+
+.navbar .left {
+  display: flex;
+}
+
+.navbar .title {
+  padding-left: 2em;
+  padding-right: 2em;
+  margin: auto;
+}
+
+.navbar .left .search {
+  margin: auto;
+}

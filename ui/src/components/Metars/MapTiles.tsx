@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import MetarModal from './MetarModal';
-import { BsCircle, BsCircleFill } from 'react-icons/bs';
+import { Avatar, MantineProvider } from '@mantine/core';
 
 export default function MapTiles() {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,20 +60,10 @@ export default function MapTiles() {
   }
 
   function iconSize() {
-    if (zoomLevel <= 4) {
-      return 'text-xs';
-    } else if (zoomLevel <= 5) {
-      return 'text-sm';
-    } else if (zoomLevel <= 6) {
-      return 'text-base';
-    } else if (zoomLevel <= 7) {
-      return 'text-lg';
-    } else if (zoomLevel <= 9) {
-      return 'text-2xl';
-    } else if (zoomLevel <= 11) {
-      return 'text-3xl';
-    } else if (zoomLevel >= 12) {
-      return 'text-4xl';
+    if (zoomLevel <= 5) {
+      return 'xs';
+    } else {
+      return 'sm';
     }
   }
 
@@ -81,46 +71,56 @@ export default function MapTiles() {
     if (airport.metar?.flight_category == 'VFR') {
       return new DivIcon({
         html: ReactDOMServer.renderToString(
-          <div>
-            <BsCircle className={`${iconSize()} rounded-full bg-emerald-700`} />
-            <span className={`${iconSize()} text-white`}>V</span>
-          </div>
+          <MantineProvider>
+            <Avatar variant='filled' color='green' radius='xl' size={iconSize()}>
+              V
+            </Avatar>
+          </MantineProvider>
         ),
         className: 'metar-marker-icon'
       });
     } else if (airport.metar?.flight_category == 'MVFR') {
       return new DivIcon({
         html: ReactDOMServer.renderToString(
-          <div>
-            <BsCircle className={`${iconSize()} rounded-full bg-blue-700`} />
-            <span className={`${iconSize()} text-white`}>M</span>
-          </div>
+          <MantineProvider>
+            <Avatar variant='filled' color='blue' radius='xl' size={iconSize()}>
+              M
+            </Avatar>
+          </MantineProvider>
         ),
         className: 'metar-marker-icon'
       });
     } else if (airport.metar?.flight_category == 'IFR') {
       return new DivIcon({
         html: ReactDOMServer.renderToString(
-          <div>
-            <BsCircle className={`${iconSize()} rounded-full bg-red-700`} />
-            <span className={`${iconSize()} text-white`}>I</span>
-          </div>
+          <MantineProvider>
+            <Avatar variant='filled' color='red' radius='xl' size={iconSize()}>
+              I
+            </Avatar>
+          </MantineProvider>
         ),
         className: 'metar-marker-icon'
       });
     } else if (airport.metar?.flight_category == 'LIFR') {
       return new DivIcon({
         html: ReactDOMServer.renderToString(
-          <div>
-            <BsCircle className={`${iconSize()} rounded-full bg-purple-700`} />
-            <span className={`${iconSize()} text-white`}>L</span>
-          </div>
+          <MantineProvider>
+            <Avatar variant='filled' color='purple' radius='xl' size={iconSize()}>
+              L
+            </Avatar>
+          </MantineProvider>
         ),
         className: 'metar-marker-icon'
       });
     } else {
       return new DivIcon({
-        html: ReactDOMServer.renderToString(<BsCircleFill className={`text-black`} />),
+        html: ReactDOMServer.renderToString(
+          <MantineProvider>
+            <Avatar variant='filled' color='black' radius='xl' size={iconSize()}>
+              U
+            </Avatar>
+          </MantineProvider>
+        ),
         className: 'metar-marker-icon'
       });
     }

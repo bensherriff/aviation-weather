@@ -5,9 +5,16 @@ import { Metar } from '@/api/metar.types';
 import { FaArrowsSpin, FaLocationArrow } from 'react-icons/fa6';
 import Link from 'next/link';
 import { AiFillStar, AiOutlineStar } from 'react-icons/ai';
-import { BsFillCloudRainFill, BsFillCloudRainHeavyFill, BsFillCloudSleetFill, BsFillCloudSnowFill, BsQuestionLg } from 'react-icons/bs';
+import {
+  BsFillCloudRainFill,
+  BsFillCloudRainHeavyFill,
+  BsFillCloudSleetFill,
+  BsFillCloudSnowFill,
+  BsQuestionLg
+} from 'react-icons/bs';
 import { useState } from 'react';
 import { Grid, Modal, Tooltip } from '@mantine/core';
+import './metars.css';
 
 interface MetarModalProps {
   airport: Airport;
@@ -23,31 +30,17 @@ export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps
   }
 
   return (
-    <Modal
-      title={
-        <span className='flex justify-between'>
-          <Link href={`/airport/${airport.icao}`}>
-            {airport.icao} {airport.full_name}
-          </Link>
-          {isFavorite ? (
-            <AiFillStar
-              size={24}
-              className='cursor-pointer text-blue-500 hover:text-blue-400'
-              onClick={() => handleFavorite(false)}
-            />
-          ) : (
-            <AiOutlineStar
-              size={24}
-              className='cursor-pointer text-blue-500 hover:text-blue-400'
-              onClick={() => handleFavorite(true)}
-            />
-          )}
-        </span>
-      }
-      opened={isOpen}
-      onClose={onClose}
-      className='select-none'
-    >
+    <Modal opened={isOpen} onClose={onClose} withCloseButton={false} size={'55rem'} className='modal'>
+      <span className='title'>
+        <Link href={`/airport/${airport.icao}`}>
+          {airport.icao} {airport.full_name}
+        </Link>
+        {isFavorite ? (
+          <AiFillStar size={24} className='star' onClick={() => handleFavorite(false)} />
+        ) : (
+          <AiOutlineStar size={24} className='star' onClick={() => handleFavorite(true)} />
+        )}
+      </span>
       <div className='min-w-0 flex-1'>
         <hr />
         {airport.metar && <MetarInfo metar={airport.metar} />}

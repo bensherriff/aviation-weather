@@ -1,0 +1,18 @@
+/* https://stackoverflow.com/questions/55291179/how-to-overlay-content-on-react-leaflet-z-index-problem */
+.leaflet-control { z-index: 0 !important}
+.leaflet-pane { z-index: 0 !important}
+.leaflet-top, .leaflet-bottom {z-index: 0 !important}
+
+.modal {
+  user-select: none;
+}
+
+.modal .title {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.modal .star {
+  cursor: pointer;
+}

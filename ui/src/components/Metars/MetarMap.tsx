@@ -2,8 +2,9 @@
 
 import { MapContainer } from 'react-leaflet';
 import MapTiles from './MapTiles';
+import './metars.css';
 
-export default function Map({ className = '' }: { className?: string }) {
+export default function Map() {
   return (
     <>
       <MapContainer
@@ -13,7 +14,7 @@ export default function Map({ className = '' }: { className?: string }) {
         minZoom={3} // Zoomed out
         id='map-container'
         style={{ height: '94.5vh' }}
-        className={`${className} overflow-y-hidden overflow-x-hidden`}
+        className={`overflow-y-hidden overflow-x-hidden`}
         attributionControl={false}
       >
         <MapTiles />

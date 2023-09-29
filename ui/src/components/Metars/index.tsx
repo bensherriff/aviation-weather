@@ -1,7 +1,7 @@
 import { Metar } from '@/api/metar.types';
 import dynamic from 'next/dynamic';
 
-export default async function Metar({ className = '' }: { className?: string }) {
+export default async function Metar() {
   const Map = dynamic(() => import('@/components/Metars/MetarMap'), {
     loading: () => (
       <div className='grid min-h-full place-items-center px-6 py-24 sm:py-32 lg:px-8'>
@@ -12,5 +12,5 @@ export default async function Metar({ className = '' }: { className?: string }) 
     ),
     ssr: false
   });
-  return <Map className={className} />;
+  return <Map />;
 }
