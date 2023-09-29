@@ -18,7 +18,8 @@ lazy_static! {
     let password = env::var("DATABASE_PASSWORD").expect("Database password is not set");
     let host = env::var("DATABASE_HOST").expect("Database host is not set");
     let name = env::var("DATABASE_NAME").expect("Database name is not set");
-    let port = env::var("DATABASE_PORT").expect("Database port is not set");
+    // let port = env::var("DATABASE_PORT").expect("Database port is not set");
+    let port = 5432;
     let url = format!("postgres://{}:{}@{}:{}/{}", username, password, host, port, name);
     let manager = ConnectionManager::<PgConnection>::new(url);
     Pool::builder().test_on_check_out(true).build(manager).expect("Failed to create db pool")

@@ -11,13 +11,13 @@ help: ## This info
 	@cat Makefile | grep -E '^[a-zA-Z\/_-]+:.*?## .*$$' | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	@echo
 
-build: ## Build Docker service container
+build: ## Build Docker containers
 	docker compose build
 
-up: ## Start Docker service containers
+up: ## Start Docker containers
 	docker compose up -d
 
-down: ## Stop Docker service containers
+down: ## Stop Docker containers
 	docker compose down
 
 connect: ## Connect to the Weather DB
