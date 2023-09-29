@@ -15,6 +15,7 @@ import {
 import { useState } from 'react';
 import { Grid, Modal, Tooltip } from '@mantine/core';
 import './metars.css';
+import SkyConditions from './SkyConditions';
 
 interface MetarModalProps {
   airport: Airport;
@@ -137,7 +138,9 @@ function MetarInfo({ metar }: { metar: Metar }) {
           <span style={{ marginLeft: '0.5em' }}>
             {metar.wind_speed_kt != undefined && metar.wind_speed_kt > 0 ? `${metar.wind_speed_kt} KT` : 'CALM'}
           </span>
-          {/* {metar.sky_condition != undefined && metar.sky_condition.map((skyCondition) => <>test</>)} */}
+        </Grid.Col>
+        <Grid.Col className='gutter-row' span={6}>
+          <SkyConditions metar={metar} />
         </Grid.Col>
         <Grid.Col className='gutter-row' span={12}>
           {metar.wx_string && metar.wx_string.split(' ').map((wx) => <MetarIcon wx={wx} />)}

@@ -15,9 +15,9 @@ pub struct QualityControlFlags {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SkyCondition {
-    #[serde(rename = "@sky_cover")]
+    #[serde(rename(deserialize = "@sky_cover"))]
     pub sky_cover: String,
-    #[serde(rename = "@cloud_base_ft_agl")]
+    #[serde(rename(deserialize = "@cloud_base_ft_agl"))]
     pub cloud_base_ft_agl: Option<i32>
 }
 

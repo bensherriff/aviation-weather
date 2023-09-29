@@ -1,3 +1,13 @@
+export interface SkyCondition {
+  sky_cover: string;
+  cloud_base_ft_agl: number;
+}
+
+export interface QualityControlFlags {
+  auto: boolean;
+  auto_station: boolean;
+}
+
 export interface Metar {
   raw_text: string;
   station_id: string;
@@ -11,15 +21,9 @@ export interface Metar {
   visibility_statute_mi: string;
   altim_in_hg: number;
   sea_level_pressure_mb: number;
-  quality_control_flags: {
-    auto: boolean;
-    auto_station: boolean;
-  };
+  quality_control_flags: QualityControlFlags;
   wx_string: string;
-  sky_condition: {
-    sky_cover: string;
-    cloud_base_ft_agl: number;
-  }[];
+  sky_condition: SkyCondition[];
   flight_category: 'VFR' | 'MVFR' | 'LIFR' | 'IFR' | 'UNKN';
   three_hr_pressure_tendency_mb: number;
   metar_type: string;
