@@ -1,0 +1,44 @@
+version: '3'
+
+name: weather
+services:
+  db:
+    image: postgis/postgis:latest
+    container_name: weather-db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    volumes:
+     - db:/var/lib/postgresql/data
+     - db_logs:/var/log
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    networks:
+      - weather-backend
+    restart: unless-stopped
+
+  service:
+    container_name: weather-service
+    env_file:
+      - .env
+    ports:
+      - "${SERVICE_PORT:-5000}:5000"
+    build:
+      context: service
+    depends_on:
+      - db
+    networks:
+      - weather-frontend
+      - weather-backend
+    restart: unless-stopped
+
+volumes:
+  db:
+  db_logs:
+
+networks:
+  weather-frontend: {}
+  weather-backend: {}

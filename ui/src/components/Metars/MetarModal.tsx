@@ -31,7 +31,7 @@ export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps
   }
 
   return (
-    <Modal opened={isOpen} onClose={onClose} withCloseButton={false} size={'55rem'} className='modal'>
+    <Modal opened={isOpen} onClose={onClose} withCloseButton={false} size={'50%'} className='modal'>
       <span className='title'>
         <Link href={`/airport/${airport.icao}`}>
           {airport.icao} {airport.full_name}
@@ -45,39 +45,6 @@ export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps
       <div className='min-w-0 flex-1'>
         <hr />
         {airport.metar && <MetarInfo metar={airport.metar} />}
-        {/* <p className='text-sm font-medium text-gray-500'>{airport.metar?.raw_text}</p>
-        <div className='mt-2 flex'>
-          <span
-            className={`flex inline-block align-middle text-sm text-white py-2 px-4 rounded-full 
-              ${metarBGColor(airport.metar)}
-            `}
-          >
-            {airport.metar?.flight_category ? airport.metar?.flight_category : 'UNKN'}
-          </span>
-          <div className='flex inline-block px-2'>
-            <span className={`text-sm text-black ${windColor(airport.metar)} py-2 px-3 rounded-full`}>
-              {airport.metar && airport.metar.wind_dir_degrees && Number(airport.metar.wind_dir_degrees) > 0 ? (
-                <FaLocationArrow
-                  className='align-middle'
-                  style={{ rotate: `${-45 + 180 + Number(airport.metar.wind_dir_degrees)}deg` }}
-                />
-              ) : (
-                <></>
-              )}
-              {airport.metar && airport.metar.wind_dir_degrees && airport.metar.wind_dir_degrees == 'VRB' ? (
-                <FaArrowsSpin className='align-middle pr-1.5' />
-              ) : (
-                <></>
-              )}
-              <span className='align-middle'>
-                {airport.metar?.wind_speed_kt != undefined && airport.metar?.wind_speed_kt > 0
-                  ? `${airport.metar?.wind_speed_kt} KT`
-                  : `CALM`}
-              </span>
-            </span>
-            {airport.metar?.wx_string?.split(' ').map((wx) => <MetarIcon wx={wx} />)}
-          </div>
-        </div> */}
       </div>
     </Modal>
   );

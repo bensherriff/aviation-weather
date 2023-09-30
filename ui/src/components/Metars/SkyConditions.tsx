@@ -1,20 +1,18 @@
 'use client';
 
 import { Metar, SkyCondition } from '@/api/metar.types';
+import { Box } from '@mantine/core';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Filler,
-  Legend
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler, Legend);
+  Customized,
+  Label,
+  LabelList,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  XAxis,
+  YAxis
+} from 'recharts';
 
 export default function SkyConditions({ metar }: { metar: Metar }) {
   function skyConditionColor(skyCondition: SkyCondition) {
@@ -32,35 +30,54 @@ export default function SkyConditions({ metar }: { metar: Metar }) {
       return '#e6194b';
     }
   }
-  function createDataset(skyCondition: SkyCondition) {
-    return {
-      fill: true,
-      label: skyCondition.sky_cover,
-      data: [skyCondition.cloud_base_ft_agl, skyCondition.cloud_base_ft_agl],
-      backgroundColor: skyConditionColor(skyCondition)
-    };
-  }
   if (metar.sky_condition && metar.sky_condition.length > 0) {
-    console.log(metar);
-    const options = {
-      responsive: true,
-      plugins: {
-        legend: {
-          display: false
-        },
-        title: {
-          display: true,
-          text: 'Sky Conditions'
-        }
+    const data: any = [
+      {
+        name: 'start'
+      },
+      {
+        name: 'end'
       }
-    };
-    const data = {
-      labels: ['', ''],
-      datasets: metar.sky_condition.map((skyCondition) => createDataset(skyCondition))
-    };
+    ];
+    metar.sky_condition.forEach((skyCondition, index) => {
+      data[0][index] = skyCondition.cloud_base_ft_agl;
+      data[1][index] = skyCondition.cloud_base_ft_agl;
+    });
 
-    return <Line options={options} data={data} />;
+    return (
+      <LineChart data={data} width={350} height={300}>
+        <YAxis domain={[0, (dataMax: number) => (dataMax < 1000 ? 1000 : Math.ceil(dataMax / 1000) * 1000)]} />
+        {metar.sky_condition.map((skyCondition, index) => (
+          <Line
+            key={`sky-condition-line-${index}`}
+            type={'linear'}
+            dataKey={index}
+            dot={false}
+            isAnimationActive={false}
+          >
+            <LabelList
+              dataKey={index}
+              position='insideRight'
+              content={(props) => renderCustomizedLabel(props, skyCondition.sky_cover)}
+            />
+          </Line>
+        ))}
+      </LineChart>
+    );
   } else {
     return <></>;
   }
 }
+
+const renderCustomizedLabel = (props: any, skyCover: string) => {
+  const { x, y, value, index } = props;
+  if (index == 1) {
+    return (
+      <text x={x} y={y - 5} fill={'#285A64'} textAnchor='end'>
+        {skyCover} {value}
+      </text>
+    );
+  } else {
+    return <></>;
+  }
+};

@@ -41,7 +41,7 @@ export default function MapTiles() {
   async function updateAirports(bounds: LatLngBounds) {
     const ne = bounds.getNorthEast();
     const sw = bounds.getSouthWest();
-    const { data: _airports } = await getAirports({
+    const { data: airportData } = await getAirports({
       bounds: {
         northEast: { lat: ne.lat, lon: ne.lng },
         southWest: { lat: sw.lat, lon: sw.lng }
@@ -49,15 +49,15 @@ export default function MapTiles() {
       limit: 100,
       page: 1
     });
-    const { data: metars } = await getMetars(_airports);
+    const { data: metars } = await getMetars(airportData.map((a) => a.icao));
     metars.forEach((metar) => {
-      _airports.forEach((airport) => {
+      airportData.forEach((airport) => {
         if (metar.station_id == airport.icao) {
           airport.metar = metar;
         }
       });
     });
-    setAirports(_airports);
+    setAirports(airportData);
   }
 
   function metarIcon(airport: Airport) {
