@@ -44,13 +44,13 @@ pub struct QueryAirport {
 }
 
 impl QueryAirport {
-  pub fn get_all(bounds: &Option<Polygon<Point>>, category: &Option<String>, filter: &Option<String>, limit: i32, page: i32) -> Result<Vec<Self>, ServiceError> {
+  pub fn get_all(bounds: &Option<Polygon<Point>>, category: &Option<String>, filter: &Option<String>, order_by: bool, limit: i32, page: i32) -> Result<Vec<Self>, ServiceError> {
     let mut conn = db::connection()?;
     
     let mut query = airports::table
       .limit(limit as i64)
       .into_boxed();
-    query = query.filter(airports::id.gt(std::cmp::max(1, page - 1) * limit));
+    query = query.filter(airports::id.gt(std::cmp::max(0, page - 1) * limit));
 
     if let Some(bounds) = bounds {
       query = query.filter(st_contains(bounds, airports::point));
@@ -64,7 +64,10 @@ impl QueryAirport {
         .or(airports::full_name.ilike(format!("%{}%", filter)))
       )
     }
-    let airports: Vec<QueryAirport> = query.order((airports::id.asc(), airports::category.asc())).load::<QueryAirport>(&mut conn)?;
+    if order_by {
+      query = query.order(airports::category.asc());
+    }
+    let airports: Vec<QueryAirport> = query.load::<QueryAirport>(&mut conn)?;
     Ok(airports)
   }
 

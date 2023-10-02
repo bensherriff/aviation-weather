@@ -96,7 +96,7 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
   };
   let pages = ((total as f64) / (if limit <= 0 { 1 } else { limit} as f64)).ceil() as i64;
 
-  match web::block(move || QueryAirport::get_all(&polygon, &category, &filter, limit, page)).await.unwrap() {
+  match web::block(move || QueryAirport::get_all(&polygon, &category, &filter, true, limit, page)).await.unwrap() {
     Ok(a) => HttpResponse::Ok().json(AirportsResponse {
       data: a,
       meta: Metadata { page, limit, pages, total }

@@ -23,6 +23,6 @@ r2d2 = "0.8.10"
 reqwest = "0.11.20"
 serde = {version = "1.0.188", features = ["derive"]}
 serde_json = "1.0.105"
-tokio = { version = "1.32.0", features = ["macros", "rt"] }
+tokio = { version = "1.32.0", features = ["macros", "rt", "time"] }
 uuid = { version = "1.4.1", features = ["serde", "v4"] }
 log = "0.4.20"
