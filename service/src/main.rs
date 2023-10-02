@@ -8,7 +8,7 @@ use actix_web::{App, HttpServer, middleware::Logger};
 use dotenv::dotenv;
 use env_logger::Env;
 use listenfd::ListenFd;
-use log::debug;
+use log::{debug, warn};
 
 mod airports;
 mod auth;
@@ -44,9 +44,20 @@ async fn main() -> std::io::Result<()> {
     server = match listenfd.take_tcp_listener(0)? {
         Some(listener) => server.listen(listener)?,
         None => {
-            let host = std::env::var("SERVICE_HOST").expect("Please set host in .env");
-            // let port = std::env::var("SERVICE_PORT").expect("Please set port in .env");
-            let port = 5000;
+            let host = match std::env::var("SERVICE_HOST") {
+                Ok(h) => h,
+                Err(_) => {
+                    warn!("Defaulting to SERVICE_HOST localhost");
+                    "localhost".to_string()
+                }
+            };
+            let port = match std::env::var("SERVICE_PORT") {
+                Ok(p) => p,
+                Err(_) => {
+                    warn!("Defaulting to SERVICE_PORT 5000");
+                    "5000".to_string()
+                }
+            };
             debug!("Binding server to {}:{}", host, port);
             server.bind(format!("{}:{}", host, port))?
         }

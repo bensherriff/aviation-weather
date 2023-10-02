@@ -6,7 +6,6 @@ import { CartesianGrid, LabelList, Line, LineChart, XAxis, YAxis } from 'rechart
 
 export default function SkyConditions({ metar }: { metar: Metar }) {
   if (metar.sky_condition && metar.sky_condition.length > 0 && metar.sky_condition[0].sky_cover != 'CLR') {
-    let maxHeight = 5000;
     const data: any = [
       {
         name: 'start'
@@ -15,6 +14,7 @@ export default function SkyConditions({ metar }: { metar: Metar }) {
         name: 'end'
       }
     ];
+    let maxHeight = 0;
     metar.sky_condition.forEach((skyCondition, index) => {
       data[0][index] = skyCondition.cloud_base_ft_agl;
       data[1][index] = skyCondition.cloud_base_ft_agl;
