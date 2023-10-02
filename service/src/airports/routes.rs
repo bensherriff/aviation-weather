@@ -82,10 +82,24 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
     None => None
   };
 
-  match web::block(move || QueryAirport::get_all(polygon, category, filter, params.limit, params.page)).await.unwrap() {
+  let limit = match params.limit {
+    Some(l) => l,
+    None => 100
+  };
+  let page = match params.page {
+    Some(p) => p,
+    None => 1
+  };
+  let total = match QueryAirport::get_count(&polygon, &category, &filter) {
+    Ok(t) => t,
+    Err(_) => 0
+  };
+  let pages = ((total as f64) / (if limit <= 0 { 1 } else { limit} as f64)).ceil() as i64;
+
+  match web::block(move || QueryAirport::get_all(&polygon, &category, &filter, limit, page)).await.unwrap() {
     Ok(a) => HttpResponse::Ok().json(AirportsResponse {
       data: a,
-      meta: Metadata { page: 0, limit: 0, pages: 0, total: 0 }
+      meta: Metadata { page, limit, pages, total }
     }),
     Err(err) => {
       error!("{}", err);
@@ -105,7 +119,7 @@ async fn get(icao: web::Path<String>) -> HttpResponse {
   match QueryAirport::find(icao.into_inner()) {
     Ok(a) => HttpResponse::Ok().json(AirportResponse {
       data: a,
-      meta: Metadata { page: 0, limit: 0, pages: 0, total: 0 }
+      meta: Metadata { page: 1, limit: 1, pages: 1, total: 1 }
     }),
     Err(err) => {
       error!("{}", err);

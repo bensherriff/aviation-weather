@@ -69,8 +69,8 @@ pub fn import_data() {
 pub struct Metadata {
   pub page: i32,
   pub limit: i32,
-  pub pages: i32,
-  pub total: i32,
+  pub pages: i64,
+  pub total: i64,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

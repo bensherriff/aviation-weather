@@ -1,6 +1,7 @@
 use crate::db;
 use crate::error_handler::ServiceError;
 use crate::schema::airports;
+use diesel::dsl::count_star;
 use diesel::prelude::*;
 // use log::trace;
 use postgis_diesel::types::*;
@@ -43,16 +44,9 @@ pub struct QueryAirport {
 }
 
 impl QueryAirport {
-  pub fn get_all(bounds: Option<Polygon<Point>>, category: Option<String>, filter: Option<String>, limit: Option<i32>, page: Option<i32>) -> Result<Vec<Self>, ServiceError> {
+  pub fn get_all(bounds: &Option<Polygon<Point>>, category: &Option<String>, filter: &Option<String>, limit: i32, page: i32) -> Result<Vec<Self>, ServiceError> {
     let mut conn = db::connection()?;
-    let limit = match limit {
-      Some(l) => l,
-      None => 100
-    };
-    let page = match page {
-      Some(p) => p,
-      None => 1
-    };
+    
     let mut query = airports::table
       .limit(limit as i64)
       .into_boxed();
@@ -70,10 +64,29 @@ impl QueryAirport {
         .or(airports::full_name.ilike(format!("%{}%", filter)))
       )
     }
-    // let debug = diesel::debug_query::<diesel::pg::Pg, _>(&query);
-    // trace!("{}", debug);
-    let airports: Vec<QueryAirport> = query.order(airports::category.asc()).load::<QueryAirport>(&mut conn)?;
+    let airports: Vec<QueryAirport> = query.order((airports::id.asc(), airports::category.asc())).load::<QueryAirport>(&mut conn)?;
     Ok(airports)
+  }
+
+  pub fn get_count(bounds: &Option<Polygon<Point>>, category: &Option<String>, filter: &Option<String>) -> Result<i64, ServiceError> {
+    let mut conn = db::connection()?;
+    let mut query = airports::table.select(count_star()).into_boxed();
+
+    if let Some(bounds) = bounds {
+      query = query.filter(st_contains(bounds, airports::point));
+    }
+    if let Some(category) = category {
+      query = query.filter(airports::category.eq(category));
+    }
+    if let Some(filter) = filter {
+      query = query.filter(airports::icao
+        .ilike(format!("%{}%", filter))
+        .or(airports::full_name.ilike(format!("%{}%", filter)))
+      )
+    }
+
+    let count: i64 = query.first(&mut conn)?;
+    return Ok(count);
   }
 
   pub fn find(icao: String) -> Result<Self, ServiceError> {
