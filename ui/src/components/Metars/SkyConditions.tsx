@@ -1,19 +1,19 @@
 'use client';
 
 import { Metar } from '@/api/metar.types';
-import { Box, Text } from '@mantine/core';
+import { Box, Card, Divider } from '@mantine/core';
 import { CartesianGrid, LabelList, Line, LineChart, XAxis, YAxis } from 'recharts';
 
 export default function SkyConditions({ metar }: { metar: Metar }) {
+  const data: any = [
+    {
+      name: 'start'
+    },
+    {
+      name: 'end'
+    }
+  ];
   if (metar.sky_condition && metar.sky_condition.length > 0 && metar.sky_condition[0].sky_cover != 'CLR') {
-    const data: any = [
-      {
-        name: 'start'
-      },
-      {
-        name: 'end'
-      }
-    ];
     let maxHeight = 0;
     metar.sky_condition.forEach((skyCondition, index) => {
       data[0][index] = skyCondition.cloud_base_ft_agl;
@@ -37,9 +37,9 @@ export default function SkyConditions({ metar }: { metar: Metar }) {
     }
 
     return (
-      <Box>
-        <Text>Sky Conditions</Text>
-        <LineChart data={data} width={350} height={300} margin={{ top: 10, right: 0, left: 0, bottom: 10 }}>
+      <Card padding='lg' radius='md'>
+        <Divider my='sm' label='Sky Conditions' labelPosition='center' />
+        <LineChart data={data} width={350} height={300} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray='3 3' />
           <YAxis
             includeHidden
@@ -63,14 +63,14 @@ export default function SkyConditions({ metar }: { metar: Metar }) {
             </Line>
           ))}
         </LineChart>
-      </Box>
+      </Card>
     );
   } else {
     return (
-      <Box>
-        <Text>Sky Conditions</Text>
-        <Text>Clear</Text>
-      </Box>
+      <Card>
+        <Divider my='sm' label='Sky Conditions' labelPosition='center' />
+        <Box style={{ width: '350px', height: '300px', textAlign: 'center' }}>Clear Skies</Box>
+      </Card>
     );
   }
 }

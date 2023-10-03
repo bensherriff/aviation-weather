@@ -6,6 +6,10 @@ import { FaArrowsSpin, FaLocationArrow } from 'react-icons/fa6';
 import Link from 'next/link';
 import { AiFillStar, AiOutlineStar } from 'react-icons/ai';
 import {
+  BsFillCloudDrizzleFill,
+  BsFillCloudFogFill,
+  BsFillCloudHailFill,
+  BsFillCloudHazeFill,
   BsFillCloudRainFill,
   BsFillCloudRainHeavyFill,
   BsFillCloudSleetFill,
@@ -13,7 +17,7 @@ import {
   BsQuestionLg
 } from 'react-icons/bs';
 import { useState } from 'react';
-import { Grid, Modal, Tooltip } from '@mantine/core';
+import { Card, Divider, Grid, Modal, Tooltip } from '@mantine/core';
 import './metars.css';
 import SkyConditions from './SkyConditions';
 
@@ -43,7 +47,7 @@ export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps
         )}
       </span>
       <div className='min-w-0 flex-1'>
-        <hr />
+        <Divider style={{ paddingTop: '0.1em' }} />
         {airport.metar && <MetarInfo metar={airport.metar} />}
       </div>
     </Modal>
@@ -68,22 +72,14 @@ function MetarInfo({ metar }: { metar: Metar }) {
   function windColor(metar: Metar | undefined) {
     if (metar) {
       if (Number(metar.wind_speed_kt) <= 9) {
-        return 'bg-green-300';
+        return 'green';
       } else if (Number(metar.wind_speed_kt) <= 12) {
-        return 'bg-orange-300';
+        return 'orange';
       } else {
-        return 'bg-red-300';
+        return 'red';
       }
     } else {
-      return 'gb-gray-100';
-    }
-  }
-
-  function metarIcon(weatherPhenomena: string) {
-    if (weatherPhenomena == 'RA') {
-      return <></>;
-    } else {
-      return <></>;
+      return 'gray';
     }
   }
 
@@ -92,25 +88,73 @@ function MetarInfo({ metar }: { metar: Metar }) {
       <p style={{ fontWeight: '200', fontSize: '0.8em', color: 'gray' }}>{metar.raw_text}</p>
       <Grid gutter={18}>
         <Grid.Col className='gutter-row' span={6} style={{ marginTop: '0.5em' }}>
-          <span
-            style={{
-              color: 'white',
-              backgroundColor: metarBGColor(metar),
-              borderRadius: '25px',
-              padding: '0.4em 0.8em 0.4em 0.8em'
-            }}
-          >
-            {metar.flight_category ? metar.flight_category : 'UNKN'}
-          </span>
-          <span style={{ marginLeft: '0.5em' }}>
-            {metar.wind_speed_kt != undefined && metar.wind_speed_kt > 0 ? `${metar.wind_speed_kt} KT` : 'CALM'}
-          </span>
+          <Grid.Col span={12}>
+            <Grid style={{ padding: '2px' }}>
+              <Grid.Col span={6}>
+                <Card
+                  shadow='sm'
+                  padding='sm'
+                  radius='md'
+                  style={{
+                    backgroundColor: metarBGColor(metar),
+                    textAlign: 'center',
+                    color: 'white'
+                  }}
+                >
+                  {metar.flight_category ? metar.flight_category : 'UNKN'}
+                </Card>
+              </Grid.Col>
+              <Grid.Col span={6}>
+                <>
+                  {metar.wind_speed_kt == undefined || metar.wind_speed_kt == 0 ? (
+                    <Card
+                      shadow='sm'
+                      padding='sm'
+                      radius='md'
+                      style={{ textAlign: 'center', backgroundColor: 'green', color: 'white' }}
+                    >
+                      CALM
+                    </Card>
+                  ) : (
+                    <Card shadow='sm' padding='sm' radius='md' style={{ textAlign: 'center' }}>
+                      <Card.Section
+                        style={{
+                          backgroundColor: windColor(metar),
+                          color: 'white'
+                        }}
+                      >
+                        <span style={{ display: 'inline-block' }}>{metar.wind_speed_kt} KT</span>
+                      </Card.Section>
+                      <Card.Section>
+                        {metar.wind_dir_degrees && Number(metar.wind_dir_degrees) > 0 ? (
+                          <>
+                            <FaLocationArrow style={{ rotate: `${-45 + 180 + Number(metar.wind_dir_degrees)}deg` }} />
+                            {metar.wind_dir_degrees}&#176;
+                          </>
+                        ) : (
+                          <></>
+                        )}
+                        {metar.wind_dir_degrees && metar.wind_dir_degrees == 'VRB' ? <FaArrowsSpin /> : <></>}
+                      </Card.Section>
+                    </Card>
+                  )}
+                </>
+              </Grid.Col>
+            </Grid>
+          </Grid.Col>
+          <Grid.Col className='gutter-row' span={12}>
+            <Grid style={{ padding: '2px' }}>
+              {metar.wx_string &&
+                metar.wx_string.split(' ').map((wx) => (
+                  <Grid.Col span={4}>
+                    <MetarIcon wx={wx} />
+                  </Grid.Col>
+                ))}
+            </Grid>
+          </Grid.Col>
         </Grid.Col>
         <Grid.Col className='gutter-row' span={6}>
           <SkyConditions metar={metar} />
-        </Grid.Col>
-        <Grid.Col className='gutter-row' span={12}>
-          {metar.wx_string && metar.wx_string.split(' ').map((wx) => <MetarIcon wx={wx} />)}
         </Grid.Col>
       </Grid>
     </div>
@@ -141,46 +185,48 @@ function MetarIcon({ wx }: { wx: string }) {
     icon = <BsFillCloudSleetFill />;
   } else if (wx.includes('GR')) {
     title = 'Hail';
-    icon = <BsFillCloudSleetFill />;
+    icon = <BsFillCloudHailFill />;
   } else if (wx.includes('GS')) {
     title = 'Snow Pellets';
     icon = <BsFillCloudSleetFill />;
   } else if (wx.includes('BR')) {
     title = 'Mist';
-    icon = <BsFillCloudRainHeavyFill />;
+    icon = <BsFillCloudDrizzleFill />;
   } else if (wx.includes('FG')) {
     title = 'Fog';
-    icon = <BsFillCloudRainHeavyFill />;
+    icon = <BsFillCloudFogFill />;
   } else if (wx.includes('FU')) {
     title = 'Smoke';
-    icon = <BsFillCloudRainHeavyFill />;
+    icon = <BsFillCloudHazeFill />;
   } else if (wx.includes('VA')) {
     title = 'Volcanic Ash';
-    icon = <BsFillCloudRainHeavyFill />;
+    icon = <BsFillCloudHazeFill />;
   } else if (wx.includes('DU')) {
     title = 'Dust';
-    icon = <BsFillCloudRainHeavyFill />;
+    icon = <BsFillCloudHazeFill />;
   } else if (wx.includes('SA')) {
     title = 'Sand';
-    icon = <BsFillCloudRainHeavyFill />;
+    icon = <BsFillCloudHazeFill />;
   } else if (wx.includes('HZ')) {
     title = 'Haze';
-    icon = <BsFillCloudRainHeavyFill />;
+    icon = <BsFillCloudHazeFill />;
   } else {
     title = 'Unknown';
     icon = <BsQuestionLg />;
   }
 
-  // if (wx.charAt(0) == '+') {
-  //   color = '';
-  // } else if (wx.charAt(0) == '-') {
-  //   color = '';
-  // } else {
-  //   color = '';
-  // }
   return (
     <Tooltip label={title}>
-      <span className={`rounded-full`}>{icon}</span>
+      <span
+        style={{
+          color: 'white',
+          backgroundColor: 'CornflowerBlue',
+          borderRadius: '25px',
+          padding: '0.6em 0.7em 0.6em 0.7em'
+        }}
+      >
+        {icon}
+      </span>
     </Tooltip>
   );
 }
