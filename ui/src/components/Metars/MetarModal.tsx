@@ -134,7 +134,14 @@ function MetarInfo({ metar }: { metar: Metar }) {
                         ) : (
                           <></>
                         )}
-                        {metar.wind_dir_degrees && metar.wind_dir_degrees == 'VRB' ? <FaArrowsSpin /> : <></>}
+                        {metar.wind_dir_degrees && metar.wind_dir_degrees == 'VRB' ? (
+                          <>
+                            <FaArrowsSpin />
+                            VRB
+                          </>
+                        ) : (
+                          <></>
+                        )}
                       </Card.Section>
                     </Card>
                   )}
@@ -143,10 +150,10 @@ function MetarInfo({ metar }: { metar: Metar }) {
             </Grid>
           </Grid.Col>
           <Grid.Col className='gutter-row' span={12}>
-            <Grid style={{ padding: '2px' }}>
+            <Grid style={{ paddingTop: '1em', paddingBottom: '1em' }} gutter={48}>
               {metar.wx_string &&
                 metar.wx_string.split(' ').map((wx) => (
-                  <Grid.Col span={4}>
+                  <Grid.Col span={1}>
                     <MetarIcon wx={wx} />
                   </Grid.Col>
                 ))}
