@@ -14,6 +14,10 @@ help: ## This info
 build: ## Build Docker containers
 	docker compose build
 
+utils: ## Start the utils
+	docker compose up -d db
+	docker compose up -d redis
+
 up: ## Start Docker containers
 	docker compose up -d
 

@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS users (
+  email TEXT PRIMARY KEY NOT NULL,
+  hash TEXT NOT NULL,
+  role TEXT NOT NULL,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  profile_picture TEXT,
+  verified BOOLEAN NOT NULL DEFAULT FALSE
+);

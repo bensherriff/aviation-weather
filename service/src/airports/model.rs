@@ -1,6 +1,6 @@
 use crate::db;
 use crate::error_handler::ServiceError;
-use crate::schema::airports;
+use crate::db::schema::airports;
 use diesel::dsl::count_star;
 use diesel::prelude::*;
 // use log::trace;

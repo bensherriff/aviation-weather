@@ -1,5 +1,5 @@
 use crate::{error_handler::ServiceError, db};
-use crate::schema::metars::{self};
+use crate::db::schema::metars::{self};
 use diesel::{prelude::*, sql_query};
 use log::{warn, trace};
 use std::collections::HashSet;
@@ -375,7 +375,7 @@ impl QueryMetar {
         let mut conn = db::connection()?;
         let db_metars: Vec<Self> = match sql_query(format!("SELECT DISTINCT ON (station_id) * FROM metars WHERE station_id IN ({}) ORDER BY station_id, observation_time DESC", station_query.join(","))).load(&mut conn) {
             Ok(m) => m,
-            Err(err) => return Err(ServiceError { error_status_code: 500, error_message: format!("{}", err) })
+            Err(err) => return Err(ServiceError { status: 500, message: format!("{}", err) })
         };
         return Ok(db_metars);
     }

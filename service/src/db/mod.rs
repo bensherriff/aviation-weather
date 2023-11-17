@@ -1,11 +1,14 @@
 use crate::{error_handler::ServiceError, airports::{InsertAirport, QueryAirport}};
 use diesel::{r2d2::ConnectionManager, PgConnection};
+use redis::{Client as RedisClient, aio::Connection as RedisConnection};
 use serde::{Deserialize, Serialize};
 use crate::diesel_migrations::MigrationHarness;
 use lazy_static::lazy_static;
 use log::{error, debug, info, warn};
 use r2d2;
 use std::env;
+
+pub mod schema;
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 pub type DbConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
@@ -16,29 +19,24 @@ lazy_static! {
   static ref POOL: Pool = {
     let username = env::var("DATABASE_USER").expect("Database username is not set");
     let password = env::var("DATABASE_PASSWORD").expect("Database password is not set");
-    let host = match env::var("DATABASE_HOST") {
-      Ok(h) => h,
-      Err(_) => {
-        warn!("Defaulting to DATABASE_HOST localhost");
-        "localhost".to_string()
-      }
-    };
+    let host = env::var("DATABASE_HOST").unwrap_or("localhost".to_string());
     let name = env::var("DATABASE_NAME").expect("Database name is not set");
-    let port = match env::var("DATABASE_PORT") {
-      Ok(p) => p,
-      Err(_) => {
-        warn!("Defaulting to DATABASE_PORT 5432");
-        "5432".to_string()
-      }
-    };
+    let port = env::var("DATABASE_PORT").unwrap_or("5432".to_string());
     let url = format!("postgres://{}:{}@{}:{}/{}", username, password, host, port, name);
     let manager = ConnectionManager::<PgConnection>::new(url);
     Pool::builder().test_on_check_out(true).build(manager).expect("Failed to create db pool")
+  };
+  static ref REDIS: RedisClient = {
+    let host = env::var("REDIS_HOST").unwrap_or("localhost".to_string());
+    let port = env::var("REDIS_PORT").unwrap_or("6379".to_string());
+    let url = format!("redis://{}:{}", host, port);
+    RedisClient::open(url).expect("Failed to create redis client")
   };
 }
 
 pub fn init() {
   lazy_static::initialize(&POOL);
+  lazy_static::initialize(&REDIS);
   let mut pool: DbConnection = connection().expect("Failed to get db connection");
   match pool.run_pending_migrations(MIGRATIONS) {
     Ok(_) => info!("Database initialized"),
@@ -49,6 +47,16 @@ pub fn init() {
 pub fn connection() -> Result<DbConnection, ServiceError> {
   POOL.get()
     .map_err(|e| ServiceError::new(500, format!("Failed getting db connection: {}", e)))
+}
+
+pub fn redis_connection() -> Result<redis::Connection, ServiceError> {
+  let conn = REDIS.get_connection()?;
+  Ok(conn)
+}
+
+pub async fn redis_async_connection() -> Result<RedisConnection, ServiceError> {
+  let conn = REDIS.get_async_connection().await?;
+  Ok(conn)
 }
 
 pub fn import_data() {

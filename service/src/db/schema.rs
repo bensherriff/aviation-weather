@@ -48,13 +48,15 @@ diesel::table! {
 }
 
 diesel::table! {
-  use diesel::sql_types::*;
-  use crate::users::PgUserType;
-  users (id) {
-    id -> Uuid,
+  users (email) {
+    email -> Text,
+    hash -> Text,
+    role -> Text,
     first_name -> Text,
     last_name -> Text,
-    user_type -> PgUserType,
-    favorites -> Array<Text>
+    updated_at -> Timestamp,
+    created_at -> Timestamp,
+    profile_picture -> Nullable<Text>,
+    verified -> Bool,
   }
 }

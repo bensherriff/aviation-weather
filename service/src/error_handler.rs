@@ -8,60 +8,100 @@ use std::fmt;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ServiceError {
-    pub error_status_code: u16,
-    pub error_message: String,
+  pub status: u16,
+  pub message: String,
 }
 
 impl ServiceError {
-    pub fn new(error_status_code: u16, error_message: String) -> ServiceError {
-        ServiceError {
-            error_status_code,
-            error_message,
-        }
+  pub fn new(status: u16, message: String) -> ServiceError {
+    ServiceError {
+      status,
+      message,
     }
+  }
 
-    pub fn to_http_response(&self) -> HttpResponse {
-        let status_code = match StatusCode::from_u16(self.error_status_code) {
-            Ok(s) => s,
-            Err(err) => {
-                warn!("{}", err);
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
-        };
-        HttpResponse::build(status_code).body(self.error_message.to_string())
-    }
+  pub fn to_http_response(&self) -> HttpResponse {
+    let status = match StatusCode::from_u16(self.status) {
+      Ok(s) => s,
+      Err(err) => {
+        warn!("{}", err);
+        StatusCode::INTERNAL_SERVER_ERROR
+      }
+    };
+    HttpResponse::build(status).body(self.message.to_string())
+  }
 }
 
 impl fmt::Display for ServiceError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(self.error_message.as_str())
-    }
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    f.write_str(self.message.as_str())
+  }
 }
 
 impl From<DieselError> for ServiceError {
-    fn from(error: DieselError) -> ServiceError {
-        match error {
-            DieselError::DatabaseError(_, err) => ServiceError::new(409, err.message().to_string()),
-            DieselError::NotFound => {
-                ServiceError::new(404, "The record was not found".to_string())
-            }
-            err => ServiceError::new(500, format!("Unknown Diesel error: {}", err)),
+  fn from(error: DieselError) -> ServiceError {
+    match error {
+      DieselError::DatabaseError(kind, err) => {
+        match kind {
+          diesel::result::DatabaseErrorKind::UniqueViolation => {
+            ServiceError::new(409, err.message().to_string())
+          },
+          _ => ServiceError::new(500, err.message().to_string())
         }
+      },
+      DieselError::NotFound => {
+        ServiceError::new(404, "The record was not found".to_string())
+      },
+      DieselError::SerializationError(err) => {
+        ServiceError::new(422, err.to_string())
+      },
+      err => ServiceError::new(500, format!("Unknown Diesel error: {}", err)),
     }
+  }
+}
+
+impl From<reqwest::Error> for ServiceError {
+  fn from(error: reqwest::Error) -> ServiceError {
+    ServiceError::new(500, format!("Unknown reqwest error: {}", error))
+  }
+}
+
+impl From<serde_json::Error> for ServiceError {
+  fn from(error: serde_json::Error) -> ServiceError {
+    ServiceError::new(500, format!("Unknown serde_json error: {}", error))
+  }
+}
+
+impl From<argon2::password_hash::Error> for ServiceError {
+  fn from(error: argon2::password_hash::Error) -> ServiceError {
+    ServiceError::new(500, format!("Unknown argon2 error: {}", error))
+  }
+}
+
+impl From<jsonwebtoken::errors::Error> for ServiceError {
+  fn from(error: jsonwebtoken::errors::Error) -> ServiceError {
+    ServiceError::new(500, format!("Unknown jsonwebtoken error: {}", error))
+  }
+}
+
+impl From<redis::RedisError> for ServiceError {
+  fn from(error: redis::RedisError) -> ServiceError {
+    ServiceError::new(500, format!("Unknown redis error: {}", error))
+  }
 }
 
 impl ResponseError for ServiceError {
-    fn error_response(&self) -> HttpResponse {
-        let status_code = match StatusCode::from_u16(self.error_status_code) {
-            Ok(status_code) => status_code,
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        };
+  fn error_response(&self) -> HttpResponse {
+    let status = match StatusCode::from_u16(self.status) {
+      Ok(status) => status,
+      Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    };
 
-        let error_message = match status_code.as_u16() < 500 {
-            true => self.error_message.clone(),
-            false => "Internal server error".to_string(),
-        };
+    let message = match status.as_u16() < 500 {
+      true => self.message.clone(),
+      false => "Internal server error".to_string(),
+    };
 
-        HttpResponse::build(status_code).json(json!({ "message": error_message }))
-    }
+    HttpResponse::build(status).json(json!({ "status": status.as_u16(), "message": message }))
+  }
 }
