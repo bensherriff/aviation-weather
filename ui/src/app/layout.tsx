@@ -1,7 +1,7 @@
 import React from 'react';
 import RecoilRootWrapper from '@app/recoil-root-wrapper';
 import Sidebar from '@/components/Sidebar';
-import Topbar from '@/components/Topbar';
+import Header from '@/components/Header';
 import { Inter } from 'next/font/google';
 import { MantineProvider } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <RecoilRootWrapper>
           <MantineProvider>
             <ModalsProvider>
-              <Topbar />
+              <Header />
               <Sidebar />
               {children}
             </ModalsProvider>

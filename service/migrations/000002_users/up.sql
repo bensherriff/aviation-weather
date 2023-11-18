@@ -7,5 +7,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   profile_picture TEXT,
+  favorites TEXT[] NOT NULL DEFAULT '{}',
   verified BOOLEAN NOT NULL DEFAULT FALSE
 );

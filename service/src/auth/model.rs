@@ -30,6 +30,7 @@ impl RegisterUser {
       updated_at: chrono::Utc::now().naive_utc(),
       created_at: chrono::Utc::now().naive_utc(),
       profile_picture: None,
+      favorites: vec![],
       verified: false,
     })
   }
@@ -52,6 +53,7 @@ pub struct QueryUser {
   pub updated_at: chrono::NaiveDateTime,
   pub created_at: chrono::NaiveDateTime,
   pub profile_picture: Option<String>,
+  pub favorites: Vec<String>,
   pub verified: bool,
 }
 
@@ -78,6 +80,7 @@ pub struct InsertUser {
   pub updated_at: chrono::NaiveDateTime,
   pub created_at: chrono::NaiveDateTime,
   pub profile_picture: Option<String>,
+  pub favorites: Vec<String>,
   pub verified: bool,
 }
 
@@ -90,11 +93,20 @@ impl InsertUser {
     Ok(user)
   }
 
-  pub fn update_profile(email: &str, profile_picture: Option<&str>) -> Result<QueryUser, ServiceError> {
+  pub fn update_profile_picture(email: &str, profile_picture: Option<&str>) -> Result<QueryUser, ServiceError> {
     let mut conn = connection()?;
     let user = diesel::update(users::table)
       .filter(users::email.eq(&email))
       .set(users::profile_picture.eq(profile_picture))
+      .get_result(&mut conn)?;
+    Ok(user)
+  }
+
+  pub fn update_favorites(email: &str, favorites: Vec<String>) -> Result<QueryUser, ServiceError> {
+    let mut conn = connection()?;
+    let user = diesel::update(users::table)
+      .filter(users::email.eq(&email))
+      .set(users::favorites.eq(favorites))
       .get_result(&mut conn)?;
     Ok(user)
   }

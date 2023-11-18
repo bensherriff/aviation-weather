@@ -10,9 +10,12 @@
     },
     "dependencies": {
         "@mantine/core": "^7.1.2",
+        "@mantine/form": "^7.1.2",
         "@mantine/hooks": "^7.1.2",
         "@mantine/modals": "^7.1.2",
+        "@mantine/notifications": "^7.1.2",
         "axios": "^1.5.1",
+        "js-cookie": "^3.0.5",
         "leaflet": "^1.9.4",
         "next": "^13.5.4",
         "react": "^18.2.0",
@@ -23,6 +26,7 @@
         "recoil": "^0.7.7"
     },
     "devDependencies": {
+        "@types/js-cookie": "^3.0.5",
         "@types/leaflet": "^1.9.6",
         "@types/node": "20.8.2",
         "@types/react": "18.2.24",

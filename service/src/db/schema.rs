@@ -57,6 +57,7 @@ diesel::table! {
     updated_at -> Timestamp,
     created_at -> Timestamp,
     profile_picture -> Nullable<Text>,
+    favorites -> Array<Text>,
     verified -> Bool,
   }
 }

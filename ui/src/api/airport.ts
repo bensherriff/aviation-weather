@@ -7,7 +7,7 @@ interface GetAirportProps {
 
 export async function getAirport({ icao }: GetAirportProps): Promise<GetAirportResponse> {
   const response = await getRequest(`airports/${icao}`, {});
-  return response?.data || { data: undefined };
+  return response?.json() || { data: undefined };
 }
 
 interface GetAirportsProps {
@@ -34,5 +34,5 @@ export async function getAirports({
     limit,
     page
   });
-  return response?.data || { data: [] };
+  return response?.json() || { data: [] };
 }

@@ -1,5 +1,5 @@
-use crate::{airports::{InsertAirport, QueryAirport}, db::{self, Metadata}};
-use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest};
+use crate::{airports::{InsertAirport, QueryAirport}, db::{self, Metadata}, auth::{JwtAuth, verify_role}};
+use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest, ResponseError};
 use log::{error, warn};
 use postgis_diesel::types::{Polygon, Point};
 use serde::{Serialize, Deserialize};
@@ -14,7 +14,11 @@ struct GetAllParameters {
 }
 
 #[get("/import")]
-async fn import() -> HttpResponse {
+async fn import(auth: JwtAuth) -> HttpResponse {
+  let _ = match verify_role(&auth, "admin") {
+    Ok(_) => {},
+    Err(err) => return ResponseError::error_response(&err)
+  };
   db::import_data();
   HttpResponse::Ok().body({})
 }
@@ -129,7 +133,11 @@ async fn get(icao: web::Path<String>) -> HttpResponse {
 }
 
 #[post("/airports")]
-async fn create(airport: web::Json<InsertAirport>) -> HttpResponse {
+async fn create(airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpResponse {
+  let _ = match verify_role(&auth, "admin") {
+    Ok(_) => {},
+    Err(err) => return ResponseError::error_response(&err)
+  };
   match QueryAirport::create(airport.into_inner()) {
     Ok(a) => HttpResponse::Created().json(a),
     Err(err) => {
@@ -140,7 +148,11 @@ async fn create(airport: web::Json<InsertAirport>) -> HttpResponse {
 }
 
 #[put("/airports/{icao}")]
-async fn update(icao: web::Path<i32>, airport: web::Json<InsertAirport>) -> HttpResponse {
+async fn update(icao: web::Path<i32>, airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpResponse {
+  let _ = match verify_role(&auth, "admin") {
+    Ok(_) => {},
+    Err(err) => return ResponseError::error_response(&err)
+  };
   match QueryAirport::update(icao.into_inner(), airport.into_inner()) {
     Ok(a) => HttpResponse::Ok().json(a),
     Err(err) => {
@@ -151,7 +163,11 @@ async fn update(icao: web::Path<i32>, airport: web::Json<InsertAirport>) -> Http
 }
 
 #[delete("/airports/{icao}")]
-async fn delete(icao: web::Path<i32>) -> HttpResponse {
+async fn delete(icao: web::Path<i32>, auth: JwtAuth) -> HttpResponse {
+  let _ = match verify_role(&auth, "admin") {
+    Ok(_) => {},
+    Err(err) => return ResponseError::error_response(&err)
+  };
   match QueryAirport::delete(icao.into_inner()) {
     Ok(_) => HttpResponse::NoContent().finish(),
     Err(err) => {

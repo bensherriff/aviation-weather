@@ -11,5 +11,5 @@ export async function getMetars(icaos: string[]): Promise<GetMetarsResponse> {
   }
   const stationICAOs: string = icaos.map((icao) => icao).join(',');
   const response = await getRequest(`metars/${stationICAOs}`, {});
-  return response?.data || { data: [] };
+  return response?.json() || { data: [] };
 }

@@ -9,7 +9,7 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-development}
     ports:
-      - ${UI_PORT:-8080}:3000
+      - ${UI_PORT:-3000}:3000
     build:
       context: ./
       target: dev
@@ -23,4 +23,4 @@ services:
     restart: unless-stopped
 
 networks:
-  weather-frontend: {}
+  weather-frontend:

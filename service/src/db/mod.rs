@@ -4,7 +4,7 @@ use redis::{Client as RedisClient, aio::Connection as RedisConnection};
 use serde::{Deserialize, Serialize};
 use crate::diesel_migrations::MigrationHarness;
 use lazy_static::lazy_static;
-use log::{error, debug, info, warn};
+use log::{error, debug, info};
 use r2d2;
 use std::env;
 

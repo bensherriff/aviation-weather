@@ -16,10 +16,13 @@ import {
   BsFillCloudSnowFill,
   BsQuestionLg
 } from 'react-icons/bs';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, Divider, Grid, Modal, Tooltip } from '@mantine/core';
 import './metars.css';
 import SkyConditions from './SkyConditions';
+import { addFavorite, getFavorites, removeFavorite } from '@/api/users';
+import { favoritesState } from '@/state/user';
+import { useRecoilValue } from 'recoil';
 
 interface MetarModalProps {
   airport: Airport;
@@ -28,10 +31,20 @@ interface MetarModalProps {
 }
 
 export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps) {
+  const favorites = useRecoilValue(favoritesState);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    setIsFavorite(favorites.includes(airport.icao));
+  }, [favorites, airport]);
 
   function handleFavorite(value: boolean) {
     setIsFavorite(value);
+    if (value) {
+      addFavorite(airport.icao);
+    } else {
+      removeFavorite(airport.icao);
+    }
   }
 
   return (

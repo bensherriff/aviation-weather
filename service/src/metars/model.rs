@@ -139,7 +139,8 @@ impl Metar {
     }
 
     async fn get_remote_metars(icaos: String) -> Vec<Metar> {
-        let url = format!("https://beta.aviationweather.gov/cgi-bin/data/metar.php?ids={}&format=xml", icaos);
+        let gov_api_url = std::env::var("GOV_API_URL").expect("GOV_API_URL must be set");
+        let url = format!("{}/metar.php?ids={}&format=xml", gov_api_url, icaos);
         match reqwest::get(url).await {
             Ok(r) => match r.text().await {
                 Ok(r) => {
@@ -290,7 +291,7 @@ impl Metar {
             return Ok(db_metars);
         }
         trace!("Retrieving missing METAR data for {:?}", missing_icaos);
-        let missing_icaos_string: Vec<String> = missing_icaos.iter().map(|icao| format!("'{}'", icao.to_string())).collect();
+        let missing_icaos_string: Vec<String> = missing_icaos.iter().map(|icao| format!("{}", icao.to_string())).collect();
         let mut missing_metars = Self::get_remote_metars(missing_icaos_string.join(",")).await;
         if missing_metars.len() > 0 {
             let insert_metars = Self::to_insert(&missing_metars);

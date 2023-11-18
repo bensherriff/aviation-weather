@@ -65,7 +65,7 @@ export default function MapTiles() {
       return new DivIcon({
         html: ReactDOMServer.renderToString(
           <MantineProvider>
-            <Avatar variant='filled' color={color} radius='xl' size={size}>
+            <Avatar variant='filled' color={color} radius={'xl'} size={size}>
               {tag}
             </Avatar>
           </MantineProvider>
