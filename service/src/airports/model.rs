@@ -1,9 +1,9 @@
+use std::str::FromStr;
+
 use crate::db;
 use crate::error_handler::ServiceError;
 use crate::db::schema::airports;
-use diesel::dsl::count_star;
 use diesel::prelude::*;
-// use log::trace;
 use postgis_diesel::types::*;
 use postgis_diesel::functions::*;
 use serde::{Deserialize, Serialize};
@@ -25,6 +25,79 @@ pub struct InsertAirport {
   pub point: Point
 }
 
+#[derive(Debug)]
+pub struct QueryFilters {
+  pub name: Option<String>,
+  pub icao: Option<String>,
+  pub bounds: Option<Polygon<Point>>,
+  pub category: Option<String>,
+  pub order_field: Option<QueryOrderField>,
+  pub order_by: Option<QueryOrderBy>
+}
+
+impl Default for QueryFilters {
+  fn default() -> Self {
+    QueryFilters {
+      name: None,
+      icao: None,
+      bounds: None,
+      category: None,
+      order_field: None,
+      order_by: None
+    }
+  }
+}
+
+#[derive(Debug)]
+pub enum QueryOrderBy {
+  Asc,
+  Desc
+}
+
+impl FromStr for QueryOrderBy {
+  type Err = ();
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s {
+      "asc" => Ok(QueryOrderBy::Asc),
+      "desc" => Ok(QueryOrderBy::Desc),
+      _ => Err(())
+    }
+  }
+}
+
+#[derive(Debug)]
+pub enum QueryOrderField {
+  Icao,
+  Name,
+  Category,
+  Continent,
+  Country,
+  Region,
+  Municipality,
+  GPS,
+  Iata,
+  Local,
+}
+
+impl FromStr for QueryOrderField {
+  type Err = ();
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s {
+      "icao" => Ok(QueryOrderField::Icao),
+      "name" => Ok(QueryOrderField::Name),
+      "category" => Ok(QueryOrderField::Category),
+      "continent" => Ok(QueryOrderField::Continent),
+      "iso_country" => Ok(QueryOrderField::Country),
+      "iso_region" => Ok(QueryOrderField::Region),
+      "municipality" => Ok(QueryOrderField::Municipality),
+      "gps_code" => Ok(QueryOrderField::GPS),
+      "iata_code" => Ok(QueryOrderField::Iata),
+      "local_code" => Ok(QueryOrderField::Local),
+      _ => Err(())
+    }
+  }
+}
+
 #[derive(Serialize, Deserialize, Queryable, QueryableByName)]
 #[diesel(table_name = airports)]
 pub struct QueryAirport {
@@ -44,51 +117,95 @@ pub struct QueryAirport {
 }
 
 impl QueryAirport {
-  pub fn get_all(bounds: &Option<Polygon<Point>>, category: &Option<String>, filter: &Option<String>, order_by: bool, limit: i32, page: i32) -> Result<Vec<Self>, ServiceError> {
+  pub fn get_all(filters: &QueryFilters, limit: i32, page: i32) -> Result<Vec<Self>, ServiceError> {
     let mut conn = db::connection()?;
     
-    let mut query = airports::table
-      .limit(limit as i64)
-      .into_boxed();
-    query = query.filter(airports::id.gt(std::cmp::max(0, page - 1) * limit));
+    let mut query = airports::table.limit(limit as i64).into_boxed();
+    // Limit query to page and limit
+    let offset = (page - 1) * limit;
+    query = query.offset(offset as i64);
 
-    if let Some(bounds) = bounds {
+    if let Some(bounds) = &filters.bounds {
       query = query.filter(st_contains(bounds, airports::point));
     }
-    if let Some(category) = category {
+    if let Some(category) = &filters.category {
       query = query.filter(airports::category.eq(category));
     }
-    if let Some(filter) = filter {
-      query = query.filter(airports::icao
-        .ilike(format!("%{}%", filter))
-        .or(airports::full_name.ilike(format!("%{}%", filter)))
-      )
+    if let Some(icao) = &filters.icao {
+      if let Some(name) = &filters.name {
+        query = query.filter(
+          airports::icao.ilike(format!("%{}%", icao)).or(
+            airports::full_name.ilike(format!("%{}%", name))
+          )
+        )
+      } else {
+        query = query.filter(airports::icao.ilike(format!("%{}%", icao)))
+      }
     }
-    if order_by {
-      query = query.order(airports::category.asc());
+
+    if let Some(order_by) = &filters.order_by {
+      match order_by {
+        QueryOrderBy::Asc => {
+          if let Some(order_field) = &filters.order_field {
+            query = match order_field {
+              QueryOrderField::Icao => query.order(airports::icao.asc()),
+              QueryOrderField::Name => query.order(airports::full_name.asc()),
+              QueryOrderField::Category => query.order(airports::category.asc()),
+              QueryOrderField::Continent => query.order(airports::continent.asc()),
+              QueryOrderField::Country => query.order(airports::iso_country.asc()),
+              QueryOrderField::Region => query.order(airports::iso_region.asc()),
+              QueryOrderField::Municipality => query.order(airports::municipality.asc()),
+              QueryOrderField::GPS => query.order(airports::gps_code.asc()),
+              QueryOrderField::Iata => query.order(airports::iata_code.asc()),
+              QueryOrderField::Local => query.order(airports::local_code.asc()),
+            };
+          };
+        },
+        QueryOrderBy::Desc => {
+          if let Some(order_field) = &filters.order_field {
+            query = match order_field {
+              QueryOrderField::Icao => query.order(airports::icao.desc()),
+              QueryOrderField::Name => query.order(airports::full_name.desc()),
+              QueryOrderField::Category => query.order(airports::category.desc()),
+              QueryOrderField::Continent => query.order(airports::continent.desc()),
+              QueryOrderField::Country => query.order(airports::iso_country.desc()),
+              QueryOrderField::Region => query.order(airports::iso_region.desc()),
+              QueryOrderField::Municipality => query.order(airports::municipality.desc()),
+              QueryOrderField::GPS => query.order(airports::gps_code.desc()),
+              QueryOrderField::Iata => query.order(airports::iata_code.desc()),
+              QueryOrderField::Local => query.order(airports::local_code.desc()),
+            };
+          };
+        }
+      }
     }
     let airports: Vec<QueryAirport> = query.load::<QueryAirport>(&mut conn)?;
     Ok(airports)
   }
 
-  pub fn get_count(bounds: &Option<Polygon<Point>>, category: &Option<String>, filter: &Option<String>) -> Result<i64, ServiceError> {
+  pub fn get_count(filters: &QueryFilters) -> Result<i64, ServiceError> {
     let mut conn = db::connection()?;
-    let mut query = airports::table.select(count_star()).into_boxed();
+    let mut query = airports::table.count().into_boxed();
 
-    if let Some(bounds) = bounds {
+    if let Some(bounds) = &filters.bounds {
       query = query.filter(st_contains(bounds, airports::point));
     }
-    if let Some(category) = category {
+    if let Some(category) = &filters.category {
       query = query.filter(airports::category.eq(category));
     }
-    if let Some(filter) = filter {
-      query = query.filter(airports::icao
-        .ilike(format!("%{}%", filter))
-        .or(airports::full_name.ilike(format!("%{}%", filter)))
-      )
+    if let Some(icao) = &filters.icao {
+      if let Some(name) = &filters.name {
+        query = query.filter(
+          airports::icao.ilike(format!("%{}%", icao)).or(
+            airports::full_name.ilike(format!("%{}%", name))
+          )
+        )
+      } else {
+        query = query.filter(airports::icao.ilike(format!("%{}%", icao)))
+      }
     }
 
-    let count: i64 = query.first(&mut conn)?;
+    let count: i64 = query.get_result(&mut conn)?;
     return Ok(count);
   }
 
@@ -96,29 +213,32 @@ impl QueryAirport {
     let mut conn = db::connection()?;
     let airport = airports::table.filter(airports::icao.eq(icao)).first(&mut conn)?;
     Ok(airport)
-}
+  }
 
-pub fn create(airport: InsertAirport) -> Result<Self, ServiceError> {
+  pub fn create(airport: InsertAirport) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = InsertAirport::from(airport);
     let airport = diesel::insert_into(airports::table)
         .values(airport)
         .get_result(&mut conn)?;
     Ok(airport)
-}
+  }
 
-pub fn update(id: i32, airport: InsertAirport) -> Result<Self, ServiceError> {
+  pub fn update(id: i32, airport: InsertAirport) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = diesel::update(airports::table)
         .filter(airports::id.eq(id))
         .set(airport)
         .get_result(&mut conn)?;
     Ok(airport)
-}
+  }
 
-pub fn delete(id: i32) -> Result<usize, ServiceError> {
+  pub fn delete(id: Option<i32>) -> Result<usize, ServiceError> {
     let mut conn = db::connection()?;
-    let res = diesel::delete(airports::table.filter(airports::id.eq(id))).execute(&mut conn)?;
+    let res = match id {
+      Some(id) => diesel::delete(airports::table.filter(airports::id.eq(id))).execute(&mut conn)?,
+      None => diesel::delete(airports::table).execute(&mut conn)?
+    };
     Ok(res)
-}
+  }
 }

@@ -1,14 +1,14 @@
 use tokio::time::{sleep, Duration};
 use log::{warn, debug, trace};
 
-use crate::airports::QueryAirport;
+use crate::airports::{QueryAirport, QueryFilters};
 use crate::metars::Metar;
 
 pub fn update_airports() {
   tokio::spawn(async {
     loop {
       debug!("METAR update start");
-      let total = match QueryAirport::get_count(&None, &None, &None) {
+      let total = match QueryAirport::get_count(&QueryFilters::default()) {
         Ok(t) => t,
         Err(err) => {
           warn!("{}", err);
@@ -19,7 +19,7 @@ pub fn update_airports() {
       let pages = ((total as f32) / (if limit <= 0 { 1 } else { limit} as f32)).ceil() as i32;
       let mut airports: Vec<QueryAirport> = vec![];
       for page in 1..(pages + 1) {
-        match QueryAirport::get_all(&None, &None, &None, false, limit, page) {
+        match QueryAirport::get_all(&QueryFilters::default(), limit, page) {
           Ok(mut a) => {
             airports.append(&mut a)
           },

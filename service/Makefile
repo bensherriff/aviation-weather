@@ -1,8 +1,7 @@
 #!make
+SHELL := /bin/bash
 
 include .env
-
-SHELL := /bin/bash
 
 .PHONY: help build start stop lint
 
@@ -11,17 +10,17 @@ help: ## This info
 	@cat Makefile | grep -E '^[a-zA-Z\/_-]+:.*?## .*$$' | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	@echo
 
-build: ## Build Docker containers
+build: ## Build the Docker image
 	docker compose build
 
 utils: ## Start the utils
 	docker compose up -d db
 	docker compose up -d redis
 
-up: ## Start Docker containers
+up: ## Start the Docker containers
 	docker compose up -d
 
-down: ## Stop Docker containers
+down: ## Stop the Docker containers
 	docker compose down
 
 connect: ## Connect to the Weather DB

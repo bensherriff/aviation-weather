@@ -1,9 +1,23 @@
+import { Metadata } from '.';
 import { Metar } from './metar.types';
 
 export enum AirportCategory {
   SMALL = 'small_airport',
   MEDIUM = 'medium_airport',
   LARGE = 'large_airport'
+}
+
+export enum AirportOrderField {
+  ICAO = 'icao',
+  NAME = 'name',
+  CATEGORY = 'category',
+  CONTINENT = 'continent',
+  ISO_COUNTRY = 'iso_country',
+  ISO_REGION = 'iso_region',
+  MUNICIPALITY = 'municipality',
+  GPS_CODE = 'gps_code',
+  IATA_CODE = 'iata_code',
+  LOCAL_CODE = 'local_code',
 }
 
 export interface Bounds {
@@ -20,7 +34,7 @@ export interface Airport {
   icao: string;
   category: AirportCategory;
   full_name: string;
-  elevation_ft: string;
+  elevation_ft: number;
   continent: string;
   iso_country: string;
   iso_region: string;
@@ -38,8 +52,10 @@ export interface Airport {
 
 export interface GetAirportResponse {
   data: Airport;
+  meta: Metadata;
 }
 
 export interface GetAirportsResponse {
   data: Airport[];
+  meta: Metadata;
 }

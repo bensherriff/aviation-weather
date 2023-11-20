@@ -27,6 +27,21 @@ services:
     networks:
       - backend
     restart: unless-stopped
+  minio:
+    image: minio/minio
+    container_name: weather-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio:/data
+    ports:
+      - ${MINIO_PORT:-9000}:9000
+      - ${MINIO_PORT_INTERNAL:-9001}:9001
+    networks:
+      - backend
+    command: server --console-address ":9001" /data
+    restart: unless-stopped
 
   service:
     container_name: weather-service
@@ -54,6 +69,7 @@ services:
 volumes:
   db:
   db_logs:
+  minio:
 
 networks:
   frontend:

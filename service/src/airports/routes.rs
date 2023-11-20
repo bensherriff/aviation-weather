@@ -1,4 +1,6 @@
-use crate::{airports::{InsertAirport, QueryAirport}, db::{self, Metadata}, auth::{JwtAuth, verify_role}};
+use std::str::FromStr;
+
+use crate::{airports::{InsertAirport, QueryAirport, QueryFilters, QueryOrderField, QueryOrderBy}, db::{self, Response, Metadata}, auth::{JwtAuth, verify_role}};
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest, ResponseError};
 use log::{error, warn};
 use postgis_diesel::types::{Polygon, Point};
@@ -6,9 +8,12 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GetAllParameters {
-  filter: Option<String>,
+  name: Option<String>,
+  icao: Option<String>,
   bounds: Option<String>,
   category: Option<String>,
+  order_field: Option<String>,
+  order_by: Option<String>,
   limit: Option<i32>,
   page: Option<i32>
 }
@@ -19,20 +24,21 @@ async fn import(auth: JwtAuth) -> HttpResponse {
     Ok(_) => {},
     Err(err) => return ResponseError::error_response(&err)
   };
-  db::import_data();
-  HttpResponse::Ok().body({})
+  let count = db::import_data();
+  HttpResponse::Ok().json(Response {
+    data: count,
+    meta: None
+  })
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct AirportsResponse {
-    pub data: Vec<QueryAirport>,
-    pub meta: Metadata
-}
-
-#[get("/airports")]
+#[get("/search")]
 async fn get_all(req: HttpRequest) -> HttpResponse {
   let params = web::Query::<GetAllParameters>::from_query(req.query_string()).unwrap();
-  let polygon: Option<Polygon<Point>> = match &params.bounds {
+  let mut filters = QueryFilters::default();
+  filters.name = params.name.clone();
+  filters.icao = params.icao.clone();
+  filters.category = params.category.clone();
+  filters.bounds = match &params.bounds {
     Some(b) => {
       let bounds: Vec<&str> = b.split(",").collect();
       if bounds.len() != 4 {
@@ -77,12 +83,13 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
     },
     None => None
   };
-  let category = match &params.category {
-    Some(c) => Some(c.to_string()),
+
+  filters.order_by = match &params.order_by {
+    Some(o) => Some(QueryOrderBy::from_str(&o).unwrap()),
     None => None
   };
-  let filter = match &params.filter {
-    Some(f) => Some(f.to_string()),
+  filters.order_field = match &params.order_field {
+    Some(o) => Some(QueryOrderField::from_str(&o).unwrap()),
     None => None
   };
 
@@ -94,16 +101,16 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
     Some(p) => p,
     None => 1
   };
-  let total = match QueryAirport::get_count(&polygon, &category, &filter) {
+  let total = match QueryAirport::get_count(&filters) {
     Ok(t) => t,
     Err(_) => 0
   };
   let pages = ((total as f64) / (if limit <= 0 { 1 } else { limit} as f64)).ceil() as i64;
 
-  match web::block(move || QueryAirport::get_all(&polygon, &category, &filter, true, limit, page)).await.unwrap() {
-    Ok(a) => HttpResponse::Ok().json(AirportsResponse {
+  match web::block(move || QueryAirport::get_all(&filters, limit, page)).await.unwrap() {
+    Ok(a) => HttpResponse::Ok().json(Response {
       data: a,
-      meta: Metadata { page, limit, pages, total }
+      meta: Some(Metadata { page, limit, pages, total })
     }),
     Err(err) => {
       error!("{}", err);
@@ -112,18 +119,12 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
   }
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct AirportResponse {
-    pub data: QueryAirport,
-    pub meta: Metadata
-}
-
-#[get("/airports/{icao}")]
+#[get("/search/{icao}")]
 async fn get(icao: web::Path<String>) -> HttpResponse {
   match QueryAirport::find(icao.into_inner()) {
-    Ok(a) => HttpResponse::Ok().json(AirportResponse {
+    Ok(a) => HttpResponse::Ok().json(Response {
       data: a,
-      meta: Metadata { page: 1, limit: 1, pages: 1, total: 1 }
+      meta: Some(Metadata { page: 1, limit: 1, pages: 1, total: 1 })
     }),
     Err(err) => {
       error!("{}", err);
@@ -132,7 +133,7 @@ async fn get(icao: web::Path<String>) -> HttpResponse {
   }
 }
 
-#[post("/airports")]
+#[post("/create")]
 async fn create(airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
@@ -147,7 +148,7 @@ async fn create(airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpRespons
   }
 }
 
-#[put("/airports/{icao}")]
+#[put("/update/{icao}")]
 async fn update(icao: web::Path<i32>, airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
@@ -162,13 +163,28 @@ async fn update(icao: web::Path<i32>, airport: web::Json<InsertAirport>, auth: J
   }
 }
 
-#[delete("/airports/{icao}")]
-async fn delete(icao: web::Path<i32>, auth: JwtAuth) -> HttpResponse {
+#[delete("/remove")]
+async fn remove_all(auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
     Err(err) => return ResponseError::error_response(&err)
   };
-  match QueryAirport::delete(icao.into_inner()) {
+  match QueryAirport::delete(None) {
+    Ok(_) => HttpResponse::NoContent().finish(),
+    Err(err) => {
+      error!("{}", err);
+      err.to_http_response()
+    }
+  }
+}
+
+#[delete("/remove/{icao}")]
+async fn remove(icao: web::Path<i32>, auth: JwtAuth) -> HttpResponse {
+  let _ = match verify_role(&auth, "admin") {
+    Ok(_) => {},
+    Err(err) => return ResponseError::error_response(&err)
+  };
+  match QueryAirport::delete(Some(icao.into_inner())) {
     Ok(_) => HttpResponse::NoContent().finish(),
     Err(err) => {
       error!("{}", err);
@@ -178,10 +194,13 @@ async fn delete(icao: web::Path<i32>, auth: JwtAuth) -> HttpResponse {
 }
 
 pub fn init_routes(config: &mut web::ServiceConfig) {
-  config.service(get_all);
-  config.service(get);
-  config.service(create);
-  config.service(update);
-  config.service(delete);
-  config.service(import);
+  config.service(web::scope("airports")
+    .service(get_all)
+    .service(get)
+    .service(create)
+    .service(update)
+    .service(remove)
+    .service(remove_all)
+    .service(import)
+  );
 }

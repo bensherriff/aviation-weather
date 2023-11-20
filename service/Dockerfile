@@ -1,12 +1,24 @@
-FROM rust:1.72.1-bookworm
-
-WORKDIR /service
-USER root
+# =========
+#  Builder
+# =========
+FROM rust:bookworm as builder
+WORKDIR /builder
 
 COPY migrations ./migrations
 COPY src ./src
-COPY airport-codes.json Cargo.toml diesel.toml ./
+COPY Cargo.toml ./
 
+RUN apt-get update && apt-get install -y cmake
 RUN cargo build --release
 
-CMD ["./target/release/weather-service"]
+# =========
+#  Runtime
+# =========
+FROM debian:bookworm-slim as runtime
+WORKDIR /service
+USER root
+
+COPY --from=builder /builder/target/release/service /usr/local/bin/service
+COPY --from=packages /packages /usr/bin
+
+CMD ["service"]

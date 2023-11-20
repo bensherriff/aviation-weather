@@ -59,18 +59,26 @@ pub async fn redis_async_connection() -> Result<RedisConnection, ServiceError> {
   Ok(conn)
 }
 
-pub fn import_data() {
+pub fn import_data() -> i32 {
   let path = "airport-codes.json";
   debug!("Importing data from {}", path);
   let contents: String = std::fs::read_to_string(path).expect("Failed to read file");
   let airports: Vec<InsertAirport> = serde_json::from_str(&contents).expect("JSON was not well formed.");
+  let mut count = 0;
   for airport in airports {
     match QueryAirport::create(airport) {
-      Ok(_) => {},
+      Ok(_) => count += 1,
       Err(err) => error!("Error inserting airport; {}", err)
     };
   }
   debug!("Import complete");
+  return count;
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Response<T> {
+  pub data: T,
+  pub meta: Option<Metadata>
 }
 
 #[derive(Serialize, Deserialize)]

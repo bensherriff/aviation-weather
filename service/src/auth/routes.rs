@@ -4,7 +4,7 @@ use actix_web::{get, post, web, HttpResponse, ResponseError, cookie::{Cookie, ti
 use log::error;
 use redis::AsyncCommands;
 use serde::{Serialize, Deserialize};
-use crate::error_handler::ServiceError;
+use crate::{error_handler::ServiceError, db::Response};
 
 use crate::{auth::{LoginRequest, RegisterUser, InsertUser, QueryUser, verify_password, JwtAuth, verify_token, generate_access_token, generate_refresh_token}, db};
 
@@ -342,7 +342,10 @@ async fn me(auth: JwtAuth) -> HttpResponse {
 
 #[get("/roles")]
 async fn roles() -> HttpResponse {
-  HttpResponse::Ok().json(vec!["admin", "user"])
+  HttpResponse::Ok().json(Response {
+    data: vec!["admin", "user"],
+    meta: None
+  })
 }
 
 pub fn init_routes(config: &mut web::ServiceConfig) {

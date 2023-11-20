@@ -4,7 +4,6 @@ use crate::auth::{JwtAuth, QueryUser, InsertUser};
 
 #[get("users/favorites")]
 async fn get_favorites(auth: JwtAuth) -> HttpResponse {
-  println!("{:?}", auth);
   match QueryUser::get_by_email(&auth.user.email) {
     Ok(user) => {
       return HttpResponse::Ok().json(user.favorites)

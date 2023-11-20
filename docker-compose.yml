@@ -17,7 +17,32 @@ services:
     ports:
       - "${DATABASE_PORT:-5432}:5432"
     networks:
-      - weather-backend
+      - backend
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    container_name: weather-redis
+    ports:
+      - ${REDIS_PORT:-6379}:6379
+    networks:
+      - backend
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    container_name: siren-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio:/data
+    ports:
+      - ${MINIO_PORT:-9000}:9000
+      - ${MINIO_PORT_INTERNAL:-9001}:9001
+    networks:
+      - backend
+    command: server --console-address ":9001" /data
     restart: unless-stopped
 
   service:
@@ -30,9 +55,10 @@ services:
       context: service
     depends_on:
       - db
+      - redis
     networks:
-      - weather-frontend
-      - weather-backend
+      - frontend
+      - backend
     restart: unless-stopped
 
   ui:
@@ -48,13 +74,14 @@ services:
     depends_on:
       - service
     networks:
-      - weather-frontend
+      - frontend
     restart: unless-stopped
 
 volumes:
   db:
   db_logs:
+  minio:
 
 networks:
-  weather-frontend: {}
-  weather-backend: {}
+  frontend:
+  backend:

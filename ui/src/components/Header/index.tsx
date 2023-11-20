@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getAirports } from '@/api/airport';
+import { getAirport, getAirports } from '@/api/airport';
 import { useRouter } from 'next/navigation';
 import { Autocomplete, Avatar, Button, Card, FileButton, Grid, Group, Menu, Text, UnstyledButton } from '@mantine/core';
 import './header.css';
@@ -14,6 +14,7 @@ import { getFavorites, getPicture, setPicture } from '@/api/users';
 import { useToggle } from '@mantine/hooks';
 import { HeaderModal } from './HeaderModal';
 import { favoritesState } from '@/state/user';
+import { coordinatesState, zoomState } from '@/state/map';
 
 export default function Header() {
   const [searchValue, setSearchValue] = useState('');
@@ -24,6 +25,8 @@ export default function Header() {
   const [refreshId, setRefreshId] = useState<NodeJS.Timeout | undefined>(undefined);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const router = useRouter();
+  const [coordinates, setCoordinates] = useRecoilState(coordinatesState);
+  const [zoom, setZoom] = useRecoilState(zoomState);
 
   useEffect(() => {
     if (!user || !Cookies.get('logged_in')) {
@@ -50,7 +53,7 @@ export default function Header() {
 
   async function onChange(value: string) {
     setSearchValue(value);
-    const airportData = await getAirports({ filter: value });
+    const airportData = await getAirports({ name: value, icao: value });
     setAirports(
       airportData.data.map((airport) => ({
         key: airport.icao,
@@ -60,9 +63,11 @@ export default function Header() {
     );
   }
 
-  function onClick(value: string) {
-    router.push(`/airport/${value}`);
-    setSearchValue('');
+  async function onClick(value: string) {
+    const airport = await getAirport({ icao: value });
+    if (airport) {
+      setCoordinates({ lat: airport.data.point.y, lon: airport.data.point.x });
+    }
   }
 
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { getAirports } from '@/api/airport';
-import { Airport } from '@/api/airport.types';
+import { Airport, AirportOrderField } from '@/api/airport.types';
 import { getMetars } from '@/api/metar';
 import { DivIcon, LatLngBounds } from 'leaflet';
 import { useEffect, useState } from 'react';
@@ -9,19 +9,22 @@ import ReactDOMServer from 'react-dom/server';
 import { Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import MetarModal from './MetarModal';
 import { Avatar, MantineProvider } from '@mantine/core';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { coordinatesState, zoomState } from '@/state/map';
 
 export default function MapTiles() {
   const [isOpen, setIsOpen] = useState(false);
   const [airports, setAirports] = useState<Airport[]>([]);
   const [selectedAirport, setSelectedAirport] = useState<Airport | undefined>();
+  const coordinates = useRecoilValue(coordinatesState);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [zoomLevel, setZoomLevel] = useState(8);
+  const [zoom, setZoom] = useRecoilState(zoomState);
   // const [dragging, setDragging] = useState(false);
   const map = useMap();
 
   const mapEvents = useMapEvents({
     zoomend: async () => {
-      setZoomLevel(mapEvents.getZoom());
+      setZoom(mapEvents.getZoom());
       await updateAirports(mapEvents.getBounds());
     },
     movestart: () => {
@@ -32,6 +35,10 @@ export default function MapTiles() {
       await updateAirports(mapEvents.getBounds());
     }
   });
+
+  useEffect(() => {
+    map.setView([coordinates.lat, coordinates.lon]);
+  }, [coordinates]);
 
   function handleOpen(airport: Airport) {
     setSelectedAirport(airport);
@@ -46,6 +53,8 @@ export default function MapTiles() {
         northEast: { lat: ne.lat, lon: ne.lng },
         southWest: { lat: sw.lat, lon: sw.lng }
       },
+      order_field: AirportOrderField.CATEGORY,
+      order_by: 'asc',
       limit: 100,
       page: 1
     });
