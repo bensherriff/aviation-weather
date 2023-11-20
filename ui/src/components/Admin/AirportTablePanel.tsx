@@ -1,6 +1,7 @@
 import { getAirports, importAirports, removeAirport } from "@/api/airport";
-import { Airport } from "@/api/airport.types";
-import { Text, Button, Card, Group, Pagination, ScrollArea, Table, TextInput, rem } from "@mantine/core";
+import { Airport, AirportCategory, AirportOrderField, airportCategoryToText } from "@/api/airport.types";
+import { Text, Button, Card, Group, Pagination, ScrollArea, Table, TextInput, rem, UnstyledButton, Center } from "@mantine/core";
+import { HiChevronUp, HiChevronDown, HiSelector } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { CiSearch } from "react-icons/ci";
 
@@ -31,15 +32,12 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
   const rows = airports.map((airport) => (
     <Table.Tr
       key={airport.icao}
-      onClick={() => {
-        console.log('here');
-        setAirport(airport);
-      }}
+      onClick={() => setAirport(airport)}
       style={{ cursor: 'pointer' }}
     >
       <Table.Td>{airport.icao}</Table.Td>
       <Table.Td>{airport.full_name}</Table.Td>
-      <Table.Td>{airport.category}</Table.Td>
+      <Table.Td>{airportCategoryToText(airport.category)}</Table.Td>
       <Table.Td>{airport.continent}</Table.Td>
       <Table.Td>{airport.iso_country}</Table.Td>
       <Table.Td>{airport.iso_region}</Table.Td>
@@ -61,7 +59,7 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
       onChange={handleSearchChange}
     />
     <Table.ScrollContainer minWidth={500} h={500}>
-      <Table highlightOnHover>
+      <Table highlightOnHover stickyHeader>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>ICAO</Table.Th>
@@ -114,4 +112,22 @@ function PanelButton({ children, color = 'blue', onClick }: {children: any, colo
   >
     {children}
   </Button>
+}
+
+function Th({ children, asc, sorted, onSort }: { children: any, asc: boolean, sorted: boolean, onSort: () => void }) {
+  const Icon = sorted ? (asc ? HiChevronUp : HiChevronDown) : HiSelector;
+  return (
+    <Table.Th>
+      <UnstyledButton onClick={onSort}>
+        <Group justify="space-between">
+          <Text fw={500} fz="sm">
+            {children}
+          </Text>
+          <Center>
+            <Icon style={{ width: rem(16), height: rem(16) }} />
+          </Center>
+        </Group>
+      </UnstyledButton>
+    </Table.Th>
+  );
 }

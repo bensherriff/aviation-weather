@@ -21,11 +21,6 @@ interface GetAirportsProps {
   limit?: number;
 }
 
-export async function getAirportsCount() {
-  const response = await getRequest('airports/count');
-  return response?.json() || { data: 0 };
-}
-
 export async function getAirports({
   bounds,
   category,

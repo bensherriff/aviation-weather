@@ -7,6 +7,17 @@ export enum AirportCategory {
   LARGE = 'large_airport'
 }
 
+export function airportCategoryToText(category: AirportCategory): string {
+  switch (category) {
+    case AirportCategory.SMALL:
+      return 'Small';
+    case AirportCategory.MEDIUM:
+      return 'Medium';
+    case AirportCategory.LARGE:
+      return 'Large';
+  }
+}
+
 export enum AirportOrderField {
   ICAO = 'icao',
   NAME = 'name',
