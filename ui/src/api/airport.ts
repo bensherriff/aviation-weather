@@ -1,22 +1,21 @@
-import { AirportOrderField, Bounds, GetAirportResponse, GetAirportsResponse } from './airport.types';
-import { getRequest, deleteRequest } from '.';
+import { Airport, AirportOrderField, Bounds, GetAirportResponse, GetAirportsResponse } from './airport.types';
+import { getRequest, deleteRequest, postRequest, putRequest } from '.';
 
 interface GetAirportProps {
   icao: string;
 }
 
 export async function getAirport({ icao }: GetAirportProps): Promise<GetAirportResponse> {
-  const response = await getRequest(`airports/search/${icao}`);
+  const response = await getRequest(`airports/${icao}`);
   return response?.json() || { data: undefined };
 }
 
 interface GetAirportsProps {
   bounds?: Bounds;
   category?: string;
-  name?: string;
+  search?: string;
   order_field?: AirportOrderField;
   order_by?: 'asc' | 'desc';
-  icao?: string;
   page?: number;
   limit?: number;
 }
@@ -24,20 +23,18 @@ interface GetAirportsProps {
 export async function getAirports({
   bounds,
   category,
-  name,
-  icao,
+  search,
   order_field,
   order_by,
   limit = 10,
   page = 1
 }: GetAirportsProps): Promise<GetAirportsResponse> {
-  const response = await getRequest('airports/search', {
+  const response = await getRequest('airports', {
     bounds: bounds
       ? `${bounds?.northEast.lat},${bounds?.northEast.lon},${bounds?.southWest.lat},${bounds?.southWest.lon}`
       : undefined,
     category: category ?? undefined,
-    name: name ?? undefined,
-    icao: icao ?? undefined,
+    search: search ?? undefined,
     order_field: order_field ?? undefined,
     order_by: order_by ?? undefined,
     limit,
@@ -49,14 +46,24 @@ export async function getAirports({
 export async function removeAirport({ icao }: { icao?: string }): Promise<any> {
   let response
   if (icao) {
-    response = await deleteRequest(`airports/remove/${icao}`);
+    response = await deleteRequest(`airports/${icao}`);
   } else {
-    response = await deleteRequest('airports/remove');
+    response = await deleteRequest('airports');
   }
   return response.status == 204;
 }
 
+export async function createAirport({ airport }: { airport: Airport }): Promise<any> {
+  const response = await postRequest(`airports`, airport);
+  return response?.json() || { data: undefined };
+}
+
+export async function updateAirport({ airport }: { airport: Airport }): Promise<any> {
+  const response = await putRequest(`airports`, airport);
+  return response?.json() || { data: undefined };
+}
+
 export async function importAirports(): Promise<any> {
-  const response = await getRequest('airports/import');
+  const response = await postRequest('airports/import');
   return response?.json() || { data: undefined };
 }

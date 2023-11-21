@@ -53,7 +53,7 @@ export default function Header() {
 
   async function onChange(value: string) {
     setSearchValue(value);
-    const airportData = await getAirports({ name: value, icao: value });
+    const airportData = await getAirports({ search: value });
     setAirports(
       airportData.data.map((airport) => ({
         key: airport.icao,

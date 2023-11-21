@@ -27,8 +27,7 @@ pub struct InsertAirport {
 
 #[derive(Debug)]
 pub struct QueryFilters {
-  pub name: Option<String>,
-  pub icao: Option<String>,
+  pub search: Option<String>,
   pub bounds: Option<Polygon<Point>>,
   pub category: Option<String>,
   pub order_field: Option<QueryOrderField>,
@@ -38,8 +37,7 @@ pub struct QueryFilters {
 impl Default for QueryFilters {
   fn default() -> Self {
     QueryFilters {
-      name: None,
-      icao: None,
+      search: None,
       bounds: None,
       category: None,
       order_field: None,
@@ -131,16 +129,17 @@ impl QueryAirport {
     if let Some(category) = &filters.category {
       query = query.filter(airports::category.eq(category));
     }
-    if let Some(icao) = &filters.icao {
-      if let Some(name) = &filters.name {
-        query = query.filter(
-          airports::icao.ilike(format!("%{}%", icao)).or(
-            airports::full_name.ilike(format!("%{}%", name))
-          )
-        )
-      } else {
-        query = query.filter(airports::icao.ilike(format!("%{}%", icao)))
-      }
+    if let Some(search) = &filters.search {
+      query = query.filter(
+        airports::icao.ilike(format!("%{}%", search))
+          .or(airports::full_name.ilike(format!("%{}%", search)))
+          .or(airports::iso_country.ilike(format!("%{}%", search)))
+          .or(airports::iso_region.ilike(format!("%{}%", search)))
+          .or(airports::municipality.ilike(format!("%{}%", search)))
+          .or(airports::gps_code.ilike(format!("%{}%", search)))
+          .or(airports::iata_code.ilike(format!("%{}%", search)))
+          .or(airports::local_code.ilike(format!("%{}%", search)))
+      )
     }
 
     if let Some(order_by) = &filters.order_by {
@@ -193,16 +192,17 @@ impl QueryAirport {
     if let Some(category) = &filters.category {
       query = query.filter(airports::category.eq(category));
     }
-    if let Some(icao) = &filters.icao {
-      if let Some(name) = &filters.name {
-        query = query.filter(
-          airports::icao.ilike(format!("%{}%", icao)).or(
-            airports::full_name.ilike(format!("%{}%", name))
-          )
-        )
-      } else {
-        query = query.filter(airports::icao.ilike(format!("%{}%", icao)))
-      }
+    if let Some(search) = &filters.search {
+      query = query.filter(
+        airports::icao.ilike(format!("%{}%", search))
+          .or(airports::full_name.ilike(format!("%{}%", search)))
+          .or(airports::iso_country.ilike(format!("%{}%", search)))
+          .or(airports::iso_region.ilike(format!("%{}%", search)))
+          .or(airports::municipality.ilike(format!("%{}%", search)))
+          .or(airports::gps_code.ilike(format!("%{}%", search)))
+          .or(airports::iata_code.ilike(format!("%{}%", search)))
+          .or(airports::local_code.ilike(format!("%{}%", search)))
+      )
     }
 
     let count: i64 = query.get_result(&mut conn)?;
@@ -224,19 +224,19 @@ impl QueryAirport {
     Ok(airport)
   }
 
-  pub fn update(id: i32, airport: InsertAirport) -> Result<Self, ServiceError> {
+  pub fn update(icao: String, airport: InsertAirport) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = diesel::update(airports::table)
-        .filter(airports::id.eq(id))
+        .filter(airports::icao.eq(icao))
         .set(airport)
         .get_result(&mut conn)?;
     Ok(airport)
   }
 
-  pub fn delete(id: Option<i32>) -> Result<usize, ServiceError> {
+  pub fn delete(icao: Option<String>) -> Result<usize, ServiceError> {
     let mut conn = db::connection()?;
-    let res = match id {
-      Some(id) => diesel::delete(airports::table.filter(airports::id.eq(id))).execute(&mut conn)?,
+    let res = match icao {
+      Some(icao) => diesel::delete(airports::table.filter(airports::icao.eq(icao))).execute(&mut conn)?,
       None => diesel::delete(airports::table).execute(&mut conn)?
     };
     Ok(res)

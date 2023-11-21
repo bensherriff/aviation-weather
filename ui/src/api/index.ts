@@ -41,6 +41,28 @@ export async function postRequest(endpoint: string, body?: any, options?: PostOp
   return response;
 }
 
+export async function putRequest(endpoint: string, body?: any, options?: PostOptions): Promise<Response> {
+  const url = `${baseURL}/${endpoint}`;
+  let response;
+  if (body && (!options?.type || options.type === 'json')) {
+    response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify(body)
+    });
+  } else {
+    response = await fetch(url, {
+      method: 'PUT',
+      credentials: 'include',
+      body
+    });
+  }
+  return response;
+}
+
 export async function deleteRequest(endpoint: string): Promise<Response> {
   const url = `${baseURL}/${endpoint}`;
   const response = await fetch(url, {

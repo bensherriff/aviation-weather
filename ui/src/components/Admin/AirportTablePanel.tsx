@@ -1,6 +1,6 @@
 import { getAirports, importAirports, removeAirport } from "@/api/airport";
-import { Airport, AirportCategory, AirportOrderField, airportCategoryToText } from "@/api/airport.types";
-import { Text, Button, Card, Group, Pagination, ScrollArea, Table, TextInput, rem, UnstyledButton, Center } from "@mantine/core";
+import { Airport, airportCategoryToText } from "@/api/airport.types";
+import { Text, Button, Card, Group, Pagination, Table, TextInput, rem, UnstyledButton, Center, Flex, Container, Grid, Space } from "@mantine/core";
 import { HiChevronUp, HiChevronDown, HiSelector } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { CiSearch } from "react-icons/ci";
@@ -14,6 +14,7 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
 
   async function getAirportData() {
     const response = await getAirports({
+      search,
       page,
       limit: 100
     });
@@ -45,14 +46,12 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
       <Table.Td>{airport.gps_code}</Table.Td>
       <Table.Td>{airport.iata_code}</Table.Td>
       <Table.Td>{airport.local_code}</Table.Td>
-      <Table.Td>{airport.point.x}</Table.Td>
-      <Table.Td>{airport.point.y}</Table.Td>
     </Table.Tr>
   ))
 
   return <Card shadow={'sm'} padding={'lg'} radius={'md'} withBorder>
     <TextInput
-      placeholder="Search by ICAO"
+      placeholder="Search..."
       mb="md"
       leftSection={<CiSearch style={{ width: rem(16), height: rem(16) }} />}
       value={search}
@@ -72,28 +71,36 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
             <Table.Th>GPS Code</Table.Th>
             <Table.Th>IATA Code</Table.Th>
             <Table.Th>Local Code</Table.Th>
-            <Table.Th>Latitude</Table.Th>
-            <Table.Th>Longitude</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>{rows}</Table.Tbody>
       </Table>
     </Table.ScrollContainer>
-    <Group>
-      <Pagination value={page} total={totalPages} onChange={setPage} />
-      <PanelButton onClick={async () => {
-        await importAirports();
-        await getAirportData();
-      }}>
-        Import
-      </PanelButton>
-      <PanelButton color={'red'} onClick={async () => {
-        await removeAirport({});
-        await getAirportData();
-      }}>
-        Remove All
-      </PanelButton>
-    </Group>
+    <Grid mt={'md'} justify={'space-between'}>
+      <Grid.Col span={10}>
+        <Pagination value={page} total={totalPages} onChange={setPage} />
+      </Grid.Col>
+      <Grid.Col span={2}>
+        <Flex justify={'end'}>
+          <Space mr={'sm'}>
+            <PanelButton onClick={async () => {
+              await importAirports();
+              await getAirportData();
+            }}>
+              Import
+            </PanelButton>
+          </Space>
+          <Space>
+            <PanelButton color={'red'} onClick={async () => {
+              await removeAirport({});
+              await getAirportData();
+            }}>
+              Remove All
+            </PanelButton>
+          </Space>
+        </Flex>
+      </Grid.Col>
+    </Grid>
   </Card>
 }
 
@@ -103,7 +110,6 @@ function PanelButton({ children, color = 'blue', onClick }: {children: any, colo
     loading={loading}
     variant='light'
     color={color}
-    mt={'md'}
     radius={'md'}
     onClick={() => {
       setLoading(true);

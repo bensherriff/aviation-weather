@@ -10,6 +10,6 @@ export async function getMetars(icaos: string[]): Promise<GetMetarsResponse> {
     return { data: [] };
   }
   const stationICAOs: string = icaos.map((icao) => icao).join(',');
-  const response = await getRequest(`metars/${stationICAOs}`, {});
+  const response = await getRequest(`metars`, { icaos: stationICAOs });
   return response?.json() || { data: [] };
 }

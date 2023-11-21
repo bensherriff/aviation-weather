@@ -1,9 +1,10 @@
+import { createAirport } from "@/api/airport";
 import { Airport, AirportCategory } from "@/api/airport.types";
 import { Card, TextInput, Select, Group, Flex, Space, Button } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect } from "react";
 
-export default function CreateAirportPanel({ airport, setAirport } : { airport?: Airport, setAirport: (airport: Airport | undefined) => void }) {
+export default function CreateAirportPanel() {
   const form = useForm<Airport>({
     initialValues: {
       icao: '',
@@ -25,20 +26,12 @@ export default function CreateAirportPanel({ airport, setAirport } : { airport?:
     }
   });
 
-  useEffect(() => {
-    console.log(airport);
-    if (airport) {
-      form.setValues(airport);
-    }
-  }, [airport]);
-
   return <Card shadow={'sm'} padding={'lg'} radius={'md'} withBorder>
     Create Airport
-    <form onSubmit={form.onSubmit((values) => {
-      if (airport) {
-        console.log('update');
-      } else {
-        console.log('create');
+    <form onSubmit={form.onSubmit(async (values) => {
+      const response = await createAirport({ airport: values });
+      if (response.success) {
+        form.reset();
       }
     })}>
       <TextInput
@@ -136,7 +129,7 @@ export default function CreateAirportPanel({ airport, setAirport } : { airport?:
             color='blue'
             radius={'md'}
           >
-            {airport ? 'Update' : 'Create'}
+            Create
           </Button>
         </Space>
         <Space>
@@ -145,10 +138,7 @@ export default function CreateAirportPanel({ airport, setAirport } : { airport?:
             variant='light'
             color='red'
             radius={'md'}
-            onClick={() => {
-              form.reset();
-              setAirport(undefined);
-            }}
+            onClick={() => form.reset()}
           >
             Reset
           </Button>

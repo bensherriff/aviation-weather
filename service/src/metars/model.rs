@@ -275,18 +275,19 @@ impl Metar {
         return insert_metars;
     }
 
-    pub async fn get_all(icaos: String) -> Result<Vec<Self>, ServiceError> {
-        if icaos.is_empty() {
+    pub async fn get_all(icao_string: String) -> Result<Vec<Self>, ServiceError> {
+        if icao_string.is_empty() {
             return Ok(vec![]);
         }
 
-        let station_icaos: Vec<&str> = icaos.split(',').collect();
-        let mut db_metars = match QueryMetar::get_all(&station_icaos) {
+        let icaos: Vec<&str> = icao_string.split(",").collect();
+
+        let mut db_metars = match QueryMetar::get_all(&icaos) {
             Ok(m) => Self::from_query(m),
             Err(err) => return Err(err)
         };
 
-        let missing_icaos = Self::get_missing_metar_icaos(&db_metars, &station_icaos);
+        let missing_icaos = Self::get_missing_metar_icaos(&db_metars, &icaos);
         if missing_icaos.is_empty() {
             return Ok(db_metars);
         }

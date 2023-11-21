@@ -8,8 +8,7 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GetAllParameters {
-  name: Option<String>,
-  icao: Option<String>,
+  search: Option<String>,
   bounds: Option<String>,
   category: Option<String>,
   order_field: Option<String>,
@@ -18,7 +17,7 @@ struct GetAllParameters {
   page: Option<i32>
 }
 
-#[get("/import")]
+#[post("/import")]
 async fn import(auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
@@ -31,12 +30,11 @@ async fn import(auth: JwtAuth) -> HttpResponse {
   })
 }
 
-#[get("/search")]
+#[get("")]
 async fn get_all(req: HttpRequest) -> HttpResponse {
   let params = web::Query::<GetAllParameters>::from_query(req.query_string()).unwrap();
   let mut filters = QueryFilters::default();
-  filters.name = params.name.clone();
-  filters.icao = params.icao.clone();
+  filters.search = params.search.clone();
   filters.category = params.category.clone();
   filters.bounds = match &params.bounds {
     Some(b) => {
@@ -119,7 +117,7 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
   }
 }
 
-#[get("/search/{icao}")]
+#[get("/{icao}")]
 async fn get(icao: web::Path<String>) -> HttpResponse {
   match QueryAirport::find(icao.into_inner()) {
     Ok(a) => HttpResponse::Ok().json(Response {
@@ -133,7 +131,7 @@ async fn get(icao: web::Path<String>) -> HttpResponse {
   }
 }
 
-#[post("/create")]
+#[post("")]
 async fn create(airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
@@ -148,8 +146,8 @@ async fn create(airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpRespons
   }
 }
 
-#[put("/update/{icao}")]
-async fn update(icao: web::Path<i32>, airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpResponse {
+#[put("/{icao}")]
+async fn update(icao: web::Path<String>, airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
     Err(err) => return ResponseError::error_response(&err)
@@ -163,8 +161,8 @@ async fn update(icao: web::Path<i32>, airport: web::Json<InsertAirport>, auth: J
   }
 }
 
-#[delete("/remove")]
-async fn remove_all(auth: JwtAuth) -> HttpResponse {
+#[delete("")]
+async fn delete_all(auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
     Err(err) => return ResponseError::error_response(&err)
@@ -178,8 +176,8 @@ async fn remove_all(auth: JwtAuth) -> HttpResponse {
   }
 }
 
-#[delete("/remove/{icao}")]
-async fn remove(icao: web::Path<i32>, auth: JwtAuth) -> HttpResponse {
+#[delete("/{icao}")]
+async fn delete(icao: web::Path<String>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
     Err(err) => return ResponseError::error_response(&err)
@@ -199,8 +197,8 @@ pub fn init_routes(config: &mut web::ServiceConfig) {
     .service(get)
     .service(create)
     .service(update)
-    .service(remove)
-    .service(remove_all)
+    .service(delete)
+    .service(delete_all)
     .service(import)
   );
 }
