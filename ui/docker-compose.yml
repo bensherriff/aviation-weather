@@ -19,8 +19,8 @@ services:
       - ./public:/app/public
       - ./styles:/app/styles
     networks:
-      - weather-frontend
+      - frontend
     restart: unless-stopped
 
 networks:
-  weather-frontend:
+  frontend:

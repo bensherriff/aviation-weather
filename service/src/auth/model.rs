@@ -157,8 +157,8 @@ impl FromRequest for JwtAuth {
         })))
       };
 
-    let public_key = env::var("ACCESS_TOKEN_PUBLIC_KEY")
-      .expect("ACCESS_TOKEN_PUBLIC_KEY must be set");
+    let keys_dir = env::var("KEYS_DIR_PATH").expect("KEYS_DIR_PATH must be set");
+    let public_key = std::fs::read_to_string(format!("{}/access_public_key.pem", keys_dir)).expect("Failed to read access public key");
 
     let access_token_details = match verify_token(&access_token, &public_key) {
       Ok(token_details) => token_details,

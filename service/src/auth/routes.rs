@@ -150,8 +150,9 @@ async fn refresh(req: HttpRequest) -> HttpResponse {
     })
   };
 
-  let public_key = env::var("REFRESH_TOKEN_PUBLIC_KEY")
-    .expect("REFRESH_TOKEN_PUBLIC_KEY must be set");
+  let keys_dir = env::var("KEYS_DIR_PATH").expect("KEYS_DIR_PATH must be set");
+  let public_key = std::fs::read_to_string(format!("{}/refresh_public_key.pem", keys_dir))
+    .expect("Unable to read refresh public key");
   let refresh_token_details = match verify_token(&refresh_token, &public_key) {
     Ok(token_details) => token_details,
     Err(err) => return ResponseError::error_response(&err)
@@ -181,8 +182,9 @@ async fn refresh(req: HttpRequest) -> HttpResponse {
       match req.cookie("access_token") {
         Some(cookie) => {
           let access_token = cookie.value().to_string();
-          let public_key = env::var("ACCESS_TOKEN_PUBLIC_KEY")
-            .expect("ACCESS_TOKEN_PUBLIC_KEY must be set");
+          let keys_dir = env::var("KEYS_DIR_PATH").expect("KEYS_DIR_PATH must be set");
+          let public_key = std::fs::read_to_string(format!("{}/access_public_key.pem", keys_dir))
+            .expect("Unable to read access public key");
           match verify_token(&access_token, &public_key) {
             Ok(token_details) => {
               let _: redis::RedisResult<()> = conn.del(token_details.token_uuid.to_string()).await;  
@@ -285,8 +287,9 @@ async fn logout(req: HttpRequest, auth: JwtAuth) -> HttpResponse {
       message: "Refresh token not found".to_string()
     })
   };
-  let public_key = env::var("REFRESH_TOKEN_PUBLIC_KEY")
-    .expect("REFRESH_TOKEN_PUBLIC_KEY must be set");
+  let keys_dir = env::var("KEYS_DIR_PATH").expect("KEYS_DIR_PATH must be set");
+  let public_key = std::fs::read_to_string(format!("{}/refresh_public_key.pem", keys_dir))
+    .expect("Unable to read refresh public key");
   let refresh_token_details = match verify_token(&refresh_token, &public_key) {
     Ok(token_details) => token_details,
     Err(err) => return ResponseError::error_response(&err)

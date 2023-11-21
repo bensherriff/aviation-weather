@@ -20,9 +20,6 @@ up: ## Start Docker containers
 down: ## Stop Docker containers
 	docker compose down
 
-connect: ## Connect to the Weather DB
-	docker exec -it ${DATABASE_CONTAINER} psql -U postgres
-
 clean: ## Cleanup Docker containers
 	docker compose down && \
 	docker image rm weather-ui || \
@@ -30,8 +27,9 @@ clean: ## Cleanup Docker containers
 	docker network rm weather-frontend || \
 	docker network rm weather-backend
 
-clean-db:  ## Remove database
-	docker exec -i ${DATABASE_CONTAINER} sh -c 'PGPASSWORD=${DATABASE_PASSWORD} psql -U ${DATABASE_USER} -d postgres -c "DROP DATABASE IF EXISTS \"${DATABASE_NAME}\";"'
-	docker exec -i ${DATABASE_CONTAINER} sh -c 'PGPASSWORD=${DATABASE_PASSWORD} psql -U ${DATABASE_USER} -d postgres -c "CREATE DATABASE \"${DATABASE_NAME}\";"'  || true
-
-	
+generate: ## Generate RSA keys
+	mkdir keys
+	openssl genrsa -out keys/access_private_key.pem 4096
+	openssl rsa -in keys/access_private_key.pem -pubout -outform PEM -out keys/access_public_key.pem
+	openssl genrsa -out keys/refresh_private_key.pem 4096
+	openssl rsa -in keys/refresh_private_key.pem -pubout -outform PEM -out keys/refresh_public_key.pem

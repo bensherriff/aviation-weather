@@ -16,6 +16,7 @@ build: ## Build the Docker image
 utils: ## Start the utils
 	docker compose up -d db
 	docker compose up -d redis
+	docker compose up -d minio
 
 up: ## Start the Docker containers
 	docker compose up -d
@@ -36,4 +37,10 @@ clean-db:  ## Remove database
 	docker exec -i ${DATABASE_CONTAINER} sh -c 'PGPASSWORD=${DATABASE_PASSWORD} psql -U ${DATABASE_USER} -d postgres -c "DROP DATABASE IF EXISTS \"${DATABASE_NAME}\";"'
 	docker exec -i ${DATABASE_CONTAINER} sh -c 'PGPASSWORD=${DATABASE_PASSWORD} psql -U ${DATABASE_USER} -d postgres -c "CREATE DATABASE \"${DATABASE_NAME}\";"'  || true
 
+generate: ## Generate RSA keys
+	mkdir ../keys/
+	openssl genrsa -out ../keys/access_private_key.pem 4096
+	openssl rsa -in ../keys/access_private_key.pem -pubout -outform PEM -out ../keys/access_public_key.pem
+	openssl genrsa -out ../keys/refresh_private_key.pem 4096
+	openssl rsa -in ../keys/refresh_private_key.pem -pubout -outform PEM -out ../keys/refresh_public_key.pem
 	

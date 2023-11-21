@@ -1805,7 +1805,6 @@ dependencies = [
  "actix-web",
  "actix-web-httpauth",
  "argon2",
- "base64",
  "chrono",
  "diesel",
  "diesel_migrations",

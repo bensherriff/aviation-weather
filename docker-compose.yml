@@ -31,7 +31,7 @@ services:
 
   minio:
     image: minio/minio
-    container_name: siren-minio
+    container_name: weather-minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -49,6 +49,8 @@ services:
     container_name: weather-service
     env_file:
       - .env
+    volumes:
+      - ${KEYS_DIR_PATH}:/keys
     ports:
       - "${SERVICE_PORT:-5000}:5000"
     build:

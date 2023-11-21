@@ -32,5 +32,4 @@ log = "0.4.20"
 argon2 = "0.5.2"
 jsonwebtoken = "9.0.0"
 redis = { version = "0.23.3", features = ["tokio-comp", "connection-manager", "r2d2"] }
-base64 = "0.21.4"
 rustix = "0.38.19" # https://github.com/imsnif/bandwhich/issues/284

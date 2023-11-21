@@ -38,6 +38,18 @@ impl fmt::Display for ServiceError {
   }
 }
 
+impl From<std::io::Error> for ServiceError {
+  fn from(error: std::io::Error) -> ServiceError {
+    ServiceError::new(500, format!("Unknown IO error: {}", error))
+  }
+}
+
+impl From<std::env::VarError> for ServiceError {
+  fn from(error: std::env::VarError) -> ServiceError {
+    ServiceError::new(500, format!("Unknown environment variable error: {}", error))
+  }
+}
+
 impl From<DieselError> for ServiceError {
   fn from(error: DieselError) -> ServiceError {
     match error {

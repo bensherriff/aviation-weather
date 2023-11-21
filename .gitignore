@@ -18,6 +18,8 @@ node_modules
 # misc
 .DS_Store
 *.pem
+*.pem.pub
+keys/
 
 # debug
 npm-debug.log*
