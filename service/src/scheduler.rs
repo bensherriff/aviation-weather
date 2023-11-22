@@ -33,12 +33,20 @@ pub fn update_airports() {
 
       let airport_icaos: Vec<String> = airports.iter().map(|a| a.icao.to_string()).collect();
       let mut peekable = airport_icaos.into_iter().peekable();
+      let mut observation_time = 0;
+
       while peekable.peek().is_some() {
         let chunk: Vec<String> = peekable.by_ref().take(limit as usize).collect();
         let icao_string = chunk.join(",");
         trace!("Updating METARS for: {}", icao_string);
         match Metar::get_all(icao_string).await {
-          Ok(_) => {
+          Ok(metars) => {
+            // Find the oldest observation time
+            for metar in metars {
+              if metar.observation_time.timestamp() < observation_time {
+                observation_time = metar.observation_time.timestamp();
+              }
+            }
             sleep(Duration::from_millis(100)).await;
           },
           Err(err) => {
@@ -47,7 +55,11 @@ pub fn update_airports() {
         }
       }
       debug!("METAR update complete");
-      sleep(Duration::from_secs(60 * 60)).await;
+      // Sleep until the observation time is 1 hour old
+      let now = chrono::Utc::now().timestamp();
+      let sleep_time = (observation_time + (60 * 60)) - now;
+      debug!("Next update in {} seconds", sleep_time);
+      sleep(Duration::from_secs(sleep_time as u64)).await;
     }
   });
 }
