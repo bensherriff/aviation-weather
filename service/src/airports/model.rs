@@ -4,25 +4,71 @@ use crate::db;
 use crate::error_handler::ServiceError;
 use crate::db::schema::airports;
 use diesel::prelude::*;
+use log::error;
 use postgis_diesel::types::*;
 use postgis_diesel::functions::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, AsChangeset, Insertable)]
-#[diesel(table_name = airports)]
-pub struct InsertAirport {
+#[derive(Serialize, Deserialize)]
+pub struct Airport {
   pub icao: String,
   pub category: String,
   pub full_name: String,
+  pub point: Point,
   pub elevation_ft: Option<i32>,
-  pub continent: String,
   pub iso_country: String,
   pub iso_region: String,
   pub municipality: String,
   pub gps_code: String,
   pub iata_code: String,
   pub local_code: String,
-  pub point: Point
+  pub tower: Option<bool>,
+}
+
+impl Into<QueryAirport> for Airport {
+  fn into(self) -> QueryAirport {
+    return QueryAirport {
+      icao: self.icao.clone(),
+      category: self.category.clone(),
+      full_name: self.full_name.clone(),
+      point: self.point.clone(),
+      iso_country: self.iso_country.clone(),
+      iso_region: self.iso_region.clone(),
+      municipality: self.municipality.clone(),
+      gps_code: self.gps_code.clone(),
+      iata_code: self.iata_code.clone(),
+      local_code: self.local_code.clone(),
+      data: match serde_json::to_value(&self) {
+        Ok(d) => d,
+        Err(err) => {
+          error!("{}", err);
+          serde_json::Value::Null
+        }
+      }
+    }
+  }
+}
+
+impl From<QueryAirport> for Airport {
+  fn from(airport: QueryAirport) -> Self {
+    serde_json::from_value(airport.data).unwrap()
+  }
+}
+
+#[derive(Serialize, Deserialize, AsChangeset, Insertable, Queryable, QueryableByName)]
+#[diesel(table_name = airports)]
+pub struct QueryAirport {
+  pub icao: String,
+  pub category: String,
+  pub full_name: String,
+  pub iso_country: String,
+  pub iso_region: String,
+  pub municipality: String,
+  pub gps_code: String,
+  pub iata_code: String,
+  pub local_code: String,
+  pub point: Point,
+  pub data: serde_json::Value
 }
 
 #[derive(Debug)]
@@ -68,7 +114,6 @@ pub enum QueryOrderField {
   Icao,
   Name,
   Category,
-  Continent,
   Country,
   Region,
   Municipality,
@@ -84,7 +129,6 @@ impl FromStr for QueryOrderField {
       "icao" => Ok(QueryOrderField::Icao),
       "name" => Ok(QueryOrderField::Name),
       "category" => Ok(QueryOrderField::Category),
-      "continent" => Ok(QueryOrderField::Continent),
       "iso_country" => Ok(QueryOrderField::Country),
       "iso_region" => Ok(QueryOrderField::Region),
       "municipality" => Ok(QueryOrderField::Municipality),
@@ -94,24 +138,6 @@ impl FromStr for QueryOrderField {
       _ => Err(())
     }
   }
-}
-
-#[derive(Serialize, Deserialize, Queryable, QueryableByName)]
-#[diesel(table_name = airports)]
-pub struct QueryAirport {
-  pub icao: String,
-  pub id: i32,
-  pub category: String,
-  pub full_name: String,
-  pub elevation_ft: Option<i32>,
-  pub continent: String,
-  pub iso_country: String,
-  pub iso_region: String,
-  pub municipality: String,
-  pub gps_code: String,
-  pub iata_code: String,
-  pub local_code: String,
-  pub point: Point
 }
 
 impl QueryAirport {
@@ -150,7 +176,6 @@ impl QueryAirport {
               QueryOrderField::Icao => query.order(airports::icao.asc()),
               QueryOrderField::Name => query.order(airports::full_name.asc()),
               QueryOrderField::Category => query.order(airports::category.asc()),
-              QueryOrderField::Continent => query.order(airports::continent.asc()),
               QueryOrderField::Country => query.order(airports::iso_country.asc()),
               QueryOrderField::Region => query.order(airports::iso_region.asc()),
               QueryOrderField::Municipality => query.order(airports::municipality.asc()),
@@ -166,7 +191,6 @@ impl QueryAirport {
               QueryOrderField::Icao => query.order(airports::icao.desc()),
               QueryOrderField::Name => query.order(airports::full_name.desc()),
               QueryOrderField::Category => query.order(airports::category.desc()),
-              QueryOrderField::Continent => query.order(airports::continent.desc()),
               QueryOrderField::Country => query.order(airports::iso_country.desc()),
               QueryOrderField::Region => query.order(airports::iso_region.desc()),
               QueryOrderField::Municipality => query.order(airports::municipality.desc()),
@@ -215,16 +239,16 @@ impl QueryAirport {
     Ok(airport)
   }
 
-  pub fn create(airport: InsertAirport) -> Result<Self, ServiceError> {
-    let mut conn = db::connection()?;
-    let airport = InsertAirport::from(airport);
+  pub fn insert(airport: Self) -> Result<Self, ServiceError> {
+    let mut conn: r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>> = db::connection()?;
+    let airport = Self::from(airport);
     let airport = diesel::insert_into(airports::table)
         .values(airport)
         .get_result(&mut conn)?;
     Ok(airport)
   }
 
-  pub fn update(icao: String, airport: InsertAirport) -> Result<Self, ServiceError> {
+  pub fn update(icao: String, airport: Self) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = diesel::update(airports::table)
         .filter(airports::icao.eq(icao))

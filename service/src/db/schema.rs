@@ -3,11 +3,8 @@ diesel::table! {
   use postgis_diesel::sql_types::*;
   airports (icao) {
     icao -> Text,
-    id -> Integer,
     category -> Text,
     full_name -> Text,
-    elevation_ft -> Nullable<Integer>,
-    continent -> Text,
     iso_country -> Text,
     iso_region -> Text,
     municipality -> Text,
@@ -15,6 +12,7 @@ diesel::table! {
     iata_code -> Text,
     local_code -> Text,
     point -> Geometry,
+    data -> Jsonb
   }
 }
 

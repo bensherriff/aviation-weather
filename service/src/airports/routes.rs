@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::{airports::{InsertAirport, QueryAirport, QueryFilters, QueryOrderField, QueryOrderBy}, db::{self, Response, Metadata}, auth::{JwtAuth, verify_role}};
+use crate::{airports::{QueryAirport, QueryFilters, QueryOrderField, QueryOrderBy, Airport}, db::{self, Response, Metadata}, auth::{JwtAuth, verify_role}};
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest, ResponseError};
 use log::{error, warn};
 use postgis_diesel::types::{Polygon, Point};
@@ -132,12 +132,13 @@ async fn get(icao: web::Path<String>) -> HttpResponse {
 }
 
 #[post("")]
-async fn create(airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpResponse {
+async fn create(airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
     Err(err) => return ResponseError::error_response(&err)
   };
-  match QueryAirport::create(airport.into_inner()) {
+  let query_airport: QueryAirport = airport.into_inner().into();
+  match QueryAirport::insert(query_airport) {
     Ok(a) => HttpResponse::Created().json(a),
     Err(err) => {
       error!("{}", err);
@@ -147,12 +148,13 @@ async fn create(airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpRespons
 }
 
 #[put("/{icao}")]
-async fn update(icao: web::Path<String>, airport: web::Json<InsertAirport>, auth: JwtAuth) -> HttpResponse {
+async fn update(icao: web::Path<String>, airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
     Err(err) => return ResponseError::error_response(&err)
   };
-  match QueryAirport::update(icao.into_inner(), airport.into_inner()) {
+  let query_airport: QueryAirport = airport.into_inner().into();
+  match QueryAirport::update(icao.into_inner(), query_airport) {
     Ok(a) => HttpResponse::Ok().json(a),
     Err(err) => {
       error!("{}", err);

@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct QualityControlFlags {
   pub auto: Option<bool>,
-  pub auto_station: Option<bool>,
+  pub auto_station_without_precipication: Option<bool>,
+  pub auto_station_with_precipication: Option<bool>,
   pub maintenance_indicator_on: Option<bool>,
   pub corrected: Option<bool>
 }
@@ -18,7 +19,8 @@ impl Default for QualityControlFlags {
   fn default() -> Self {
     QualityControlFlags {
       auto: None,
-      auto_station: None,
+      auto_station_without_precipication: None,
+      auto_station_with_precipication: None,
       maintenance_indicator_on: None,
       corrected: None,
     }
@@ -123,7 +125,6 @@ impl Default for Metar {
 
 impl Metar {
   fn parse(metar_strings: Vec<&str>) -> Result<Vec<Self>, ServiceError> {
-    // Parse a metar in the format of: KSMF 211653Z 01004KT 10SM BKN250 11/06 A3041 RMK AO2 SLP296 T01060061
     let mut metars: Vec<Self> = vec![];
     for metar_string in metar_strings {
       trace!("Parsing METAR data: {}", metar_string);
@@ -347,15 +348,42 @@ impl Metar {
               break;
             }
             let slp_re = regex::Regex::new(r"^SLP([0-9]{3})$").unwrap();
+            let hourly_temp_re = regex::Regex::new(r"^T[01][0-9]{3}[01][0-9]{3}$").unwrap();
             let remark = metar_parts[0];
             metar_parts.remove(0);
-            if remark == "AO2" {
-              metar.quality_control_flags.auto_station = Some(true);
+            if remark == "AO1" {
+              metar.quality_control_flags.auto_station_without_precipication = Some(true);
+            } else if remark == "AO2" {
+              metar.quality_control_flags.auto_station_with_precipication = Some(true);
             } else if remark == "$" {
               metar.quality_control_flags.maintenance_indicator_on = Some(true);
             } else if slp_re.is_match(remark) {
               let slp = slp_re.captures(remark).unwrap();
-              metar.sea_level_pressure_mb = Some(slp[1].parse::<f64>().unwrap());
+              let sea_level_pressure = slp[1].parse::<f64>().unwrap();
+              if sea_level_pressure > 500.0 {
+                metar.sea_level_pressure_mb = Some((sea_level_pressure / 10.0) + 900.0);
+              } else {
+                metar.sea_level_pressure_mb = Some((sea_level_pressure / 10.0) + 1000.0);
+              }
+            } else if hourly_temp_re.is_match(remark) {
+              let temp_negation = &remark[1..2];
+              let temp = &remark[2..5];
+              if let Ok(t) = temp.parse::<f64>() {
+                if temp_negation == "0" {
+                  metar.temp_c = Some(t / 10.0);
+                } else {
+                  metar.temp_c = Some(t / 10.0 * -1.0);
+                }
+              }
+              let dewpoint_negation = &remark[6..7];
+              let dewpoint = &remark[6..9];
+              if let Ok(d) = dewpoint.parse::<f64>() {
+                if dewpoint_negation == "0" {
+                  metar.dewpoint_c = Some(d / 10.0);
+                } else {
+                  metar.dewpoint_c = Some(d / 10.0 * -1.0);
+                }
+              }
             }
           }
         }
