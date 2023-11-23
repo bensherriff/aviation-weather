@@ -91,7 +91,6 @@ pub struct Metar {
   pub max_t_c: Option<f64>,
   pub min_t_c: Option<f64>,
   pub precip_in: Option<f64>,
-  pub elevation_m: i32
 }
 
 impl Default for Metar {
@@ -118,7 +117,6 @@ impl Default for Metar {
       max_t_c: None,
       min_t_c: None,
       precip_in: None,
-      elevation_m: 0
     }
   }
 }
@@ -169,200 +167,207 @@ impl Metar {
       let observation_time = format!("{}-{}-{}T{}:{}:00Z", observation_time_year, observation_time_month, observation_time_day, observation_time_hour, observation_time_minute);
       metar.observation_time = chrono::NaiveDateTime::parse_from_str(&observation_time, "%Y-%m-%dT%H:%M:%SZ").unwrap();
 
-      // Report Modifiers
-      if metar_parts[0] == "AUTO" {
-        metar.quality_control_flags.auto = Some(true);
-        metar_parts.remove(0);
-      } else if metar_parts[0] == "COR" {
-        metar.quality_control_flags.corrected = Some(true);
-        metar_parts.remove(0);
-      }
-
-      // Wind Direction and Speed
-      let wind_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}KT$").unwrap();
-      let wind_gust_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}G[0-9]{2}KT$").unwrap();
-      if wind_re.is_match(metar_parts[0]) {
-        let wind = metar_parts[0];
-        metar_parts.remove(0);
-        let wind_dir_degrees = &wind[0..3];
-        let wind_speed_kt = &wind[3..5];
-        metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
-        metar.wind_speed_kt = Some(wind_speed_kt.parse::<i32>().unwrap());
-      } else if wind_gust_re.is_match(metar_parts[0]) {
-        let wind = metar_parts[0];
-        metar_parts.remove(0);
-        let wind_dir_degrees = &wind[0..3];
-        let wind_speed_kt = &wind[3..5];
-        metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
-        metar.wind_speed_kt = Some(wind_speed_kt.parse::<i32>().unwrap());
-        // Gust
-        let wind_gust_kt = &wind[6..8];
-        metar.wind_gust_kt = Some(wind_gust_kt.parse::<i32>().unwrap());
-      }
-      
-      // Variable Wind Direction
-      let variable_wind_re = regex::Regex::new(r"^[0-9]{3}V[0-9]{3}$").unwrap();
-      if variable_wind_re.is_match(metar_parts[0]) {
-        metar.variable_wind_dir_degrees = Some(metar_parts[0].to_string());
-        metar_parts.remove(0);
-      }
-
-      // Visibility
-      let visibility_re = regex::Regex::new(r"^M?(?:[0-9]+|[0-9]+/[0-9]+)SM").unwrap();
-      if visibility_re.is_match(metar_parts[0]) {
-        let visibility_str = &metar_parts[0][0..metar_parts[0].len() - 2];
-        metar_parts.remove(0);
-        let visibility: String = if visibility_str.contains("/") {
-          let visibility_parts: Vec<&str> = visibility_str.split("/").collect();
-          let visibility_left = visibility_parts[0];
-          let visibility_right = visibility_parts[1].parse::<f64>().unwrap();
-          if visibility_left.starts_with("M") {
-            format!("M{}", visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right)
-          } else if visibility_left.starts_with("P") {
-            format!("P{}", visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right)
-          } else {
-            format!("{}", visibility_left.parse::<f64>().unwrap() / visibility_right)
-          }
-        } else {
-          visibility_str.to_string()
-        };
-        metar.visibility_statute_mi = Some(visibility);
-      } else if metar_parts[0].parse::<f64>().is_ok() && metar_parts.len() > 1 && visibility_re.is_match(metar_parts[1]) {
-        let visibility_whole = metar_parts[0].parse::<f64>().unwrap();
-        metar_parts.remove(0);
-        let visibility_parts: Vec<&str> = metar_parts[0].split("/").collect();
-        metar_parts.remove(0);
-        let visibility_left = visibility_parts[0];
-        let visibility_right = visibility_parts[1][0..visibility_parts[1].len() - 2].parse::<f64>().unwrap();
-        let visibility = if visibility_left.starts_with("M") {
-          format!("M{}", visibility_whole + (visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right))
-        } else if visibility_left.starts_with("P") {
-          format!("P{}", visibility_whole + (visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right))
-        } else {
-          format!("{}", visibility_whole + (visibility_left.parse::<f64>().unwrap() / visibility_right))
-        };
-        metar.visibility_statute_mi = Some(visibility);
-      }
-
-      // Runway Visual Range
-      let rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R)?/[PM]?[0-9]{4}FT$").unwrap();
-      let variable_rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R)?/[PM]?[0-9]{4}V[PM]?[0-9]{4}FT$").unwrap();
-      while rvr_re.is_match(metar_parts[0]) || variable_rvr_re.is_match(metar_parts[0]) {
-        let rvr_string = metar_parts[0];
-        metar_parts.remove(0);
-        let mut rvr = RunwayVisualRange::default();
-        let rvr_parts: Vec<&str> = rvr_string.split("/").collect();
-        rvr.runway = rvr_parts[0].to_string();
-        if rvr_re.is_match(rvr_string) {
-          rvr.visibility_ft = Some(rvr_parts[1].to_string());
-        } else {
-          let rvr_variable_parts: Vec<&str> = rvr_parts[1].split("V").collect();
-          if rvr_variable_parts.len() != 2 {
-            warn!("Unable to parse runway visual range in {}: {}", rvr_string, metar_string);
-          } else {
-            rvr.variable_visibility_low_ft = Some(rvr_variable_parts[0].to_string());
-            rvr.variable_visibility_high_ft = Some(rvr_variable_parts[1].to_string());
-          }
-        }
-      }
-
-      // Weather Phenomena
-      let wx_re = regex::Regex::new(r"^[+-]?(?:RA|SN|UP|FG|FZFG|BR|HZ|SQ|FC|TS|GR|GS|FZRA|VA|DZ)$").unwrap();
-      while wx_re.is_match(metar_parts[0]) {
-        metar.weather_phenomena.push(metar_parts[0].to_string());
-        metar_parts.remove(0);
-      }
-
-      // Sky Condition
-      let sky_condition_re = regex::Regex::new(r"^(?:CLR|SKC|(?:FEW|SCT|BKN|OVC|VV)([0-9]{3})?)$").unwrap();
-      while sky_condition_re.is_match(metar_parts[0]) {
-        let sky_condition_string = metar_parts[0];
-        metar_parts.remove(0);
-        let mut sky_condition = SkyCondition::default();
-        let sky_cover = &sky_condition_string[0..3];
-        sky_condition.sky_cover = sky_cover.to_string();
-        if sky_condition_string.len() > 3 {
-          sky_condition.cloud_base_ft_agl = Some(sky_condition_string[3..sky_condition_string.len()].parse::<i32>().unwrap() * 100);
-        }
-        metar.sky_condition.push(sky_condition);
-      }
-
-      // Temperature and Dewpoint
-      let temp_re = regex::Regex::new(r"^(?:M?[0-9]{2})?/(?:M?[0-9]{2})?$").unwrap();
-      if temp_re.is_match(metar_parts[0]) {
-        let temp_string = metar_parts[0];
-        metar_parts.remove(0);
-        let temp_parts: Vec<&str> = temp_string.split("/").collect();
-        let mut temp_c = "";
-        let mut dewpoint_c = "";
-        if temp_parts.len() != 2 {
-          if temp_string.ends_with("/") {
-            temp_c = temp_parts[0];
-          } else {
-            dewpoint_c = temp_parts[0];
-          }
-        } else {
-          temp_c = temp_parts[0];
-          dewpoint_c = temp_parts[1];
-        }
-        if temp_c.starts_with("M") {
-          metar.temp_c = Some(temp_c[1..temp_c.len()].parse::<f64>().unwrap() * -1.0);
-        } else if !temp_c.is_empty() {
-          metar.temp_c = match temp_c.parse::<f64>() {
-            Ok(t) => Some(t),
-            Err(err) => {
-              warn!("Unable to parse temperature in {}: {}", temp_c, err);
-              None
-            }
-          };
-        }
-        if dewpoint_c.starts_with("M") {
-          metar.dewpoint_c = Some(dewpoint_c[1..dewpoint_c.len()].parse::<f64>().unwrap() * -1.0);
-        } else if !dewpoint_c.is_empty() {
-          metar.dewpoint_c = match dewpoint_c.parse::<f64>() {
-            Ok(d) => Some(d),
-            Err(err) => {
-              warn!("Unable to parse dewpoint in {}: {}", dewpoint_c, err);
-              None
-            }
-          };
-        }
-      }
-
-      // Altimeter
-      let altim_re = regex::Regex::new(r"^A[0-9]{4}$").unwrap();
-      if altim_re.is_match(metar_parts[0]) {
-        let altim = metar_parts[0];
-        metar_parts.remove(0);
-        metar.altim_in_hg = Some(altim[1..altim.len()].parse::<f64>().unwrap() / 100.0);
-      }
-
-      // Remarks
-      if !metar_parts.is_empty() {
-        if metar_parts[0] == "RMK" {
-          metar_parts.remove(0);
-        } else {
-          warn!("Unexpected field found, skipping METAR: '{}' ({})", metar_parts[0], metar_string);
-          continue;
-        }
-      }
       loop {
         if metar_parts.is_empty() {
           break;
         }
-        let remark = metar_parts[0];
-        metar_parts.remove(0);
-        if remark == "AO2" {
-          metar.quality_control_flags.auto_station = Some(true);
+        // Report Modifiers
+        if metar_parts[0] == "AUTO" {
+          metar.quality_control_flags.auto = Some(true);
+          metar_parts.remove(0);
+        } else if metar_parts[0] == "COR" {
+          metar.quality_control_flags.corrected = Some(true);
+          metar_parts.remove(0);
+        }
+
+        // Wind Direction and Speed
+        let wind_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}KT$").unwrap();
+        let wind_gust_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}G[0-9]{2}KT$").unwrap();
+        if wind_re.is_match(metar_parts[0]) {
+          let wind = metar_parts[0];
+          metar_parts.remove(0);
+          let wind_dir_degrees = &wind[0..3];
+          let wind_speed_kt = &wind[3..5];
+          metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
+          metar.wind_speed_kt = Some(wind_speed_kt.parse::<i32>().unwrap());
+        } else if wind_gust_re.is_match(metar_parts[0]) {
+          let wind = metar_parts[0];
+          metar_parts.remove(0);
+          let wind_dir_degrees = &wind[0..3];
+          let wind_speed_kt = &wind[3..5];
+          metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
+          metar.wind_speed_kt = Some(wind_speed_kt.parse::<i32>().unwrap());
+          // Gust
+          let wind_gust_kt = &wind[6..8];
+          metar.wind_gust_kt = Some(wind_gust_kt.parse::<i32>().unwrap());
+        }
+        
+        // Variable Wind Direction
+        let variable_wind_re = regex::Regex::new(r"^[0-9]{3}V[0-9]{3}$").unwrap();
+        if variable_wind_re.is_match(metar_parts[0]) {
+          metar.variable_wind_dir_degrees = Some(metar_parts[0].to_string());
+          metar_parts.remove(0);
+        }
+
+        // Visibility
+        let visibility_re = regex::Regex::new(r"^M?(?:[0-9]+|[0-9]+/[0-9]+)SM").unwrap();
+        if visibility_re.is_match(metar_parts[0]) {
+          let visibility_str = &metar_parts[0][0..metar_parts[0].len() - 2];
+          metar_parts.remove(0);
+          let visibility: String = if visibility_str.contains("/") {
+            let visibility_parts: Vec<&str> = visibility_str.split("/").collect();
+            let visibility_left = visibility_parts[0];
+            let visibility_right = visibility_parts[1].parse::<f64>().unwrap();
+            if visibility_left.starts_with("M") {
+              format!("M{}", visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right)
+            } else if visibility_left.starts_with("P") {
+              format!("P{}", visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right)
+            } else {
+              format!("{}", visibility_left.parse::<f64>().unwrap() / visibility_right)
+            }
+          } else {
+            visibility_str.to_string()
+          };
+          metar.visibility_statute_mi = Some(visibility);
+        } else if metar_parts[0].parse::<f64>().is_ok() && metar_parts.len() > 1 && visibility_re.is_match(metar_parts[1]) {
+          let visibility_whole = metar_parts[0].parse::<f64>().unwrap();
+          metar_parts.remove(0);
+          let visibility_parts: Vec<&str> = metar_parts[0].split("/").collect();
+          metar_parts.remove(0);
+          let visibility_left = visibility_parts[0];
+          let visibility_right = visibility_parts[1][0..visibility_parts[1].len() - 2].parse::<f64>().unwrap();
+          let visibility = if visibility_left.starts_with("M") {
+            format!("M{}", visibility_whole + (visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right))
+          } else if visibility_left.starts_with("P") {
+            format!("P{}", visibility_whole + (visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right))
+          } else {
+            format!("{}", visibility_whole + (visibility_left.parse::<f64>().unwrap() / visibility_right))
+          };
+          metar.visibility_statute_mi = Some(visibility);
+        }
+
+        // Runway Visual Range
+        let rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R|C)?/[PM]?[0-9]{4}FT$").unwrap();
+        let variable_rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R|C)?/[PM]?[0-9]{4}V[PM]?[0-9]{4}FT$").unwrap();
+        while rvr_re.is_match(metar_parts[0]) || variable_rvr_re.is_match(metar_parts[0]) {
+          let rvr_string = metar_parts[0];
+          metar_parts.remove(0);
+          let mut rvr = RunwayVisualRange::default();
+          let rvr_parts: Vec<&str> = rvr_string.split("/").collect();
+          rvr.runway = rvr_parts[0].to_string();
+          if rvr_re.is_match(rvr_string) {
+            rvr.visibility_ft = Some(rvr_parts[1].to_string());
+          } else {
+            let rvr_variable_parts: Vec<&str> = rvr_parts[1].split("V").collect();
+            if rvr_variable_parts.len() != 2 {
+              warn!("Unable to parse runway visual range in {}: {}", rvr_string, metar_string);
+            } else {
+              rvr.variable_visibility_low_ft = Some(rvr_variable_parts[0].to_string());
+              rvr.variable_visibility_high_ft = Some(rvr_variable_parts[1].to_string());
+            }
+          }
+        }
+
+        // Weather Phenomena
+        let wx_re = regex::Regex::new(r"^(?:[+-]|VC|MI|PR|BC|DR|BL|SH|TS|FZ)?(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)$").unwrap();
+        while wx_re.is_match(metar_parts[0]) {
+          metar.weather_phenomena.push(metar_parts[0].to_string());
+          metar_parts.remove(0);
+        }
+
+        // Sky Condition
+        let sky_condition_re = regex::Regex::new(r"^(?:CLR|SKC|(?:FEW|SCT|BKN|OVC|VV)([0-9]{3})?)$").unwrap();
+        while sky_condition_re.is_match(metar_parts[0]) {
+          let sky_condition_string = metar_parts[0];
+          metar_parts.remove(0);
+          let mut sky_condition = SkyCondition::default();
+          let sky_cover = &sky_condition_string[0..3];
+          sky_condition.sky_cover = sky_cover.to_string();
+          if sky_condition_string.len() > 3 {
+            sky_condition.cloud_base_ft_agl = Some(sky_condition_string[3..sky_condition_string.len()].parse::<i32>().unwrap() * 100);
+          }
+          metar.sky_condition.push(sky_condition);
+        }
+
+        // Temperature and Dewpoint
+        let temp_re = regex::Regex::new(r"^(?:M?[0-9]{2})?/(?:M?[0-9]{2})?$").unwrap();
+        if temp_re.is_match(metar_parts[0]) {
+          let temp_string = metar_parts[0];
+          metar_parts.remove(0);
+          let temp_parts: Vec<&str> = temp_string.split("/").collect();
+          let mut temp_c = "";
+          let mut dewpoint_c = "";
+          if temp_parts.len() != 2 {
+            if temp_string.ends_with("/") {
+              temp_c = temp_parts[0];
+            } else {
+              dewpoint_c = temp_parts[0];
+            }
+          } else {
+            temp_c = temp_parts[0];
+            dewpoint_c = temp_parts[1];
+          }
+          if temp_c.starts_with("M") {
+            metar.temp_c = Some(temp_c[1..temp_c.len()].parse::<f64>().unwrap() * -1.0);
+          } else if !temp_c.is_empty() {
+            metar.temp_c = match temp_c.parse::<f64>() {
+              Ok(t) => Some(t),
+              Err(err) => {
+                warn!("Unable to parse temperature in {}: {}", temp_c, err);
+                None
+              }
+            };
+          }
+          if dewpoint_c.starts_with("M") {
+            metar.dewpoint_c = Some(dewpoint_c[1..dewpoint_c.len()].parse::<f64>().unwrap() * -1.0);
+          } else if !dewpoint_c.is_empty() {
+            metar.dewpoint_c = match dewpoint_c.parse::<f64>() {
+              Ok(d) => Some(d),
+              Err(err) => {
+                warn!("Unable to parse dewpoint in {}: {}", dewpoint_c, err);
+                None
+              }
+            };
+          }
+        }
+
+        // Altimeter
+        let altim_re = regex::Regex::new(r"^A[0-9]{4}$").unwrap();
+        if altim_re.is_match(metar_parts[0]) {
+          let altim = metar_parts[0];
+          metar_parts.remove(0);
+          metar.altim_in_hg = Some(altim[1..altim.len()].parse::<f64>().unwrap() / 100.0);
+        }
+
+        // Remarks
+        if !metar_parts.is_empty() && metar_parts[0] == "RMK" {
+          metar_parts.remove(0);
+          loop {
+            if metar_parts.is_empty() {
+              break;
+            }
+            let slp_re = regex::Regex::new(r"^SLP([0-9]{3})$").unwrap();
+            let remark = metar_parts[0];
+            metar_parts.remove(0);
+            if remark == "AO2" {
+              metar.quality_control_flags.auto_station = Some(true);
+            } else if remark == "$" {
+              metar.quality_control_flags.maintenance_indicator_on = Some(true);
+            } else if slp_re.is_match(remark) {
+              let slp = slp_re.captures(remark).unwrap();
+              metar.sea_level_pressure_mb = Some(slp[1].parse::<f64>().unwrap());
+            }
+          }
+        }
+        
+        // Skip unexpected fields
+        if !metar_parts.is_empty() {
+          warn!("Skipping unexpected field: '{}' ({})", metar_parts[0], metar_string);
+          metar_parts.remove(0);
         }
       }
 
       // Flight Category
-      // VFR: Visibility >= 5 miles, Ceiling >= 3000 ft
-      // MVFR: Visibility >= 3 miles, Ceiling >= 1000 ft
-      // IFR: Visibility >= 1 mile, Ceiling >= 500 ft
-      // LIFR: Visibility < 1 mile, Ceiling < 500 ft
-      // UNKN: Visibility or Ceiling is missing
       if metar.visibility_statute_mi.is_none() || metar.sky_condition.is_empty() {
         metar.flight_category = FlightCategory::UNKN;
       } else {

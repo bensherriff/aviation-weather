@@ -33,7 +33,7 @@ pub fn update_airports() {
 
       let airport_icaos: Vec<String> = airports.iter().map(|a| a.icao.to_string()).collect();
       let mut peekable = airport_icaos.into_iter().peekable();
-      let mut observation_time = 0;
+      let mut observation_time = chrono::Utc::now().timestamp();
 
       while peekable.peek().is_some() {
         let chunk: Vec<String> = peekable.by_ref().take(limit as usize).collect();
@@ -57,7 +57,7 @@ pub fn update_airports() {
       debug!("METAR update complete");
       // Sleep until the observation time is 1 hour old
       let now = chrono::Utc::now().timestamp();
-      let sleep_time = (observation_time + (60 * 60)) - now;
+      let sleep_time = now - (observation_time + (3600));
       debug!("Next update in {} seconds", sleep_time);
       sleep(Duration::from_secs(sleep_time as u64)).await;
     }
