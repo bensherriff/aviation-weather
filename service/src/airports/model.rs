@@ -22,7 +22,7 @@ pub struct Airport {
   pub iata_code: String,
   pub local_code: String,
   pub point: Point,
-  pub tower: Option<bool>,
+  pub has_tower: Option<bool>,
 }
 
 impl Into<QueryAirport> for Airport {

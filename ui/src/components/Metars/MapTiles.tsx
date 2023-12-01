@@ -70,7 +70,7 @@ export default function MapTiles() {
   }
 
   function metarIcon(airport: Airport) {
-    function innerIcon({ tag, color, size = 'sm' }: { tag: string; color: string; size?: string }) {
+    function innerIcon({ tag, color, size = 'xs' }: { tag: string; color: string; size?: string }) {
       return new DivIcon({
         html: ReactDOMServer.renderToString(
           <MantineProvider>

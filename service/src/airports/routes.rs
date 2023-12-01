@@ -106,10 +106,17 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
   let pages = ((total as f64) / (if limit <= 0 { 1 } else { limit} as f64)).ceil() as i64;
 
   match web::block(move || QueryAirport::get_all(&filters, limit, page)).await.unwrap() {
-    Ok(a) => HttpResponse::Ok().json(Response {
-      data: a,
-      meta: Some(Metadata { page, limit, pages, total })
-    }),
+    Ok(a) => {
+      // Convert Vec<QueryAirport> to Vec<Airport>
+      let mut airports: Vec<Airport> = vec![];
+      for airport in a {
+        airports.push(airport.into());
+      }
+      HttpResponse::Ok().json(Response {
+        data: airports,
+        meta: Some(Metadata { page, limit, pages, total })
+      })
+    },
     Err(err) => {
       error!("{}", err);
       err.to_http_response()
@@ -120,10 +127,13 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
 #[get("/{icao}")]
 async fn get(icao: web::Path<String>) -> HttpResponse {
   match QueryAirport::find(icao.into_inner()) {
-    Ok(a) => HttpResponse::Ok().json(Response {
-      data: a,
-      meta: Some(Metadata { page: 1, limit: 1, pages: 1, total: 1 })
-    }),
+    Ok(a) => {
+      let airport: Airport = a.into();
+      HttpResponse::Ok().json(Response {
+        data: airport,
+        meta: Some(Metadata { page: 1, limit: 1, pages: 1, total: 1 })
+      })
+    },
     Err(err) => {
       error!("{}", err);
       err.to_http_response()
@@ -139,7 +149,10 @@ async fn create(airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
   };
   let query_airport: QueryAirport = airport.into_inner().into();
   match QueryAirport::insert(query_airport) {
-    Ok(a) => HttpResponse::Created().json(a),
+    Ok(a) => {
+      let airport: Airport = a.into();
+      HttpResponse::Ok().json(airport)
+    },
     Err(err) => {
       error!("{}", err);
       err.to_http_response()
@@ -155,7 +168,10 @@ async fn update(icao: web::Path<String>, airport: web::Json<Airport>, auth: JwtA
   };
   let query_airport: QueryAirport = airport.into_inner().into();
   match QueryAirport::update(icao.into_inner(), query_airport) {
-    Ok(a) => HttpResponse::Ok().json(a),
+    Ok(a) => {
+      let airport: Airport = a.into();
+      HttpResponse::Ok().json(airport)
+    },
     Err(err) => {
       error!("{}", err);
       err.to_http_response()

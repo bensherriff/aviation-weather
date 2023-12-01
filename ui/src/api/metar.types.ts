@@ -37,7 +37,7 @@ export interface Metar {
   sky_condition: SkyCondition[];
   flight_category: 'VFR' | 'MVFR' | 'LIFR' | 'IFR' | 'UNKN';
   three_hr_pressure_tendency_mb: number;
-  maxT_c: number;
-  minT_c: number;
+  max_t_c: number;
+  min_t_c: number;
   precip_in: number;
 }

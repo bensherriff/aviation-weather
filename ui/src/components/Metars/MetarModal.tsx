@@ -48,7 +48,13 @@ export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps
   }
 
   return (
-    <Modal opened={isOpen} onClose={onClose} withCloseButton={false} size={'50%'} className='modal'>
+    <Modal
+      opened={isOpen}
+      onClose={onClose}
+      withCloseButton={false}
+      size={'50%'}
+      className='modal'
+    >
       <span className='title'>
         <Link href={`/airport/${airport.icao}`}>
           {airport.icao} {airport.full_name}
@@ -163,13 +169,14 @@ function MetarInfo({ metar }: { metar: Metar }) {
             </Grid>
           </Grid.Col>
           <Grid.Col className='gutter-row' span={12}>
-            <Grid style={{ paddingTop: '1em', paddingBottom: '1em' }} gutter={48}>
-              {metar.weather_phenomena &&
-                metar.weather_phenomena.map((wx) => (
-                  <Grid.Col span={1}>
-                    <MetarIcon wx={wx} />
-                  </Grid.Col>
-                ))}
+            <Grid gutter={18}>
+              <Grid.Col className='gutter-row' span={12}>
+                <Card shadow='sm' padding='sm' radius='md' style={{ textAlign: 'center' }}>
+                  <Card.Section>
+                    
+                  </Card.Section>
+                </Card>
+              </Grid.Col>
             </Grid>
           </Grid.Col>
         </Grid.Col>

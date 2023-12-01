@@ -8,10 +8,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct QualityControlFlags {
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub auto: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub auto_station_without_precipication: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub auto_station_with_precipication: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub maintenance_indicator_on: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub corrected: Option<bool>
 }
 
@@ -30,6 +35,7 @@ impl Default for QualityControlFlags {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SkyCondition {
   pub sky_cover: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub cloud_base_ft_agl: Option<i32>
 }
 
@@ -45,8 +51,11 @@ impl Default for SkyCondition {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RunwayVisualRange {
   pub runway: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub visibility_ft: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub variable_visibility_high_ft: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub variable_visibility_low_ft: Option<String>
 }
 
@@ -75,23 +84,36 @@ pub struct Metar {
   pub raw_text: String,
   pub station_id: String,
   pub observation_time: chrono::NaiveDateTime,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub temp_c: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub dewpoint_c: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub wind_dir_degrees: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub wind_speed_kt: Option<i32>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub wind_gust_kt: Option<i32>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub variable_wind_dir_degrees: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub visibility_statute_mi: Option<String>,
   pub runway_visual_range: Vec<RunwayVisualRange>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub altim_in_hg: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub sea_level_pressure_mb: Option<f64>,
   pub quality_control_flags: QualityControlFlags,
   pub weather_phenomena: Vec<String>,
   pub sky_condition: Vec<SkyCondition>,
   pub flight_category: FlightCategory,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub three_hr_pressure_tendency_mb: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub max_t_c: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub min_t_c: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub precip_in: Option<f64>,
 }
 
