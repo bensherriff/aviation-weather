@@ -39,7 +39,6 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
       <Table.Td>{airport.icao}</Table.Td>
       <Table.Td>{airport.full_name}</Table.Td>
       <Table.Td>{airportCategoryToText(airport.category)}</Table.Td>
-      <Table.Td>{airport.continent}</Table.Td>
       <Table.Td>{airport.iso_country}</Table.Td>
       <Table.Td>{airport.iso_region}</Table.Td>
       <Table.Td>{airport.municipality}</Table.Td>
@@ -64,7 +63,6 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
             <Table.Th>ICAO</Table.Th>
             <Table.Th>Full Name</Table.Th>
             <Table.Th>Category</Table.Th>
-            <Table.Th>Continent</Table.Th>
             <Table.Th>ISO Country</Table.Th>
             <Table.Th>ISO Region</Table.Th>
             <Table.Th>Municipality</Table.Th>

@@ -34817,6 +34817,7 @@
   },
   {
     "icao": "KIAH",
+    "full_name": "George Bush Intercontinental Airport",
     "category": "large_airport",
     "point":
     {
@@ -36734,23 +36735,6 @@
     "gps_code": "K19",
     "iata_code": "",
     "local_code": "K19"
-  },
-  {
-    "icao": "KK20",
-    "category": "small_airport",
-    "full_name": "Wendell H Ford Airport",
-    "point":
-    {
-      "y": 37.384838,
-      "x": -83.259662
-    },
-    "elevation_ft": 1256,
-    "iso_country": "US",
-    "iso_region": "US-KY",
-    "municipality": "Chavies",
-    "gps_code": "",
-    "iata_code": "",
-    "local_code": "CPF"
   },
   {
     "icao": "KK22",

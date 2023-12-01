@@ -176,7 +176,8 @@ impl Metar {
         if metar_parts[0] == "AUTO" {
           metar.quality_control_flags.auto = Some(true);
           metar_parts.remove(0);
-        } else if metar_parts[0] == "COR" {
+        }
+        if metar_parts[0] == "COR" {
           metar.quality_control_flags.corrected = Some(true);
           metar_parts.remove(0);
         }
@@ -270,7 +271,10 @@ impl Metar {
         }
 
         // Weather Phenomena
-        let wx_re = regex::Regex::new(r"^(?:[+-]|VC|MI|PR|BC|DR|BL|SH|TS|FZ)?(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)$").unwrap();
+        let wx_intensity = "(?:[+-]|VC)?";
+        let wx_descriptor = "(?:MI|PR|BC|DR|BL|SH|TS|FZ)?";
+        let wx_precipitation = "(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)?";
+        let wx_re = regex::Regex::new(&format!(r"^{}{}{}$", wx_intensity, wx_descriptor, wx_precipitation)).unwrap();
         while wx_re.is_match(metar_parts[0]) {
           metar.weather_phenomena.push(metar_parts[0].to_string());
           metar_parts.remove(0);
@@ -396,7 +400,7 @@ impl Metar {
       }
 
       // Flight Category
-      if metar.visibility_statute_mi.is_none() || metar.sky_condition.is_empty() {
+      if metar.visibility_statute_mi.is_none() && metar.sky_condition.is_empty() {
         metar.flight_category = FlightCategory::UNKN;
       } else {
         let visibility = match &metar.visibility_statute_mi {
@@ -407,7 +411,7 @@ impl Metar {
               v.parse::<f64>().unwrap()
             }
           }
-          None => 0.0
+          None => 5.0 // Assume VFR if no visibility is present
         };
         let ceiling = match metar.sky_condition.first() {
           Some(s) => {

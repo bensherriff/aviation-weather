@@ -62,7 +62,7 @@ export default function MapTiles() {
     metars.forEach((metar) => {
       airportData.forEach((airport) => {
         if (metar.station_id == airport.icao) {
-          airport.metar = metar;
+          airport.latest_metar = metar;
         }
       });
     });
@@ -82,16 +82,18 @@ export default function MapTiles() {
         className: 'metar-marker-icon'
       });
     }
-    if (airport.metar?.flight_category == 'VFR') {
+    if (airport.latest_metar?.flight_category == 'VFR') {
       return innerIcon({ tag: 'V', color: 'green' });
-    } else if (airport.metar?.flight_category == 'MVFR') {
+    } else if (airport.latest_metar?.flight_category == 'MVFR') {
       return innerIcon({ tag: 'M', color: 'blue' });
-    } else if (airport.metar?.flight_category == 'IFR') {
+    } else if (airport.latest_metar?.flight_category == 'IFR') {
       return innerIcon({ tag: 'I', color: 'red' });
-    } else if (airport.metar?.flight_category == 'LIFR') {
+    } else if (airport.latest_metar?.flight_category == 'LIFR') {
       return innerIcon({ tag: 'L', color: 'purple' });
-    } else {
+    } else if (airport.latest_metar?.flight_category == 'UNKN') {
       return innerIcon({ tag: 'U', color: 'black', size: 'xs' });
+    } else {
+      return innerIcon({tag: ' ', color: 'black', size: 'xs' });
     }
   }
 

@@ -46,7 +46,6 @@ export interface Airport {
   category: AirportCategory;
   full_name: string;
   elevation_ft: number;
-  continent: string;
   iso_country: string;
   iso_region: string;
   municipality: string;
@@ -58,7 +57,7 @@ export interface Airport {
     y: number;
     srid: number;
   };
-  metar?: Metar;
+  latest_metar?: Metar;
 }
 
 export interface GetAirportResponse {

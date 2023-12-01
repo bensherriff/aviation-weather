@@ -11,7 +11,6 @@ export default function UpdateAirportModal({ airport, setAirport }: { airport: A
       category: airport?.category || AirportCategory.SMALL,
       full_name: airport?.full_name || '',
       elevation_ft: airport?.elevation_ft || 0,
-      continent: airport?.continent || '',
       iso_country: airport?.iso_country || '',
       iso_region: airport?.iso_region || '',
       municipality:  airport?.municipality || '',
@@ -73,12 +72,6 @@ export default function UpdateAirportModal({ airport, setAirport }: { airport: A
               {...form.getInputProps('elevation_ft')}
             />
             <Group>
-              <TextInput
-                required
-                label='Continent'
-                placeholder='NA'
-                {...form.getInputProps('continent')}
-              />
               <TextInput
                 required
                 label='ISO Country'

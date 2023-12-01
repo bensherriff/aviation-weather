@@ -2,7 +2,6 @@ import { createAirport } from "@/api/airport";
 import { Airport, AirportCategory } from "@/api/airport.types";
 import { Card, TextInput, Select, Group, Flex, Space, Button } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useEffect } from "react";
 
 export default function CreateAirportPanel() {
   const form = useForm<Airport>({
@@ -11,7 +10,6 @@ export default function CreateAirportPanel() {
       category: AirportCategory.SMALL,
       full_name: '',
       elevation_ft: 0,
-      continent: '',
       iso_country: '',
       iso_region: '',
       municipality: '',
@@ -66,12 +64,6 @@ export default function CreateAirportPanel() {
       <Group>
         <TextInput
           required
-          label='Continent'
-          placeholder='NA'
-          {...form.getInputProps('continent')}
-        />
-        <TextInput
-          required
           label='ISO Country'
           placeholder='US'
           {...form.getInputProps('iso_country')}
@@ -82,13 +74,13 @@ export default function CreateAirportPanel() {
           placeholder='US-VA'
           {...form.getInputProps('iso_region')}
         />
+        <TextInput
+          required
+          label='Municipality'
+          placeholder='Manassas'
+          {...form.getInputProps('municipality')}
+        />
       </Group>
-      <TextInput
-        required
-        label='Municipality'
-        placeholder='Manassas'
-        {...form.getInputProps('municipality')}
-      />
       <Group>
         <TextInput
           required

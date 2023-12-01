@@ -14,7 +14,6 @@ pub struct Airport {
   pub icao: String,
   pub category: String,
   pub full_name: String,
-  pub point: Point,
   pub elevation_ft: Option<i32>,
   pub iso_country: String,
   pub iso_region: String,
@@ -22,6 +21,7 @@ pub struct Airport {
   pub gps_code: String,
   pub iata_code: String,
   pub local_code: String,
+  pub point: Point,
   pub tower: Option<bool>,
 }
 
@@ -31,13 +31,13 @@ impl Into<QueryAirport> for Airport {
       icao: self.icao.clone(),
       category: self.category.clone(),
       full_name: self.full_name.clone(),
-      point: self.point.clone(),
       iso_country: self.iso_country.clone(),
       iso_region: self.iso_region.clone(),
       municipality: self.municipality.clone(),
       gps_code: self.gps_code.clone(),
       iata_code: self.iata_code.clone(),
       local_code: self.local_code.clone(),
+      point: self.point.clone(),
       data: match serde_json::to_value(&self) {
         Ok(d) => d,
         Err(err) => {

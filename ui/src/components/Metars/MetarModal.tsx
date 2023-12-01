@@ -61,7 +61,7 @@ export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps
       </span>
       <div className='min-w-0 flex-1'>
         <Divider style={{ paddingTop: '0.1em' }} />
-        {airport.metar && <MetarInfo metar={airport.metar} />}
+        {airport.latest_metar && <MetarInfo metar={airport.latest_metar} />}
       </div>
     </Modal>
   );
@@ -164,8 +164,8 @@ function MetarInfo({ metar }: { metar: Metar }) {
           </Grid.Col>
           <Grid.Col className='gutter-row' span={12}>
             <Grid style={{ paddingTop: '1em', paddingBottom: '1em' }} gutter={48}>
-              {metar.wx_string &&
-                metar.wx_string.split(' ').map((wx) => (
+              {metar.weather_phenomena &&
+                metar.weather_phenomena.map((wx) => (
                   <Grid.Col span={1}>
                     <MetarIcon wx={wx} />
                   </Grid.Col>

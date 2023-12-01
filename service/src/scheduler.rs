@@ -55,9 +55,10 @@ pub fn update_airports() {
         }
       }
       debug!("METAR update complete");
-      // Sleep until the observation time is 1 hour old
+      // Sleep until the earliest observation time is 1 hour old
+      // Bounded by 1 and 3600 seconds
       let now = chrono::Utc::now().timestamp();
-      let sleep_time = now - (observation_time + (3600));
+      let sleep_time = std::cmp::min(std::cmp::max(1, now - (observation_time + (3600))), 3600);
       debug!("Next update in {} seconds", sleep_time);
       sleep(Duration::from_secs(sleep_time as u64)).await;
     }
