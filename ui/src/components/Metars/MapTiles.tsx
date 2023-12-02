@@ -55,7 +55,7 @@ export default function MapTiles() {
       },
       order_field: AirportOrderField.CATEGORY,
       order_by: 'asc',
-      limit: 100,
+      limit: 250,
       page: 1
     });
     const { data: metars } = await getMetars(airportData.map((a) => a.icao));

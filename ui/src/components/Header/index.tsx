@@ -90,110 +90,13 @@ export default function Header() {
             />
           </div>
         </div>
-        <div className='user-section'>
-          {user ? (
-            <Menu shadow='md' width={200} openDelay={100} closeDelay={400}>
-              <Menu.Target>
-                <UnstyledButton className='user user-button'>
-                  <Group>
-                    <Avatar src={profilePicture ? URL.createObjectURL(profilePicture) : undefined} />
-                    <div style={{ flex: 1 }}>
-                      <Text size='sm' fw={500}>
-                        {user.first_name} {user.last_name}
-                      </Text>
-                      <Text c='dimmed' size='xs' style={{ textTransform: 'uppercase' }}>
-                        {user.role}
-                      </Text>
-                    </div>
-                  </Group>
-                </UnstyledButton>
-              </Menu.Target>
-              <Menu.Dropdown p={0}>
-                <Card>
-                  <Card.Section h={140} style={{ backgroundColor: '#4481e3' }} />
-                  <FileButton
-                    onChange={(payload) => {
-                      if (payload) {
-                        setPicture(payload).then((response) => {
-                          if (response) {
-                            setProfilePicture(payload);
-                          }
-                        });
-                      }
-                    }}
-                    accept='image/png,image/jpeg,image/jpg'
-                    multiple={false}
-                  >
-                    {(props) => (
-                      <Avatar
-                        {...props}
-                        component='button'
-                        size={80}
-                        radius={80}
-                        mx={'auto'}
-                        mt={-30}
-                        style={{ cursor: 'pointer' }}
-                        bg={profilePicture ? 'transparent' : 'white'}
-                        src={profilePicture ? URL.createObjectURL(profilePicture) : undefined}
-                      />
-                    )}
-                  </FileButton>
-                  <Text ta='center' fz='lg' fw={500} mt='sm'>
-                    {user.first_name} {user.last_name}
-                  </Text>
-                  <Text ta='center' fz='sm' c='dimmed' style={{ textTransform: 'uppercase' }}>
-                    {user.role}
-                  </Text>
-                  <Grid mt='xl'>
-                    <Grid.Col span={6}>
-                      <Link href='/profile'>
-                        <Button fullWidth radius='md' size='xs' variant='default'>
-                          Profile
-                        </Button>
-                      </Link>
-                    </Grid.Col>
-                    <Grid.Col span={6}>
-                      <Button
-                        fullWidth
-                        radius='md'
-                        size='xs'
-                        variant='default'
-                        onClick={async () => {
-                          await logout();
-                          Cookies.remove('logged_in');
-                          setUser(undefined);
-                          setFavorites([]);
-                          setProfilePicture(null);
-                          if (refreshId) {
-                            clearInterval(refreshId);
-                          }
-                        }}
-                      >
-                        Logout
-                      </Button>
-                    </Grid.Col>
-                    {user.role == 'admin' && (
-                      <Grid.Col span={12}>
-                        <Link href='/admin'>
-                          <Button fullWidth radius='md' size='xs' variant='default'>
-                            Administration
-                          </Button>
-                        </Link>
-                      </Grid.Col>
-                    )}
-                  </Grid>
-                </Card>
-              </Menu.Dropdown>
-            </Menu>
-          ) : (
-            <Group className='user'>
-              <Button onClick={() => toggle('login')}>Login</Button>
-              <Button variant='outline' onClick={() => toggle('register')}>
-                Sign up
-              </Button>
-            </Group>
-          )}
-        </div>
+        <UserSection
+          profilePicture={profilePicture}
+          setProfilePicture={setProfilePicture}
+          toggle={toggle}
+          setFavorites={setFavorites}
+          refreshId={refreshId}
+        />
       </nav>
       <HeaderModal
         type={modalType}
@@ -217,4 +120,123 @@ export default function Header() {
       />
     </>
   );
+}
+
+interface UserSectionProps {
+  profilePicture: File | null;
+  setProfilePicture: (picture: File | null) => void;
+  toggle: (type: string) => void;
+  setFavorites: (favorites: string[]) => void;
+  refreshId: NodeJS.Timeout | undefined;
+}
+
+function UserSection({ profilePicture, setProfilePicture, setFavorites, refreshId, toggle }: UserSectionProps) {
+  const [user, setUser] = useRecoilState(userState);
+
+  return (
+    <div className='user-section'>
+      {user ? (
+        <Menu shadow='md' width={200} openDelay={100} closeDelay={400}>
+          <Menu.Target>
+            <UnstyledButton className='user user-button'>
+              <Group>
+                <Avatar src={profilePicture ? URL.createObjectURL(profilePicture) : undefined} />
+                <div style={{ flex: 1 }}>
+                  <Text size='sm' fw={500}>
+                    {user.first_name} {user.last_name}
+                  </Text>
+                  <Text c='dimmed' size='xs' style={{ textTransform: 'uppercase' }}>
+                    {user.role}
+                  </Text>
+                </div>
+              </Group>
+            </UnstyledButton>
+          </Menu.Target>
+          <Menu.Dropdown p={0}>
+            <Card>
+              <Card.Section h={140} style={{ backgroundColor: '#4481e3' }} />
+              <FileButton
+                onChange={(payload) => {
+                  if (payload) {
+                    setPicture(payload).then((response) => {
+                      if (response) {
+                        setProfilePicture(payload);
+                      }
+                    });
+                  }
+                }}
+                accept='image/png,image/jpeg,image/jpg'
+                multiple={false}
+              >
+                {(props) => (
+                  <Avatar
+                    {...props}
+                    component='button'
+                    size={80}
+                    radius={80}
+                    mx={'auto'}
+                    mt={-30}
+                    style={{ cursor: 'pointer' }}
+                    bg={profilePicture ? 'transparent' : 'white'}
+                    src={profilePicture ? URL.createObjectURL(profilePicture) : undefined}
+                  />
+                )}
+              </FileButton>
+              <Text ta='center' fz='lg' fw={500} mt='sm'>
+                {user.first_name} {user.last_name}
+              </Text>
+              <Text ta='center' fz='sm' c='dimmed' style={{ textTransform: 'uppercase' }}>
+                {user.role}
+              </Text>
+              <Grid mt='xl'>
+                <Grid.Col span={6}>
+                  <Link href='/profile'>
+                    <Button fullWidth radius='md' size='xs' variant='default'>
+                      Profile
+                    </Button>
+                  </Link>
+                </Grid.Col>
+                <Grid.Col span={6}>
+                  <Button
+                    fullWidth
+                    radius='md'
+                    size='xs'
+                    variant='default'
+                    onClick={async () => {
+                      await logout();
+                      Cookies.remove('logged_in');
+                      setUser(undefined);
+                      setFavorites([]);
+                      setProfilePicture(null);
+                      if (refreshId) {
+                        clearInterval(refreshId);
+                      }
+                    }}
+                  >
+                    Logout
+                  </Button>
+                </Grid.Col>
+                {user.role == 'admin' && (
+                  <Grid.Col span={12}>
+                    <Link href='/admin'>
+                      <Button fullWidth radius='md' size='xs' variant='default'>
+                        Administration
+                      </Button>
+                    </Link>
+                  </Grid.Col>
+                )}
+              </Grid>
+            </Card>
+          </Menu.Dropdown>
+        </Menu>
+      ) : (
+        <Group className='user'>
+          <Button onClick={() => toggle('login')}>Login</Button>
+          <Button variant='outline' onClick={() => toggle('register')}>
+            Sign up
+          </Button>
+        </Group>
+      )}
+    </div>
+  )
 }
