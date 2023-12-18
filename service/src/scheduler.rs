@@ -35,6 +35,11 @@ pub fn update_airports() {
       let mut peekable = airport_icaos.into_iter().peekable();
       let mut observation_time = chrono::Utc::now().timestamp();
 
+      if peekable.peek().is_none() {
+        sleep(Duration::from_secs(3600)).await;
+        continue;
+      }
+
       while peekable.peek().is_some() {
         let chunk: Vec<String> = peekable.by_ref().take(limit as usize).collect();
         let icao_string = chunk.join(",");
@@ -58,7 +63,7 @@ pub fn update_airports() {
       // Sleep until the earliest observation time is 1 hour old
       // Bounded by 1 and 3600 seconds
       let now = chrono::Utc::now().timestamp();
-      let sleep_time = std::cmp::min(std::cmp::max(1, now - (observation_time + (3600))), 3600);
+      let sleep_time = std::cmp::min(std::cmp::max(1, now - (observation_time + 3600)), 3600);
       debug!("Next update in {} seconds", sleep_time);
       sleep(Duration::from_secs(sleep_time as u64)).await;
     }

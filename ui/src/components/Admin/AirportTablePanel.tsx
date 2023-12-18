@@ -1,6 +1,6 @@
 import { getAirports, importAirports, removeAirport } from "@/api/airport";
 import { Airport, airportCategoryToText } from "@/api/airport.types";
-import { Text, Button, Card, Group, Pagination, Table, TextInput, rem, UnstyledButton, Center, Flex, Container, Grid, Space } from "@mantine/core";
+import { Text, Button, Card, Group, Pagination, Table, TextInput, rem, UnstyledButton, Center, Flex, Container, Grid, Space, FileButton } from "@mantine/core";
 import { HiChevronUp, HiChevronDown, HiSelector } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { CiSearch } from "react-icons/ci";
@@ -81,12 +81,14 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
       <Grid.Col span={2}>
         <Flex justify={'end'}>
           <Space mr={'sm'}>
-            <PanelButton onClick={async () => {
-              await importAirports();
-              await getAirportData();
+            <PanelFileButton accept={'.json'} onChange={async (payload) => {
+              if (payload instanceof File) {
+                await importAirports(payload);
+                await getAirportData();
+              }
             }}>
               Import
-            </PanelButton>
+            </PanelFileButton>
           </Space>
           <Space>
             <PanelButton color={'red'} onClick={async () => {
@@ -102,7 +104,35 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
   </Card>
 }
 
-function PanelButton({ children, color = 'blue', onClick }: {children: any, color?: string, onClick: () => Promise<void> }) {
+interface PanelButtonProps {
+  children: any;
+  color?: string;
+  onClick?: () => Promise<void>;
+}
+
+interface PanelFileButtonProps {
+  children: any;
+  color?: string;
+  multiple?: boolean;
+  accept?: string;
+  onChange?: (payload: File|File[]|null) => Promise<void>;
+}
+
+function PanelFileButton({ children, multiple = false, accept, color, onChange = async () => {} }: PanelFileButtonProps) {
+  const [loading, setLoading] = useState(false);
+  return <FileButton
+    multiple={multiple}
+    accept={accept}
+    onChange={(e) => {
+      setLoading(true);
+      onChange(e).then(() => setLoading(false));
+    }}
+  >
+    {(props) => <Button loading={loading} variant='light' color={color} radius='md' {...props}>{children}</Button>}
+  </FileButton>
+}
+
+function PanelButton({ children, color = 'blue', onClick = async () => {} }: PanelButtonProps) {
   const [loading, setLoading] = useState(false);
   return <Button
     loading={loading}

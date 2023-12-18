@@ -1,6 +1,8 @@
 use std::str::FromStr;
+use futures_util::stream::StreamExt as _;
 
-use crate::{airports::{QueryAirport, QueryFilters, QueryOrderField, QueryOrderBy, Airport}, db::{self, Response, Metadata}, auth::{JwtAuth, verify_role}};
+use crate::{airports::{QueryAirport, QueryFilters, QueryOrderField, QueryOrderBy, Airport}, db::{Response, Metadata}, auth::{JwtAuth, verify_role}};
+use actix_multipart::Multipart;
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest, ResponseError};
 use log::{error, warn};
 use postgis_diesel::types::{Polygon, Point};
@@ -18,16 +20,48 @@ struct GetAllParameters {
 }
 
 #[post("/import")]
-async fn import(auth: JwtAuth) -> HttpResponse {
-  let _ = match verify_role(&auth, "admin") {
-    Ok(_) => {},
-    Err(err) => return ResponseError::error_response(&err)
+async fn import(mut payload: Multipart, auth: JwtAuth) -> HttpResponse {
+  if let Err(err) = verify_role(&auth, "admin") {
+    return ResponseError::error_response(&err)
   };
-  let count = db::import_data();
-  HttpResponse::Ok().json(Response {
-    data: count,
-    meta: None
-  })
+
+
+  while let Some(item) = payload.next().await {
+    let mut bytes = web::BytesMut::new();
+    let mut field = match item {
+      Ok(field) => field,
+      Err(err) => return ResponseError::error_response(&err)
+    };
+
+    // Build bytes from chunks
+    while let Some(chunk) = field.next().await {
+      let data = match chunk {
+        Ok(data) => data,
+        Err(err) => {
+          error!("Failed to get chunk: {}", err);
+          return ResponseError::error_response(&err);
+        }
+      };
+      bytes.extend_from_slice(&data);
+    }
+
+    // Convert bytes to Vec<Airport>
+    let airports: Vec<Airport> = match serde_json::from_slice(&bytes) {
+      Ok(a) => a,
+      Err(err) => {
+        error!("Failed to parse JSON: {}", err);
+        return ResponseError::error_response(&err);
+      }
+    };
+
+    // Convert Vec<Airport> to Vec<QueryAirport> and insert into database
+    let query_airports: Vec<QueryAirport> = airports.into_iter().map(|a| a.into()).collect();
+    match QueryAirport::insert_all(query_airports) {
+      Ok(_) => {},
+      Err(err) => return ResponseError::error_response(&err)
+    };
+  };
+  HttpResponse::Ok().finish()
 }
 
 #[get("")]

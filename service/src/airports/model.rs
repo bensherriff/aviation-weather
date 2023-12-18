@@ -248,6 +248,19 @@ impl QueryAirport {
     Ok(airport)
   }
 
+  pub fn insert_all (airports: Vec<Self>) -> Result<Vec<Self>, ServiceError> {
+    let mut conn: r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>> = db::connection()?;
+    let mut inserted_airports: Vec<Self> = vec![];
+    for airport in airports {
+      let airport = Self::from(airport);
+      let airport = diesel::insert_into(airports::table)
+          .values(airport)
+          .get_result(&mut conn)?;
+      inserted_airports.push(airport);
+    }
+    Ok(inserted_airports)
+  }
+
   pub fn update(icao: String, airport: Self) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = diesel::update(airports::table)

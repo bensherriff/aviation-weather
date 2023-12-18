@@ -63,7 +63,11 @@ export async function updateAirport({ airport }: { airport: Airport }): Promise<
   return response?.json() || { data: undefined };
 }
 
-export async function importAirports(): Promise<any> {
-  const response = await postRequest('airports/import');
-  return response?.json() || { data: undefined };
+export async function importAirports(payload: File): Promise<any> {
+  const data = new FormData();
+  data.append('data', payload);
+  const response = await postRequest('airports/import', data, {
+    type: 'form'
+  });
+  return response?.status == 200;
 }

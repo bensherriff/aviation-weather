@@ -33,3 +33,4 @@ jsonwebtoken = "9.0.0"
 redis = { version = "0.23.3", features = ["tokio-comp", "connection-manager", "r2d2"] }
 rustix = "0.38.19" # https://github.com/imsnif/bandwhich/issues/284
 regex = "1.10.2"
+futures-util = "0.3.29"

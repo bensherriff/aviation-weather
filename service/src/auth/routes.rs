@@ -127,6 +127,41 @@ async fn login(request: web::Json<LoginRequest>) -> HttpResponse {
   }
 }
 
+#[get("/session")]
+async fn session(req: HttpRequest) -> HttpResponse {
+  let keys_dir = env::var("KEYS_DIR_PATH").expect("KEYS_DIR_PATH must be set");
+  // If there is a access_token cookie, check if it is valid
+  let has_session = match req.cookie("access_token") {
+    Some(cookie) => {
+      let access_token = cookie.value().to_string();
+      let public_key = std::fs::read_to_string(format!("{}access_public_key.pem", keys_dir))
+    .expect("Unable to read refresh public key");
+      match verify_token(&access_token, &public_key) {
+        Ok(_) => true,
+        Err(_) => false
+      }
+    },
+    None => false
+  };
+  if !has_session {
+    // If there is a refresh_token cookie, check if it is valid
+    match req.cookie("refresh_token") {
+      Some(cookie) => {
+        let refresh_token = cookie.value().to_string();
+        let public_key = std::fs::read_to_string(format!("{}/refresh_public_key.pem", keys_dir))
+    .expect("Unable to read refresh public key");
+        match verify_token(&refresh_token, &public_key) {
+          Ok(_) => return HttpResponse::Ok().json(true),
+          Err(_) => return HttpResponse::Ok().json(false)
+        };
+      },
+      None => return HttpResponse::Ok().json(false)
+    };
+  } else {
+    return HttpResponse::Ok().json(true)  
+  }
+}
+
 #[derive(Serialize, Deserialize)]
 struct RefreshParams {
   refresh_token_rotation: Option<bool>

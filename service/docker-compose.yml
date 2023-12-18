@@ -54,6 +54,7 @@ services:
       REDIS_PORT: 6379
       SERVICE_HOST: service
       SERVICE_PORT: 5000
+      KEYS_DIR_PATH: /keys
     volumes:
       - ${KEYS_DIR_PATH}:/keys
     ports:
