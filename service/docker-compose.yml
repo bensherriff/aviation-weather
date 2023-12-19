@@ -63,8 +63,6 @@ services:
       - "${SERVICE_PORT:-5000}:5000"
     build:
       context: .
-      tags:
-        - aviation-service:${TAG:-latest}
     depends_on:
       - db
       - redis

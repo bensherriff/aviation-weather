@@ -13,7 +13,10 @@ help: ## This info
 	@echo
 
 build: ## Build the Docker image
-	export TAG=${GIT_HASH} && docker compose build
+	docker compose build
+
+tag: ## Tag the Docker image
+	docker tag aviation-service:latest aviation-service:${GIT_HASH}
 
 utils: ## Start the utils
 	docker compose up -d db

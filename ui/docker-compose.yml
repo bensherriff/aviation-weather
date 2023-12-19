@@ -13,8 +13,6 @@ services:
     build:
       context: ./
       target: dev
-      tags:
-        - aviation-ui:${TAG:-latest}
     command: "npm run dev"
     volumes:
       - ./src:/app/src

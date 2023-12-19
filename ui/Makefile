@@ -13,7 +13,10 @@ help: ## This info
 	@echo
 
 build:  ## Install the dependencies and build
-	export TAG=${GIT_HASH} && docker compose build
+	docker compose build
+
+tag: ## Tag the Docker image
+	docker tag aviation-ui:latest aviation-ui:${GIT_HASH}
 
 up:  ## Start the dev instance
 	docker compose up -d

@@ -13,7 +13,11 @@ help: ## This info
 	@echo
 
 build: ## Build Docker containers
-	export TAG=${GIT_HASH} && docker compose build
+	docker compose build
+
+tag: ## Tag Docker images
+	docker tag aviation-ui:latest aviation-ui:${GIT_HASH}
+	docker tag aviation-service:latest aviation-service:${GIT_HASH}
 
 up: ## Start Docker containers
 	docker compose up -d
