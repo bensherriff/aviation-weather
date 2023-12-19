@@ -1,9 +1,9 @@
 version: '3'
 
-name: weather
+name: aviation
 services:
   ui:
-    container_name: weather-ui
+    container_name: aviation-ui
     env_file:
       - .env
     environment:
@@ -13,6 +13,8 @@ services:
     build:
       context: ./
       target: dev
+      tags:
+        - aviation-ui:${TAG:-latest}
     command: "npm run dev"
     volumes:
       - ./src:/app/src

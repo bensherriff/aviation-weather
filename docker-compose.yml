@@ -1,10 +1,10 @@
 version: '3'
 
-name: weather
+name: aviation
 services:
   db:
     image: postgis/postgis:latest
-    container_name: weather-db
+    container_name: aviation-db
     env_file:
       - .env
     environment:
@@ -19,19 +19,19 @@ services:
     networks:
       - backend
     restart: unless-stopped
-
   redis:
     image: redis:latest
-    container_name: weather-redis
+    container_name: aviation-redis
+    volumes:
+      - redis:/data
     ports:
       - ${REDIS_PORT:-6379}:6379
     networks:
       - backend
     restart: unless-stopped
-
   minio:
     image: minio/minio
-    container_name: weather-minio
+    container_name: aviation-minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -46,25 +46,30 @@ services:
     restart: unless-stopped
 
   service:
-    container_name: weather-service
+    container_name: aviation-service
     env_file:
       - .env
+    environment:
+      KEYS_DIR_PATH: /keys
     volumes:
       - ${KEYS_DIR_PATH}:/keys
     ports:
       - "${SERVICE_PORT:-5000}:5000"
     build:
       context: service
+      tags:
+        - aviation-service:${TAG:-latest}
     depends_on:
       - db
       - redis
+      - minio
     networks:
       - frontend
       - backend
     restart: unless-stopped
 
   ui:
-    container_name: weather-ui
+    container_name: aviation-ui
     env_file:
       - .env
     environment:
@@ -73,6 +78,8 @@ services:
       - ${UI_PORT:-3000}:3000
     build:
       context: ui
+      tags:
+        - aviation-ui:${TAG:-latest}
     depends_on:
       - service
     networks:
@@ -82,6 +89,7 @@ services:
 volumes:
   db:
   db_logs:
+  redis:
   minio:
 
 networks:

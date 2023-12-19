@@ -1,8 +1,9 @@
 #!make
+SHELL := /bin/bash
+
+GIT_HASH ?= $(shell git log --format="%h" -n 1)
 
 include .env
-
-SHELL := /bin/bash
 
 .PHONY: help build start stop lint
 
@@ -12,7 +13,7 @@ help: ## This info
 	@echo
 
 build: ## Build Docker containers
-	docker compose build
+	export TAG=${GIT_HASH} && docker compose build
 
 up: ## Start Docker containers
 	docker compose up -d
@@ -22,10 +23,10 @@ down: ## Stop Docker containers
 
 clean: ## Cleanup Docker containers
 	docker compose down && \
-	docker image rm weather-ui || \
-	docker image rm weather-service || \
-	docker network rm weather-frontend || \
-	docker network rm weather-backend
+	docker image rm aviation-ui || \
+	docker image rm aviation-service || \
+	docker network rm aviation-frontend || \
+	docker network rm aviation-backend
 
 generate: ## Generate RSA keys
 	mkdir keys

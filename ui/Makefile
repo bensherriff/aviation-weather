@@ -1,6 +1,9 @@
 #!make
-
 SHELL := /bin/bash
+
+GIT_HASH ?= $(shell git log --format="%h" -n 1)
+
+include .env
 
 .PHONY: help build start stop lint
 
@@ -10,7 +13,7 @@ help: ## This info
 	@echo
 
 build:  ## Install the dependencies and build
-	docker compose build
+	export TAG=${GIT_HASH} && docker compose build
 
 up:  ## Start the dev instance
 	docker compose up -d
@@ -23,4 +26,4 @@ lint:  ## Run the linter
 
 clean:  ## Remove node modules
 	docker compose down && \
-	docker image rm weather-ui
+	docker image rm aviation-ui

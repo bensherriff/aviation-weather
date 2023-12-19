@@ -8,19 +8,15 @@ export default function CreateAirportPanel() {
     initialValues: {
       icao: '',
       category: AirportCategory.SMALL,
-      full_name: '',
+      name: '',
       elevation_ft: 0,
       iso_country: '',
       iso_region: '',
       municipality: '',
-      gps_code: '',
       iata_code: '',
       local_code: '',
-      point: {
-        x: 0,
-        y: 0,
-        srid: 4326
-      }
+      latitude: 0,
+      longitude: 0,
     }
   });
 
@@ -46,6 +42,11 @@ export default function CreateAirportPanel() {
           { value: AirportCategory.SMALL, label: 'Small' },
           { value: AirportCategory.MEDIUM, label: 'Medium' },
           { value: AirportCategory.LARGE, label: 'Large' },
+          { value: AirportCategory.HELIPORT, label: 'Heliport' },
+          { value: AirportCategory.CLOSED, label: 'Closed' },
+          { value: AirportCategory.SEAPLANE, label: 'Seaplane Base' },
+          { value: AirportCategory.BALLOONPORT, label: 'Balloonport' },
+          { value: AirportCategory.UNKNOWN, label: 'Unknown'}
         ]}
         {...form.getInputProps('category')}
       />
@@ -53,7 +54,7 @@ export default function CreateAirportPanel() {
         required
         label='Full Name'
         placeholder='Manassas Regional Airport/Harry P. Davis Field'
-        {...form.getInputProps('full_name')}
+        {...form.getInputProps('name')}
       />
       <TextInput
         required
@@ -83,12 +84,6 @@ export default function CreateAirportPanel() {
       </Group>
       <Group>
         <TextInput
-          required
-          label='GPS Code'
-          placeholder='KHEF'
-          {...form.getInputProps('gps_code')}
-        />
-        <TextInput
           label='IATA Code'
           placeholder='MNZ'
           {...form.getInputProps('iata_code')}
@@ -104,13 +99,13 @@ export default function CreateAirportPanel() {
           required
           label='Latitude'
           placeholder='38.72140121'
-          {...form.getInputProps('point.x')}
+          {...form.getInputProps('latitude')}
         />
         <TextInput
           required
           label='Longitude'
           placeholder='-77.51540375'
-          {...form.getInputProps('point.y')}
+          {...form.getInputProps('longitude')}
         />
       </Group>
       <Flex justify={'end'} mt={'sm'}>

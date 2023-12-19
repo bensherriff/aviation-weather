@@ -9,19 +9,15 @@ export default function UpdateAirportModal({ airport, setAirport }: { airport: A
     initialValues: {
       icao: airport?.icao || '',
       category: airport?.category || AirportCategory.SMALL,
-      full_name: airport?.full_name || '',
+      name: airport?.name || '',
       elevation_ft: airport?.elevation_ft || 0,
       iso_country: airport?.iso_country || '',
       iso_region: airport?.iso_region || '',
       municipality:  airport?.municipality || '',
-      gps_code: airport?.gps_code || '',
       iata_code: airport?.iata_code || '',
       local_code: airport?.local_code || '',
-      point: {
-        x: airport?.point.x || 0,
-        y: airport?.point.y || 0,
-        srid: airport?.point.srid || 4326
-      }
+      latitude: airport?.latitude || 0,
+      longitude: airport?.longitude || 0,
     }
   });
 
@@ -56,6 +52,11 @@ export default function UpdateAirportModal({ airport, setAirport }: { airport: A
                 { value: AirportCategory.SMALL, label: 'Small' },
                 { value: AirportCategory.MEDIUM, label: 'Medium' },
                 { value: AirportCategory.LARGE, label: 'Large' },
+                { value: AirportCategory.HELIPORT, label: 'Heliport' },
+                { value: AirportCategory.CLOSED, label: 'Closed' },
+                { value: AirportCategory.SEAPLANE, label: 'Seaplane Base' },
+                { value: AirportCategory.BALLOONPORT, label: 'Balloonport' },
+                { value: AirportCategory.UNKNOWN, label: 'Unknown'}
               ]}
               {...form.getInputProps('category')}
             />
@@ -63,7 +64,7 @@ export default function UpdateAirportModal({ airport, setAirport }: { airport: A
               required
               label='Full Name'
               placeholder='Manassas Regional Airport/Harry P. Davis Field'
-              {...form.getInputProps('full_name')}
+              {...form.getInputProps('name')}
             />
             <TextInput
               required
@@ -94,12 +95,6 @@ export default function UpdateAirportModal({ airport, setAirport }: { airport: A
             <Group>
               <TextInput
                 required
-                label='GPS Code'
-                placeholder='KHEF'
-                {...form.getInputProps('gps_code')}
-              />
-              <TextInput
-                required
                 label='IATA Code'
                 placeholder='HEF'
                 {...form.getInputProps('iata_code')}
@@ -116,13 +111,13 @@ export default function UpdateAirportModal({ airport, setAirport }: { airport: A
                 required
                 label='Latitude'
                 placeholder='38.72140121'
-                {...form.getInputProps('point.x')}
+                {...form.getInputProps('latitude')}
               />
               <TextInput
                 required
                 label='Longitude'
                 placeholder='-77.51540375'
-                {...form.getInputProps('point.y')}
+                {...form.getInputProps('longitude')}
               />
             </Group>
             <Flex justify={'end'} mt={'sm'}>

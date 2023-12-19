@@ -1,6 +1,8 @@
 #!make
 SHELL := /bin/bash
 
+GIT_HASH ?= $(shell git log --format="%h" -n 1)
+
 include .env
 
 .PHONY: help build start stop lint
@@ -11,7 +13,7 @@ help: ## This info
 	@echo
 
 build: ## Build the Docker image
-	docker compose build
+	export TAG=${GIT_HASH} && docker compose build
 
 utils: ## Start the utils
 	docker compose up -d db
@@ -24,14 +26,14 @@ up: ## Start the Docker containers
 down: ## Stop the Docker containers
 	docker compose down
 
-connect: ## Connect to the Weather DB
+connect: ## Connect to the PSQL DB
 	docker exec -it ${DATABASE_CONTAINER} psql -U postgres
 
 clean: ## Cleanup Docker containers
 	docker compose down && \
-	docker image rm weather-service || \
-	docker network rm weather-frontend || \
-	docker network rm weather-backend
+	docker image rm aviation-service || \
+	docker network rm aviation-frontend || \
+	docker network rm aviation-backend
 
 clean-db:  ## Remove database
 	docker exec -i ${DATABASE_CONTAINER} sh -c 'PGPASSWORD=${DATABASE_PASSWORD} psql -U ${DATABASE_USER} -d postgres -c "DROP DATABASE IF EXISTS \"${DATABASE_NAME}\";"'
