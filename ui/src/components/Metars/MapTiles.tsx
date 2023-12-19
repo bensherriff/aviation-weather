@@ -48,15 +48,16 @@ export default function MapTiles() {
   async function updateAirports(bounds: LatLngBounds) {
     const ne = bounds.getNorthEast();
     const sw = bounds.getSouthWest();
+    console.log('zoom', zoom)
     const { data: airportData } = await getAirports({
       bounds: {
         northEast: { lat: ne.lat, lon: ne.lng },
         southWest: { lat: sw.lat, lon: sw.lng }
       },
-      categories: ['large_airport'],
+      categories: ['large_airport', 'medium_airport', 'small_airport'],
       order_field: AirportOrderField.CATEGORY,
       order_by: 'asc',
-      limit: 250,
+      limit: zoom < 4 ? 200 : 100,
       page: 1
     });
     const { data: metars } = await getMetars(airportData.map((a) => a.icao));
@@ -94,7 +95,7 @@ export default function MapTiles() {
     } else if (airport.latest_metar?.flight_category == 'UNKN') {
       return innerIcon({ tag: 'U', color: 'black', size: 'xs' });
     } else {
-      return innerIcon({tag: ' ', color: 'black', size: 'xs' });
+      return innerIcon({tag: ' ', color: 'grey', size: 'xs' });
     }
   }
 

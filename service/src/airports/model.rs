@@ -245,11 +245,23 @@ impl QueryAirport {
     let mut query = "SELECT COUNT(*) FROM airports".to_string();
     query = format!("{} {}", query, QueryAirport::build_filter_query(&filters)?);
 
-    let count: i64 = match sql_query(query).execute(&mut conn) {
-      Ok(c) => c as i64,
+    // TODO: Fix this to use get_result() instead of building this table to do the load()
+    diesel::table! {
+      airports (count) {
+        count -> BigInt,
+      }
+    }
+    #[derive(Debug, Queryable, QueryableByName)]
+    #[diesel(table_name = airports)]
+    struct Count {
+      count: i64
+    }
+
+    let count: Vec<Count> = match sql_query(query).load(&mut conn) {
+      Ok(a) => a,
       Err(err) => return Err(ServiceError { status: 500, message: format!("{}", err) })
     };
-    return Ok(count);
+    return Ok(count[0].count);
   }
 
   // TODO: Unsafe query, need to sanitize inputs

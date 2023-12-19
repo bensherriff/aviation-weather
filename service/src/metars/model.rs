@@ -21,6 +21,8 @@ pub struct QualityControlFlags {
   pub corrected: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub no_significant_change: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub temporary_change: Option<bool>,
 }
 
 impl Default for QualityControlFlags {
@@ -32,6 +34,7 @@ impl Default for QualityControlFlags {
       maintenance_indicator_on: None,
       corrected: None,
       no_significant_change: None,
+      temporary_change: None,
     }
   }
 }
@@ -172,6 +175,10 @@ impl Metar {
       // Date/Time
       let observation_time = metar_parts[0];
       metar_parts.remove(0);
+      if observation_time.len() != 7 {
+        warn!("Unable to parse observation time in {}: {}", observation_time, metar_string);
+        continue;
+      }
       let observation_time_day = &observation_time[0..2];
       let observation_time_hour = &observation_time[2..4];
       let observation_time_minute = &observation_time[4..6];
@@ -253,7 +260,8 @@ impl Metar {
         }
 
         // Visibility
-        let visibility_re = regex::Regex::new(r"^M?(?:[0-9]+|[0-9]+/[0-9]+)SM").unwrap();
+        let visibility_re = regex::Regex::new(r"^M?(?:[0-9]+|[0-9]+/[0-9]+)SM$").unwrap();
+        let visibility_re_m = regex::Regex::new(r"^[0-9]{4}(:?N|NE|NW|S|SE|SW)?$").unwrap();
         if !metar_parts.is_empty() && visibility_re.is_match(metar_parts[0]) {
           let visibility_str = &metar_parts[0][0..metar_parts[0].len() - 2];
           metar_parts.remove(0);
@@ -287,6 +295,16 @@ impl Metar {
             format!("{}", visibility_whole + (visibility_left.parse::<f64>().unwrap() / visibility_right))
           };
           metar.visibility_statute_mi = Some(visibility);
+        } else if !metar_parts.is_empty() && visibility_re_m.is_match(metar_parts[0]) {
+          // Convert meters to statute miles
+          let visibility = metar_parts[0];
+          metar_parts.remove(0);
+          if &visibility[0..4] == "9999" {
+            metar.visibility_statute_mi = Some("P10".to_string());
+          } else {
+            let visibility = visibility[0..4].parse::<f64>().unwrap() * 0.000621371;
+            metar.visibility_statute_mi = Some(format!("{:.2}", visibility));
+          }
         }
 
         // Runway Visual Range
@@ -322,26 +340,43 @@ impl Metar {
         }
 
         // Sky Condition
-        let sky_condition_re = regex::Regex::new(r"^(?:CLR|SKC|CAVOK|NSC|NCD|(?:FEW|SCT|BKN|OVC|VV)([0-9]{3})?(?:CB|TCU)?)$").unwrap();
+        if !metar_parts.is_empty() && metar_parts[0] == "CAVOK" {
+          metar.sky_condition.push(SkyCondition {
+            sky_cover: "CLR".to_string(),
+            cloud_base_ft_agl: None,
+            significant_convective_clouds: None
+          });
+          metar_parts.remove(0);
+        }
+        let sky_condition_re = regex::Regex::new(r"^(?:CLR|SKC|NSC|NCD|(?:FEW|SCT|BKN|OVC|VV)([0-9/]{3})?(?:CB|TCU)?)$").unwrap();
         while !metar_parts.is_empty() && sky_condition_re.is_match(metar_parts[0]) {
           let sky_condition_string = metar_parts[0];
           metar_parts.remove(0);
           let mut sky_condition = SkyCondition::default();
-          let sky_cover = &sky_condition_string[0..3];
-          sky_condition.sky_cover = sky_cover.to_string();
-          if sky_condition_string.len() > 3 {
+          let mut vv_offset = 0;
+          if &sky_condition_string[0..2] == "VV" {
+            sky_condition.sky_cover = "VV".to_string();
+            vv_offset = 1;
+          } else {
+            sky_condition.sky_cover = sky_condition_string[0..3].to_string();
+          }
+          if sky_condition_string.len() > 3 - vv_offset {
             // Parse out the next three digits
-            let cloud_base_ft_agl = &sky_condition_string[3..6];
-            sky_condition.cloud_base_ft_agl = match cloud_base_ft_agl.parse::<i32>() {
-              Ok(c) => Some(c * 100),
-              Err(err) => {
-                warn!("Unable to parse cloud base in {}: {}", sky_condition_string, err);
-                None
-              }
-            };
-            if sky_condition_string.len() > 6 {
+            let cloud_base_ft_agl = &sky_condition_string[3 - vv_offset..6 - vv_offset];
+            if cloud_base_ft_agl == "///" {
+              sky_condition.cloud_base_ft_agl = None;
+            } else {
+              sky_condition.cloud_base_ft_agl = match cloud_base_ft_agl.parse::<i32>() {
+                Ok(c) => Some(c * 100),
+                Err(err) => {
+                  warn!("Unable to parse cloud base in {}: {}", sky_condition_string, err);
+                  None
+                }
+              };
+            }
+            if sky_condition_string.len() > 6 - vv_offset {
               // Parse out the next two digits
-              let scc = &sky_condition_string[6..8];
+              let scc = &sky_condition_string[6 - vv_offset..8 - vv_offset];
               sky_condition.significant_convective_clouds = Some(scc.to_string());
             }
           }
@@ -396,6 +431,20 @@ impl Metar {
           let altim = metar_parts[0];
           metar_parts.remove(0);
           metar.altim_in_hg = Some(altim[1..altim.len()].parse::<f64>().unwrap() / 100.0);
+        }
+
+        // Pressure
+        let pressure_re = regex::Regex::new(r"^Q[0-9]{4}$").unwrap();
+        if !metar_parts.is_empty() && pressure_re.is_match(metar_parts[0]) {
+          let pressure = metar_parts[0];
+          metar_parts.remove(0);
+          metar.sea_level_pressure_mb = Some(pressure[1..pressure.len()].parse::<f64>().unwrap());
+        }
+
+        // Temporary Change
+        if !metar_parts.is_empty() && metar_parts[0] == "TEMPO" {
+          metar.quality_control_flags.temporary_change = Some(true);
+          metar_parts.remove(0);
         }
 
         // Remarks
@@ -469,7 +518,7 @@ impl Metar {
         };
         let ceiling = match metar.sky_condition.first() {
           Some(s) => {
-            if s.sky_cover == "CLR" || s.sky_cover == "SKC" {
+            if s.sky_cover == "CLR" || s.sky_cover == "SKC" || s.sky_cover == "NSC" || s.sky_cover == "NCD" {
               3000.0
             } else if s.sky_cover == "VV" {
               0.0
@@ -515,9 +564,40 @@ impl Metar {
     return missing_metar_icaos;
   }
 
-  async fn get_remote_metars(icaos: String) -> Vec<Metar> {
+  async fn get_remote_metars(icaos: Vec<String>) -> Vec<Metar> {
     let gov_api_url = std::env::var("GOV_API_URL").expect("GOV_API_URL must be set");
-    let url = format!("{}/metar.php?ids={}", gov_api_url, icaos);
+    // Query the remote API for the missing METAR data 10 at a time
+    let icao_chunks = icaos.chunks(10).map(|chunk| chunk.join(",")).collect::<Vec<String>>();
+    let mut metars: Vec<Metar> = vec![];
+    for icao_chunk in icao_chunks {
+      let url = format!("{}/metar.php?ids={}", gov_api_url, icao_chunk);
+      let mut m = match reqwest::get(url).await {
+        Ok(r) => match r.text().await {
+          Ok(r) => {
+            let metar_chunk = r.trim().split("\n").filter(|m| !m.trim().is_empty()).collect();
+            match Metar::parse(metar_chunk) {
+              Ok(m) => m,
+              Err(err) => {
+                warn!("{}", err);
+                return metars;
+              }
+            }
+          },
+          Err(err) => {
+            warn!("Unable to parse METAR request: {}", err);
+            return metars;
+          }
+        },
+        Err(err) => {
+          warn!("Unable to get METAR request: {}", err);
+          return metars;
+        }
+      };
+      metars.append(&mut m);
+    }
+    
+    let icaos_string = icaos.join(",");
+    let url = format!("{}/metar.php?ids={}", gov_api_url, icaos_string);
     match reqwest::get(url).await {
       Ok(r) => match r.text().await {
         Ok(r) => {
@@ -526,18 +606,18 @@ impl Metar {
             Ok(m) => m,
             Err(err) => {
               warn!("{}", err);
-                vec![]
+                return metars;
             }
           }
         },
         Err(err) => {
           warn!("Unable to parse METAR request: {}", err);
-          vec![]
+          return metars;
         }
       },
       Err(err) => {
         warn!("Unable to get METAR request: {}", err);
-        vec![]
+        return metars;
       }
     }
   }
@@ -591,7 +671,7 @@ impl Metar {
         Err(_) => {}
       }
     });
-    let mut missing_metars = Self::get_remote_metars(missing_icaos_string.join(",")).await;
+    let mut missing_metars = Self::get_remote_metars(missing_icaos_string).await;
     if missing_metars.len() > 0 {
       let insert_metars = Self::to_insert(&missing_metars);
       match InsertMetar::insert(&insert_metars) {

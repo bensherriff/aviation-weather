@@ -1,10 +1,10 @@
-use crate::{error_handler::ServiceError, airports::{QueryAirport, Airport}};
+use crate::error_handler::ServiceError;
 use diesel::{r2d2::ConnectionManager, PgConnection};
 use redis::{Client as RedisClient, aio::Connection as RedisConnection};
 use serde::{Deserialize, Serialize};
 use crate::diesel_migrations::MigrationHarness;
 use lazy_static::lazy_static;
-use log::{error, debug, info};
+use log::{error, info};
 use r2d2;
 use std::env;
 
@@ -57,22 +57,6 @@ pub fn redis_connection() -> Result<redis::Connection, ServiceError> {
 pub async fn redis_async_connection() -> Result<RedisConnection, ServiceError> {
   let conn = REDIS.get_async_connection().await?;
   Ok(conn)
-}
-
-pub fn import_data() -> i32 {
-  let path = "airport-codes.json";
-  debug!("Importing data from {}", path);
-  let contents: String = std::fs::read_to_string(path).expect("Failed to read file");
-  let airports: Vec<Airport> = serde_json::from_str(&contents).expect("JSON was not well formed.");
-  let mut count = 0;
-  for airport in airports {
-    match QueryAirport::insert(airport.into()) {
-      Ok(_) => count += 1,
-      Err(err) => error!("Error inserting airport; {}", err)
-    };
-  }
-  debug!("Import complete");
-  return count;
 }
 
 #[derive(Serialize, Deserialize)]
