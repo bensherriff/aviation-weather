@@ -1,6 +1,5 @@
 import React from 'react';
 import RecoilRootWrapper from '@app/recoil-root-wrapper';
-import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Inter } from 'next/font/google';
 import { MantineProvider } from '@mantine/core';
@@ -8,6 +7,7 @@ import { ModalsProvider } from '@mantine/modals';
 import 'styles/globals.css';
 import 'styles/leaflet.css';
 import '@mantine/core/styles.css';
+import { Notifications } from '@mantine/notifications';
 
 export const metadata = {
   title: 'Aviation Weather',
@@ -23,15 +23,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <title>Aviation Weather</title>
       </head>
       <body className={`${inter.className} wrapper h-full`}>
-        <RecoilRootWrapper>
-          <MantineProvider>
-            <ModalsProvider>
+        <MantineProvider>
+          <Notifications />
+          <ModalsProvider>
+            <RecoilRootWrapper>
               <Header />
-              <Sidebar />
               {children}
-            </ModalsProvider>
-          </MantineProvider>
-        </RecoilRootWrapper>
+            </RecoilRootWrapper>
+          </ModalsProvider>
+        </MantineProvider>
       </body>
     </html>
   );

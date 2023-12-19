@@ -4,6 +4,7 @@ import { Text, Button, Card, Group, Pagination, Table, TextInput, rem, UnstyledB
 import { HiChevronUp, HiChevronDown, HiSelector } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { CiSearch } from "react-icons/ci";
+import { notifications } from '@mantine/notifications';
 
 
 export default function AirportTablePanel({ setAirport }: { setAirport: (airport: Airport) => void }) {
@@ -37,12 +38,11 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
       style={{ cursor: 'pointer' }}
     >
       <Table.Td>{airport.icao}</Table.Td>
-      <Table.Td>{airport.full_name}</Table.Td>
+      <Table.Td>{airport.name}</Table.Td>
       <Table.Td>{airportCategoryToText(airport.category)}</Table.Td>
       <Table.Td>{airport.iso_country}</Table.Td>
       <Table.Td>{airport.iso_region}</Table.Td>
       <Table.Td>{airport.municipality}</Table.Td>
-      <Table.Td>{airport.gps_code}</Table.Td>
       <Table.Td>{airport.iata_code}</Table.Td>
       <Table.Td>{airport.local_code}</Table.Td>
     </Table.Tr>
@@ -61,12 +61,11 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
         <Table.Thead>
           <Table.Tr>
             <Table.Th>ICAO</Table.Th>
-            <Table.Th>Full Name</Table.Th>
+            <Table.Th>Name</Table.Th>
             <Table.Th>Category</Table.Th>
             <Table.Th>ISO Country</Table.Th>
             <Table.Th>ISO Region</Table.Th>
             <Table.Th>Municipality</Table.Th>
-            <Table.Th>GPS Code</Table.Th>
             <Table.Th>IATA Code</Table.Th>
             <Table.Th>Local Code</Table.Th>
           </Table.Tr>
@@ -83,8 +82,17 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
           <Space mr={'sm'}>
             <PanelFileButton accept={'.json'} onChange={async (payload) => {
               if (payload instanceof File) {
-                await importAirports(payload);
-                await getAirportData();
+                const response = await importAirports(payload);
+                if (response) {
+                  await getAirportData();
+                } else {
+                  notifications.show({
+                    title: `Failed to import airports`,
+                    message: `Please try again.`,
+                    color: 'red',
+                    autoClose: 2000
+                  });
+                }
               }
             }}>
               Import

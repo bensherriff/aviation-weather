@@ -12,7 +12,7 @@ export async function getAirport({ icao }: GetAirportProps): Promise<GetAirportR
 
 interface GetAirportsProps {
   bounds?: Bounds;
-  category?: string;
+  categories?: string[];
   search?: string;
   order_field?: AirportOrderField;
   order_by?: 'asc' | 'desc';
@@ -22,7 +22,7 @@ interface GetAirportsProps {
 
 export async function getAirports({
   bounds,
-  category,
+  categories,
   search,
   order_field,
   order_by,
@@ -33,7 +33,7 @@ export async function getAirports({
     bounds: bounds
       ? `${bounds?.northEast.lat},${bounds?.northEast.lon},${bounds?.southWest.lat},${bounds?.southWest.lon}`
       : undefined,
-    category: category ?? undefined,
+    categories: categories ?? undefined,
     search: search ?? undefined,
     order_field: order_field ?? undefined,
     order_by: order_by ?? undefined,
@@ -63,11 +63,11 @@ export async function updateAirport({ airport }: { airport: Airport }): Promise<
   return response?.json() || { data: undefined };
 }
 
-export async function importAirports(payload: File): Promise<any> {
+export async function importAirports(payload: File): Promise<boolean> {
   const data = new FormData();
   data.append('data', payload);
   const response = await postRequest('airports/import', data, {
     type: 'form'
   });
-  return response?.status == 200;
+  return response ? response.status === 200 : false;
 }

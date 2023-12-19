@@ -195,11 +195,11 @@ impl Metar {
           break;
         }
         // Report Modifiers
-        if metar_parts[0] == "AUTO" {
+        if !metar_parts.is_empty() && metar_parts[0] == "AUTO" {
           metar.quality_control_flags.auto = Some(true);
           metar_parts.remove(0);
         }
-        if metar_parts[0] == "COR" {
+        if !metar_parts.is_empty() && metar_parts[0] == "COR" {
           metar.quality_control_flags.corrected = Some(true);
           metar_parts.remove(0);
         }
@@ -207,14 +207,14 @@ impl Metar {
         // Wind Direction and Speed
         let wind_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}KT$").unwrap();
         let wind_gust_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}G[0-9]{2}KT$").unwrap();
-        if wind_re.is_match(metar_parts[0]) {
+        if !metar_parts.is_empty() && wind_re.is_match(metar_parts[0]) {
           let wind = metar_parts[0];
           metar_parts.remove(0);
           let wind_dir_degrees = &wind[0..3];
           let wind_speed_kt = &wind[3..5];
           metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
           metar.wind_speed_kt = Some(wind_speed_kt.parse::<i32>().unwrap());
-        } else if wind_gust_re.is_match(metar_parts[0]) {
+        } else if !metar_parts.is_empty() && wind_gust_re.is_match(metar_parts[0]) {
           let wind = metar_parts[0];
           metar_parts.remove(0);
           let wind_dir_degrees = &wind[0..3];
@@ -228,14 +228,14 @@ impl Metar {
         
         // Variable Wind Direction
         let variable_wind_re = regex::Regex::new(r"^[0-9]{3}V[0-9]{3}$").unwrap();
-        if variable_wind_re.is_match(metar_parts[0]) {
+        if !metar_parts.is_empty() && variable_wind_re.is_match(metar_parts[0]) {
           metar.variable_wind_dir_degrees = Some(metar_parts[0].to_string());
           metar_parts.remove(0);
         }
 
         // Visibility
         let visibility_re = regex::Regex::new(r"^M?(?:[0-9]+|[0-9]+/[0-9]+)SM").unwrap();
-        if visibility_re.is_match(metar_parts[0]) {
+        if !metar_parts.is_empty() && visibility_re.is_match(metar_parts[0]) {
           let visibility_str = &metar_parts[0][0..metar_parts[0].len() - 2];
           metar_parts.remove(0);
           let visibility: String = if visibility_str.contains("/") {
@@ -253,7 +253,7 @@ impl Metar {
             visibility_str.to_string()
           };
           metar.visibility_statute_mi = Some(visibility);
-        } else if metar_parts[0].parse::<f64>().is_ok() && metar_parts.len() > 1 && visibility_re.is_match(metar_parts[1]) {
+        } else if !metar_parts.is_empty() && metar_parts[0].parse::<f64>().is_ok() && metar_parts.len() > 1 && visibility_re.is_match(metar_parts[1]) {
           let visibility_whole = metar_parts[0].parse::<f64>().unwrap();
           metar_parts.remove(0);
           let visibility_parts: Vec<&str> = metar_parts[0].split("/").collect();
@@ -273,7 +273,7 @@ impl Metar {
         // Runway Visual Range
         let rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R|C)?/[PM]?[0-9]{4}FT$").unwrap();
         let variable_rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R|C)?/[PM]?[0-9]{4}V[PM]?[0-9]{4}FT$").unwrap();
-        while rvr_re.is_match(metar_parts[0]) || variable_rvr_re.is_match(metar_parts[0]) {
+        while !metar_parts.is_empty() && rvr_re.is_match(metar_parts[0]) || variable_rvr_re.is_match(metar_parts[0]) {
           let rvr_string = metar_parts[0];
           metar_parts.remove(0);
           let mut rvr = RunwayVisualRange::default();
@@ -297,14 +297,14 @@ impl Metar {
         let wx_descriptor = "(?:MI|PR|BC|DR|BL|SH|TS|FZ)?";
         let wx_precipitation = "(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)?";
         let wx_re = regex::Regex::new(&format!(r"^{}{}{}$", wx_intensity, wx_descriptor, wx_precipitation)).unwrap();
-        while wx_re.is_match(metar_parts[0]) {
+        while !metar_parts.is_empty() && wx_re.is_match(metar_parts[0]) {
           metar.weather_phenomena.push(metar_parts[0].to_string());
           metar_parts.remove(0);
         }
 
         // Sky Condition
         let sky_condition_re = regex::Regex::new(r"^(?:CLR|SKC|(?:FEW|SCT|BKN|OVC|VV)([0-9]{3})?)$").unwrap();
-        while sky_condition_re.is_match(metar_parts[0]) {
+        while !metar_parts.is_empty() && sky_condition_re.is_match(metar_parts[0]) {
           let sky_condition_string = metar_parts[0];
           metar_parts.remove(0);
           let mut sky_condition = SkyCondition::default();
@@ -318,7 +318,7 @@ impl Metar {
 
         // Temperature and Dewpoint
         let temp_re = regex::Regex::new(r"^(?:M?[0-9]{2})?/(?:M?[0-9]{2})?$").unwrap();
-        if temp_re.is_match(metar_parts[0]) {
+        if !metar_parts.is_empty() && temp_re.is_match(metar_parts[0]) {
           let temp_string = metar_parts[0];
           metar_parts.remove(0);
           let temp_parts: Vec<&str> = temp_string.split("/").collect();
@@ -360,7 +360,7 @@ impl Metar {
 
         // Altimeter
         let altim_re = regex::Regex::new(r"^A[0-9]{4}$").unwrap();
-        if altim_re.is_match(metar_parts[0]) {
+        if !metar_parts.is_empty() && altim_re.is_match(metar_parts[0]) {
           let altim = metar_parts[0];
           metar_parts.remove(0);
           metar.altim_in_hg = Some(altim[1..altim.len()].parse::<f64>().unwrap() / 100.0);

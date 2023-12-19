@@ -27,7 +27,7 @@ export default function Page({ params }: { params: { icao: string } }) {
     return (
       <>
         <div className=''>
-          <h3 className=''>{airport.full_name}</h3>
+          <h3 className=''>{airport.name}</h3>
           {metar && <SkyConditions metar={metar} />}
         </div>
       </>

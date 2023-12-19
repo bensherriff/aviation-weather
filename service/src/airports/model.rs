@@ -4,24 +4,24 @@ use crate::db;
 use crate::error_handler::ServiceError;
 use crate::db::schema::airports;
 use diesel::prelude::*;
+use diesel::sql_query;
 use log::error;
 use postgis_diesel::types::*;
-use postgis_diesel::functions::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Airport {
   pub icao: String,
   pub category: String,
-  pub full_name: String,
-  pub elevation_ft: Option<i32>,
+  pub name: String,
+  pub elevation_ft: f32,
   pub iso_country: String,
   pub iso_region: String,
   pub municipality: String,
-  pub gps_code: String,
   pub iata_code: String,
   pub local_code: String,
-  pub point: Point,
+  pub latitude: f64,
+  pub longitude: f64,
   pub has_tower: Option<bool>,
 }
 
@@ -30,14 +30,14 @@ impl Into<QueryAirport> for Airport {
     return QueryAirport {
       icao: self.icao.clone(),
       category: self.category.clone(),
-      full_name: self.full_name.clone(),
+      name: self.name.clone(),
+      elevation_ft: self.elevation_ft,
       iso_country: self.iso_country.clone(),
       iso_region: self.iso_region.clone(),
       municipality: self.municipality.clone(),
-      gps_code: self.gps_code.clone(),
       iata_code: self.iata_code.clone(),
       local_code: self.local_code.clone(),
-      point: self.point.clone(),
+      point: Point::new(self.longitude, self.latitude, Some(4326)),
       data: match serde_json::to_value(&self) {
         Ok(d) => d,
         Err(err) => {
@@ -60,11 +60,11 @@ impl From<QueryAirport> for Airport {
 pub struct QueryAirport {
   pub icao: String,
   pub category: String,
-  pub full_name: String,
+  pub name: String,
+  pub elevation_ft: f32,
   pub iso_country: String,
   pub iso_region: String,
   pub municipality: String,
-  pub gps_code: String,
   pub iata_code: String,
   pub local_code: String,
   pub point: Point,
@@ -75,7 +75,7 @@ pub struct QueryAirport {
 pub struct QueryFilters {
   pub search: Option<String>,
   pub bounds: Option<Polygon<Point>>,
-  pub category: Option<String>,
+  pub categories: Option<Vec<String>>,
   pub order_field: Option<QueryOrderField>,
   pub order_by: Option<QueryOrderBy>
 }
@@ -85,7 +85,7 @@ impl Default for QueryFilters {
     QueryFilters {
       search: None,
       bounds: None,
-      category: None,
+      categories: None,
       order_field: None,
       order_by: None
     }
@@ -117,7 +117,6 @@ pub enum QueryOrderField {
   Country,
   Region,
   Municipality,
-  GPS,
   Iata,
   Local,
 }
@@ -132,7 +131,6 @@ impl FromStr for QueryOrderField {
       "iso_country" => Ok(QueryOrderField::Country),
       "iso_region" => Ok(QueryOrderField::Region),
       "municipality" => Ok(QueryOrderField::Municipality),
-      "gps_code" => Ok(QueryOrderField::GPS),
       "iata_code" => Ok(QueryOrderField::Iata),
       "local_code" => Ok(QueryOrderField::Local),
       _ => Err(())
@@ -143,94 +141,96 @@ impl FromStr for QueryOrderField {
 impl QueryAirport {
   pub fn get_all(filters: &QueryFilters, limit: i32, page: i32) -> Result<Vec<Self>, ServiceError> {
     let mut conn = db::connection()?;
-    
-    let mut query = airports::table.limit(limit as i64).into_boxed();
-    // Limit query to page and limit
-    let offset = (page - 1) * limit;
-    query = query.offset(offset as i64);
-
-    if let Some(bounds) = &filters.bounds {
-      query = query.filter(st_contains(bounds, airports::point));
-    }
-    if let Some(category) = &filters.category {
-      query = query.filter(airports::category.eq(category));
-    }
-    if let Some(search) = &filters.search {
-      query = query.filter(
-        airports::icao.ilike(format!("%{}%", search))
-          .or(airports::full_name.ilike(format!("%{}%", search)))
-          .or(airports::iso_country.ilike(format!("%{}%", search)))
-          .or(airports::iso_region.ilike(format!("%{}%", search)))
-          .or(airports::municipality.ilike(format!("%{}%", search)))
-          .or(airports::gps_code.ilike(format!("%{}%", search)))
-          .or(airports::iata_code.ilike(format!("%{}%", search)))
-          .or(airports::local_code.ilike(format!("%{}%", search)))
-      )
-    }
+    let mut query: String = "SELECT * FROM airports".to_string();
+    query = format!("{} {}", query, QueryAirport::build_filter_query(&filters)?);
 
     if let Some(order_by) = &filters.order_by {
       match order_by {
         QueryOrderBy::Asc => {
           if let Some(order_field) = &filters.order_field {
             query = match order_field {
-              QueryOrderField::Icao => query.order(airports::icao.asc()),
-              QueryOrderField::Name => query.order(airports::full_name.asc()),
-              QueryOrderField::Category => query.order(airports::category.asc()),
-              QueryOrderField::Country => query.order(airports::iso_country.asc()),
-              QueryOrderField::Region => query.order(airports::iso_region.asc()),
-              QueryOrderField::Municipality => query.order(airports::municipality.asc()),
-              QueryOrderField::GPS => query.order(airports::gps_code.asc()),
-              QueryOrderField::Iata => query.order(airports::iata_code.asc()),
-              QueryOrderField::Local => query.order(airports::local_code.asc()),
+              QueryOrderField::Icao => format!("{} ORDER BY icao ASC", query),
+              QueryOrderField::Name => format!("{} ORDER BY name ASC", query),
+              QueryOrderField::Category => format!("{} ORDER BY category ASC", query),
+              QueryOrderField::Country => format!("{} ORDER BY iso_country ASC", query),
+              QueryOrderField::Region => format!("{} ORDER BY iso_region ASC", query),
+              QueryOrderField::Municipality => format!("{} ORDER BY municipality ASC", query),
+              QueryOrderField::Iata => format!("{} ORDER BY iata_code ASC", query),
+              QueryOrderField::Local => format!("{} ORDER BY local_code ASC", query),
             };
           };
         },
         QueryOrderBy::Desc => {
           if let Some(order_field) = &filters.order_field {
             query = match order_field {
-              QueryOrderField::Icao => query.order(airports::icao.desc()),
-              QueryOrderField::Name => query.order(airports::full_name.desc()),
-              QueryOrderField::Category => query.order(airports::category.desc()),
-              QueryOrderField::Country => query.order(airports::iso_country.desc()),
-              QueryOrderField::Region => query.order(airports::iso_region.desc()),
-              QueryOrderField::Municipality => query.order(airports::municipality.desc()),
-              QueryOrderField::GPS => query.order(airports::gps_code.desc()),
-              QueryOrderField::Iata => query.order(airports::iata_code.desc()),
-              QueryOrderField::Local => query.order(airports::local_code.desc()),
+              QueryOrderField::Icao => format!("{} ORDER BY icao DESC", query),
+              QueryOrderField::Name => format!("{} ORDER BY name DESC", query),
+              QueryOrderField::Category => format!("{} ORDER BY category DESC", query),
+              QueryOrderField::Country => format!("{} ORDER BY iso_country DESC", query),
+              QueryOrderField::Region => format!("{} ORDER BY iso_region DESC", query),
+              QueryOrderField::Municipality => format!("{} ORDER BY municipality DESC", query),
+              QueryOrderField::Iata => format!("{} ORDER BY iata_code DESC", query),
+              QueryOrderField::Local => format!("{} ORDER BY local_code DESC", query),
             };
           };
         }
       }
     }
-    let airports: Vec<QueryAirport> = query.load::<QueryAirport>(&mut conn)?;
+    // Limit query to page and limit
+    query = format!("{} LIMIT {} OFFSET {}", query, limit, (page - 1) * limit);
+
+    let airports: Vec<QueryAirport> = match sql_query(query).load(&mut conn) {
+      Ok(a) => a,
+      Err(err) => return Err(ServiceError { status: 500, message: format!("{}", err) })
+    };
     Ok(airports)
   }
 
   pub fn get_count(filters: &QueryFilters) -> Result<i64, ServiceError> {
     let mut conn = db::connection()?;
-    let mut query = airports::table.count().into_boxed();
+    let mut query = "SELECT COUNT(*) FROM airports".to_string();
+    query = format!("{} {}", query, QueryAirport::build_filter_query(&filters)?);
+
+    let count: i64 = match sql_query(query).execute(&mut conn) {
+      Ok(c) => c as i64,
+      Err(err) => return Err(ServiceError { status: 500, message: format!("{}", err) })
+    };
+    return Ok(count);
+  }
+
+  // TODO: Unsafe query, need to sanitize inputs
+  fn build_filter_query(filters: &QueryFilters) -> Result<String, ServiceError> {
+    let mut query = "".to_string();
+    let mut parts: Vec<String> = vec![];
 
     if let Some(bounds) = &filters.bounds {
-      query = query.filter(st_contains(bounds, airports::point));
+      // convert bounds to a WKT polygon
+      if bounds.rings.len() > 1 {
+        return Err(ServiceError { status: 400, message: "Only one polygon is allowed".to_string() })
+      } else {
+        let mut points: Vec<String> = vec![];
+        bounds.rings.iter().for_each(|ring| {
+          ring.iter().for_each(|point| {
+            points.push(format!("{} {}", point.get_x(), point.get_y()));
+          });
+        });
+        let bounds = format!("POLYGON(({}))", points.join(","));
+        parts.push(format!("ST_Contains(ST_GeomFromText('{}', 4326), point)", bounds));
+      }
     }
-    if let Some(category) = &filters.category {
-      query = query.filter(airports::category.eq(category));
+    if let Some(categories) = &filters.categories {
+      parts.push(format!("({})", categories.iter().map(|category| format!("category = '{}'", category)).collect::<Vec<String>>().join(" OR ")));
     }
     if let Some(search) = &filters.search {
-      query = query.filter(
-        airports::icao.ilike(format!("%{}%", search))
-          .or(airports::full_name.ilike(format!("%{}%", search)))
-          .or(airports::iso_country.ilike(format!("%{}%", search)))
-          .or(airports::iso_region.ilike(format!("%{}%", search)))
-          .or(airports::municipality.ilike(format!("%{}%", search)))
-          .or(airports::gps_code.ilike(format!("%{}%", search)))
-          .or(airports::iata_code.ilike(format!("%{}%", search)))
-          .or(airports::local_code.ilike(format!("%{}%", search)))
-      )
+      let search_strs = vec!["icao", "name", "iso_country", "iso_region", "municipality", "iata_code", "local_code"];
+      parts.push(format!("({})", search_strs.iter().map(|s| format!("{} ILIKE '%{}%'", s, search)).collect::<Vec<String>>().join(" OR ")));
     }
 
-    let count: i64 = query.get_result(&mut conn)?;
-    return Ok(count);
+    if parts.len() > 0 {
+      query = format!("{} WHERE {}", query, parts.join(" AND "));
+    }
+
+    return Ok(query);
   }
 
   pub fn find(icao: String) -> Result<Self, ServiceError> {

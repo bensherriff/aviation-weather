@@ -26,7 +26,6 @@ export enum AirportOrderField {
   ISO_COUNTRY = 'iso_country',
   ISO_REGION = 'iso_region',
   MUNICIPALITY = 'municipality',
-  GPS_CODE = 'gps_code',
   IATA_CODE = 'iata_code',
   LOCAL_CODE = 'local_code',
 }
@@ -44,19 +43,15 @@ export interface Coordinate {
 export interface Airport {
   icao: string;
   category: AirportCategory;
-  full_name: string;
+  name: string;
   elevation_ft: number;
   iso_country: string;
   iso_region: string;
   municipality: string;
-  gps_code: string;
   iata_code: string;
   local_code: string;
-  point: {
-    x: number;
-    y: number;
-    srid: number;
-  };
+  latitude: number;
+  longitude: number;
   latest_metar?: Metar;
 }
 

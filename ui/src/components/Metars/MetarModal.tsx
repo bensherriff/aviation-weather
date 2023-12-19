@@ -57,7 +57,7 @@ export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps
     >
       <span className='title'>
         <Link href={`/airport/${airport.icao}`}>
-          {airport.icao} {airport.full_name}
+          {airport.icao} {airport.name}
         </Link>
         {isFavorite ? (
           <AiFillStar size={24} className='star' onClick={() => handleFavorite(false)} />

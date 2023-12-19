@@ -16,5 +16,7 @@ The following resources were used to help decode METARS.
 - [Metar Decode (NPS EDU)](https://met.nps.edu/~bcreasey/mr3222/files/helpful/DecodeMETAR-TAF.html)
 - [Weather Phenomena](http://www.moratech.com/aviation/metar-class/metar-pg9-ww.html)
 
+- Airport dataset is based on [mborsetti/airportsdata](https://github.com/mborsetti/airportsdata)
+
 ## OpenMapTiles
 [Generate Vector Tiles](https://openmaptiles.org/docs/generate/generate-openmaptiles/)

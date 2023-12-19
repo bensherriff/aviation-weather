@@ -4,11 +4,11 @@ diesel::table! {
   airports (icao) {
     icao -> Text,
     category -> Text,
-    full_name -> Text,
+    name -> Text,
+    elevation_ft -> Float,
     iso_country -> Text,
     iso_region -> Text,
     municipality -> Text,
-    gps_code -> Text,
     iata_code -> Text,
     local_code -> Text,
     point -> Geometry,

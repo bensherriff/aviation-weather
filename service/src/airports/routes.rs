@@ -12,7 +12,7 @@ use serde::{Serialize, Deserialize};
 struct GetAllParameters {
   search: Option<String>,
   bounds: Option<String>,
-  category: Option<String>,
+  categories: Option<String>,
   order_field: Option<String>,
   order_by: Option<String>,
   limit: Option<i32>,
@@ -69,7 +69,10 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
   let params = web::Query::<GetAllParameters>::from_query(req.query_string()).unwrap();
   let mut filters = QueryFilters::default();
   filters.search = params.search.clone();
-  filters.category = params.category.clone();
+  filters.categories = match &params.categories {
+    Some(c) => Some(c.split(",").map(|s| s.to_string()).collect()),
+    None => None
+  };
   filters.bounds = match &params.bounds {
     Some(b) => {
       let bounds: Vec<&str> = b.split(",").collect();

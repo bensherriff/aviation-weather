@@ -53,6 +53,7 @@ export default function MapTiles() {
         northEast: { lat: ne.lat, lon: ne.lng },
         southWest: { lat: sw.lat, lon: sw.lng }
       },
+      categories: ['small_airport', 'medium_airport', 'large_airport'],
       order_field: AirportOrderField.CATEGORY,
       order_by: 'asc',
       limit: 250,
@@ -111,7 +112,7 @@ export default function MapTiles() {
       {airports.map((airport) => (
         <Marker
           key={airport.icao}
-          position={[airport.point.y, airport.point.x]}
+          position={[airport.latitude, airport.longitude]}
           icon={metarIcon(airport)}
           eventHandlers={{
             click: () => handleOpen(airport)
@@ -119,7 +120,7 @@ export default function MapTiles() {
         >
           {!isOpen && (
             <Tooltip className='metar-tooltip' direction='top' offset={[5, -5]} opacity={1}>
-              <b>{airport.icao}</b> - {airport.full_name}
+              <b>{airport.icao}</b> - {airport.name}
             </Tooltip>
           )}
         </Marker>
