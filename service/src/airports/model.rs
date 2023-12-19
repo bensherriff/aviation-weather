@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::str::FromStr;
 
 use crate::db;
@@ -12,16 +13,19 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct Airport {
   pub icao: String,
-  pub category: String,
+  pub category: AirportCategory,
   pub name: String,
   pub elevation_ft: f32,
   pub iso_country: String,
   pub iso_region: String,
   pub municipality: String,
-  pub iata_code: String,
-  pub local_code: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub iata_code: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub local_code: Option<String>,
   pub latitude: f64,
   pub longitude: f64,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub has_tower: Option<bool>,
 }
 
@@ -29,14 +33,13 @@ impl Into<QueryAirport> for Airport {
   fn into(self) -> QueryAirport {
     return QueryAirport {
       icao: self.icao.clone(),
-      category: self.category.clone(),
+      category: self.category.clone().to_string(),
       name: self.name.clone(),
       elevation_ft: self.elevation_ft,
       iso_country: self.iso_country.clone(),
       iso_region: self.iso_region.clone(),
       municipality: self.municipality.clone(),
-      iata_code: self.iata_code.clone(),
-      local_code: self.local_code.clone(),
+      has_metar: false,
       point: Point::new(self.longitude, self.latitude, Some(4326)),
       data: match serde_json::to_value(&self) {
         Ok(d) => d,
@@ -55,6 +58,57 @@ impl From<QueryAirport> for Airport {
   }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum AirportCategory {
+  #[serde(rename = "small_airport")]
+  Small,
+  #[serde(rename = "medium_airport")]
+  Medium,
+  #[serde(rename = "large_airport")]
+  Large,
+  #[serde(rename = "heliport")]
+  Heliport,
+  #[serde(rename = "closed")]
+  Closed,
+  #[serde(rename = "seaplane_base")]
+  Seaplane,
+  #[serde(rename = "balloonport")]
+  Balloonport,
+  #[serde(rename = "unknown")]
+  Unknown
+}
+
+impl FromStr for AirportCategory {
+  type Err = ();
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s {
+      "small_airport" => Ok(AirportCategory::Small),
+      "medium_airport" => Ok(AirportCategory::Medium),
+      "large_airport" => Ok(AirportCategory::Large),
+      "heliport" => Ok(AirportCategory::Heliport),
+      "closed" => Ok(AirportCategory::Closed),
+      "seaplane_base" => Ok(AirportCategory::Seaplane),
+      "balloonport" => Ok(AirportCategory::Balloonport),
+      _ => Ok(AirportCategory::Unknown)
+    }
+  }
+}
+
+impl Display for AirportCategory {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      AirportCategory::Small => write!(f, "small_airport"),
+      AirportCategory::Medium => write!(f, "medium_airport"),
+      AirportCategory::Large => write!(f, "large_airport"),
+      AirportCategory::Heliport => write!(f, "heliport"),
+      AirportCategory::Closed => write!(f, "closed"),
+      AirportCategory::Seaplane => write!(f, "seaplane_base"),
+      AirportCategory::Balloonport => write!(f, "balloonport"),
+      AirportCategory::Unknown => write!(f, "unknown")
+    }
+  }
+}
+
 #[derive(Serialize, Deserialize, AsChangeset, Insertable, Queryable, QueryableByName)]
 #[diesel(table_name = airports)]
 pub struct QueryAirport {
@@ -65,8 +119,7 @@ pub struct QueryAirport {
   pub iso_country: String,
   pub iso_region: String,
   pub municipality: String,
-  pub iata_code: String,
-  pub local_code: String,
+  pub has_metar: bool,
   pub point: Point,
   pub data: serde_json::Value
 }
@@ -75,7 +128,7 @@ pub struct QueryAirport {
 pub struct QueryFilters {
   pub search: Option<String>,
   pub bounds: Option<Polygon<Point>>,
-  pub categories: Option<Vec<String>>,
+  pub categories: Option<Vec<AirportCategory>>,
   pub order_field: Option<QueryOrderField>,
   pub order_by: Option<QueryOrderBy>
 }
@@ -144,33 +197,34 @@ impl QueryAirport {
     let mut query: String = "SELECT * FROM airports".to_string();
     query = format!("{} {}", query, QueryAirport::build_filter_query(&filters)?);
 
+    query = format!("{} ORDER BY has_metar DESC", query);
     if let Some(order_by) = &filters.order_by {
       match order_by {
         QueryOrderBy::Asc => {
           if let Some(order_field) = &filters.order_field {
             query = match order_field {
-              QueryOrderField::Icao => format!("{} ORDER BY icao ASC", query),
-              QueryOrderField::Name => format!("{} ORDER BY name ASC", query),
-              QueryOrderField::Category => format!("{} ORDER BY category ASC", query),
-              QueryOrderField::Country => format!("{} ORDER BY iso_country ASC", query),
-              QueryOrderField::Region => format!("{} ORDER BY iso_region ASC", query),
-              QueryOrderField::Municipality => format!("{} ORDER BY municipality ASC", query),
-              QueryOrderField::Iata => format!("{} ORDER BY iata_code ASC", query),
-              QueryOrderField::Local => format!("{} ORDER BY local_code ASC", query),
+              QueryOrderField::Icao => format!("{}, icao ASC", query),
+              QueryOrderField::Name => format!("{}, name ASC", query),
+              QueryOrderField::Category => format!("{}, category ASC", query),
+              QueryOrderField::Country => format!("{}, iso_country ASC", query),
+              QueryOrderField::Region => format!("{}, iso_region ASC", query),
+              QueryOrderField::Municipality => format!("{}, municipality ASC", query),
+              QueryOrderField::Iata => format!("{}, iata_code ASC", query),
+              QueryOrderField::Local => format!("{}, local_code ASC", query),
             };
           };
         },
         QueryOrderBy::Desc => {
           if let Some(order_field) = &filters.order_field {
             query = match order_field {
-              QueryOrderField::Icao => format!("{} ORDER BY icao DESC", query),
-              QueryOrderField::Name => format!("{} ORDER BY name DESC", query),
-              QueryOrderField::Category => format!("{} ORDER BY category DESC", query),
-              QueryOrderField::Country => format!("{} ORDER BY iso_country DESC", query),
-              QueryOrderField::Region => format!("{} ORDER BY iso_region DESC", query),
-              QueryOrderField::Municipality => format!("{} ORDER BY municipality DESC", query),
-              QueryOrderField::Iata => format!("{} ORDER BY iata_code DESC", query),
-              QueryOrderField::Local => format!("{} ORDER BY local_code DESC", query),
+              QueryOrderField::Icao => format!("{}, icao DESC", query),
+              QueryOrderField::Name => format!("{}, name DESC", query),
+              QueryOrderField::Category => format!("{}, category DESC", query),
+              QueryOrderField::Country => format!("{}, iso_country DESC", query),
+              QueryOrderField::Region => format!("{}, iso_region DESC", query),
+              QueryOrderField::Municipality => format!("{}, municipality DESC", query),
+              QueryOrderField::Iata => format!("{}, iata_code DESC", query),
+              QueryOrderField::Local => format!("{}, local_code DESC", query),
             };
           };
         }
@@ -219,10 +273,12 @@ impl QueryAirport {
       }
     }
     if let Some(categories) = &filters.categories {
-      parts.push(format!("({})", categories.iter().map(|category| format!("category = '{}'", category)).collect::<Vec<String>>().join(" OR ")));
+      parts.push(format!("({})", categories.iter().map(|category| format!("category = '{}'", category.to_string())).collect::<Vec<String>>().join(" OR ")));
     }
     if let Some(search) = &filters.search {
-      let search_strs = vec!["icao", "name", "iso_country", "iso_region", "municipality", "iata_code", "local_code"];
+      // Sanitize search to only allow [a-zA-Z0-9-\\s]
+      let search = search.chars().filter(|c| c.is_alphanumeric() || *c == '-' || *c == ' ').collect::<String>();
+      let search_strs = vec!["icao", "name", "iso_country", "iso_region", "municipality"];
       parts.push(format!("({})", search_strs.iter().map(|s| format!("{} ILIKE '%{}%'", s, search)).collect::<Vec<String>>().join(" OR ")));
     }
 
@@ -233,7 +289,7 @@ impl QueryAirport {
     return Ok(query);
   }
 
-  pub fn find(icao: String) -> Result<Self, ServiceError> {
+  pub fn get(icao: &str) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = airports::table.filter(airports::icao.eq(icao)).first(&mut conn)?;
     Ok(airport)
@@ -261,10 +317,10 @@ impl QueryAirport {
     Ok(inserted_airports)
   }
 
-  pub fn update(icao: String, airport: Self) -> Result<Self, ServiceError> {
+  pub fn update(airport: Self) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = diesel::update(airports::table)
-        .filter(airports::icao.eq(icao))
+        .filter(airports::icao.eq(airport.icao.clone()))
         .set(airport)
         .get_result(&mut conn)?;
     Ok(airport)

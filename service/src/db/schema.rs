@@ -9,8 +9,7 @@ diesel::table! {
     iso_country -> Text,
     iso_region -> Text,
     municipality -> Text,
-    iata_code -> Text,
-    local_code -> Text,
+    has_metar -> Bool,
     point -> Geometry,
     data -> Jsonb
   }
@@ -19,7 +18,7 @@ diesel::table! {
 diesel::table! {
   metars (id) {
     id -> Integer,
-    station_id -> Text,
+    icao -> Text,
     observation_time -> Timestamp,
     raw_text -> Text,
     data -> Jsonb,

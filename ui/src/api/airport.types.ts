@@ -4,7 +4,12 @@ import { Metar } from './metar.types';
 export enum AirportCategory {
   SMALL = 'small_airport',
   MEDIUM = 'medium_airport',
-  LARGE = 'large_airport'
+  LARGE = 'large_airport',
+  HELIPORT = 'heliport',
+  BALLOONPORT = 'balloonport',
+  CLOSED = 'closed',
+  SEAPLANE = 'seaplane_base',
+  UNKNOWN = 'unknown',
 }
 
 export function airportCategoryToText(category: AirportCategory): string {
@@ -15,6 +20,16 @@ export function airportCategoryToText(category: AirportCategory): string {
       return 'Medium';
     case AirportCategory.LARGE:
       return 'Large';
+    case AirportCategory.HELIPORT:
+      return 'Helipad';
+    case AirportCategory.CLOSED:
+      return 'Closed';
+    case AirportCategory.SEAPLANE:
+      return 'Seaplane Base';
+    case AirportCategory.BALLOONPORT:
+      return 'Balloonport';
+    default:
+      return 'Unknown';
   }
 }
 

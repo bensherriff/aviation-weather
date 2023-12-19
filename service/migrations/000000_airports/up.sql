@@ -7,8 +7,7 @@ CREATE TABLE IF NOT EXISTS airports (
   iso_country TEXT NOT NULL,
   iso_region TEXT NOT NULL,
   municipality TEXT NOT NULL,
-  iata_code TEXT NOT NULL,
-  local_code TEXT NOT NULL,
+  has_metar BOOLEAN NOT NULL DEFAULT FALSE,
   point GEOMETRY(POINT,4326) NOT NULL,
   data JSONB NOT NULL
 );

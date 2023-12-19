@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use futures_util::stream::StreamExt as _;
 
-use crate::{airports::{QueryAirport, QueryFilters, QueryOrderField, QueryOrderBy, Airport}, db::{Response, Metadata}, auth::{JwtAuth, verify_role}};
+use crate::{airports::{QueryAirport, QueryFilters, QueryOrderField, QueryOrderBy, Airport, AirportCategory}, db::{Response, Metadata}, auth::{JwtAuth, verify_role}};
 use actix_multipart::Multipart;
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest, ResponseError};
 use log::{error, warn};
@@ -70,7 +70,7 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
   let mut filters = QueryFilters::default();
   filters.search = params.search.clone();
   filters.categories = match &params.categories {
-    Some(c) => Some(c.split(",").map(|s| s.to_string()).collect()),
+    Some(c) => Some(c.split(",").map(|s| AirportCategory::from_str(s).unwrap()).collect()),
     None => None
   };
   filters.bounds = match &params.bounds {
@@ -163,7 +163,7 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
 
 #[get("/{icao}")]
 async fn get(icao: web::Path<String>) -> HttpResponse {
-  match QueryAirport::find(icao.into_inner()) {
+  match QueryAirport::get(&icao.into_inner()) {
     Ok(a) => {
       let airport: Airport = a.into();
       HttpResponse::Ok().json(Response {
@@ -198,13 +198,13 @@ async fn create(airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
 }
 
 #[put("/{icao}")]
-async fn update(icao: web::Path<String>, airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
+async fn update(_icao: web::Path<String>, airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {},
     Err(err) => return ResponseError::error_response(&err)
   };
   let query_airport: QueryAirport = airport.into_inner().into();
-  match QueryAirport::update(icao.into_inner(), query_airport) {
+  match QueryAirport::update(query_airport) {
     Ok(a) => {
       let airport: Airport = a.into();
       HttpResponse::Ok().json(airport)

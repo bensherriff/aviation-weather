@@ -53,7 +53,7 @@ export default function MapTiles() {
         northEast: { lat: ne.lat, lon: ne.lng },
         southWest: { lat: sw.lat, lon: sw.lng }
       },
-      categories: ['small_airport', 'medium_airport', 'large_airport'],
+      categories: ['large_airport'],
       order_field: AirportOrderField.CATEGORY,
       order_by: 'asc',
       limit: 250,

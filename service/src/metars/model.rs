@@ -1,3 +1,4 @@
+use crate::airports::QueryAirport;
 use crate::{error_handler::ServiceError, db};
 use crate::db::schema::metars::{self};
 use chrono::Datelike;
@@ -17,7 +18,9 @@ pub struct QualityControlFlags {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub maintenance_indicator_on: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub corrected: Option<bool>
+  pub corrected: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub no_significant_change: Option<bool>,
 }
 
 impl Default for QualityControlFlags {
@@ -28,6 +31,7 @@ impl Default for QualityControlFlags {
       auto_station_with_precipication: None,
       maintenance_indicator_on: None,
       corrected: None,
+      no_significant_change: None,
     }
   }
 }
@@ -36,14 +40,17 @@ impl Default for QualityControlFlags {
 pub struct SkyCondition {
   pub sky_cover: String,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub cloud_base_ft_agl: Option<i32>
+  pub cloud_base_ft_agl: Option<i32>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub significant_convective_clouds: Option<String>
 }
 
 impl Default for SkyCondition {
   fn default() -> Self {
     SkyCondition {
       sky_cover: "".to_string(),
-      cloud_base_ft_agl: None
+      cloud_base_ft_agl: None,
+      significant_convective_clouds: None,
     }
   }
 }
@@ -91,9 +98,9 @@ pub struct Metar {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub wind_dir_degrees: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub wind_speed_kt: Option<i32>,
+  pub wind_speed_kt: Option<f64>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub wind_gust_kt: Option<i32>,
+  pub wind_gust_kt: Option<f64>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub variable_wind_dir_degrees: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -203,27 +210,39 @@ impl Metar {
           metar.quality_control_flags.corrected = Some(true);
           metar_parts.remove(0);
         }
+        if !metar_parts.is_empty() && metar_parts[0] == "NOSIG" {
+          metar.quality_control_flags.no_significant_change = Some(true);
+          metar_parts.remove(0);
+        }
 
         // Wind Direction and Speed
-        let wind_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}KT$").unwrap();
-        let wind_gust_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}G[0-9]{2}KT$").unwrap();
+        let wind_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}(?:KT|MPS)$").unwrap();
+        let wind_gust_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}G[0-9]{2}(?:KT|MPS)$").unwrap();
         if !metar_parts.is_empty() && wind_re.is_match(metar_parts[0]) {
           let wind = metar_parts[0];
           metar_parts.remove(0);
           let wind_dir_degrees = &wind[0..3];
-          let wind_speed_kt = &wind[3..5];
           metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
-          metar.wind_speed_kt = Some(wind_speed_kt.parse::<i32>().unwrap());
+          let mut wind_speed_kt = wind[3..5].to_string();
+          // Convert m/s to kt
+          if wind.len() == 8 {
+            wind_speed_kt = (wind_speed_kt.parse::<f64>().unwrap() * 1.94384).to_string();
+          }
+          metar.wind_speed_kt = Some(wind_speed_kt.parse::<f64>().unwrap());
         } else if !metar_parts.is_empty() && wind_gust_re.is_match(metar_parts[0]) {
           let wind = metar_parts[0];
           metar_parts.remove(0);
           let wind_dir_degrees = &wind[0..3];
-          let wind_speed_kt = &wind[3..5];
           metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
-          metar.wind_speed_kt = Some(wind_speed_kt.parse::<i32>().unwrap());
-          // Gust
-          let wind_gust_kt = &wind[6..8];
-          metar.wind_gust_kt = Some(wind_gust_kt.parse::<i32>().unwrap());
+          let mut wind_speed_kt = wind[3..5].to_string();
+          let mut wind_gust_kt = wind[6..8].to_string();
+          // Convert m/s to kt
+          if wind.len() == 9 {
+            wind_speed_kt = (wind_speed_kt.parse::<f64>().unwrap() * 1.94384).to_string();
+            wind_gust_kt = (wind_gust_kt.parse::<f64>().unwrap() * 1.94384).to_string();
+          }
+          metar.wind_speed_kt = Some(wind_speed_kt.parse::<f64>().unwrap());
+          metar.wind_gust_kt = Some(wind_gust_kt.parse::<f64>().unwrap());
         }
         
         // Variable Wind Direction
@@ -273,7 +292,7 @@ impl Metar {
         // Runway Visual Range
         let rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R|C)?/[PM]?[0-9]{4}FT$").unwrap();
         let variable_rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R|C)?/[PM]?[0-9]{4}V[PM]?[0-9]{4}FT$").unwrap();
-        while !metar_parts.is_empty() && rvr_re.is_match(metar_parts[0]) || variable_rvr_re.is_match(metar_parts[0]) {
+        while !metar_parts.is_empty() && (rvr_re.is_match(metar_parts[0]) || variable_rvr_re.is_match(metar_parts[0])) {
           let rvr_string = metar_parts[0];
           metar_parts.remove(0);
           let mut rvr = RunwayVisualRange::default();
@@ -303,7 +322,7 @@ impl Metar {
         }
 
         // Sky Condition
-        let sky_condition_re = regex::Regex::new(r"^(?:CLR|SKC|(?:FEW|SCT|BKN|OVC|VV)([0-9]{3})?)$").unwrap();
+        let sky_condition_re = regex::Regex::new(r"^(?:CLR|SKC|CAVOK|NSC|NCD|(?:FEW|SCT|BKN|OVC|VV)([0-9]{3})?(?:CB|TCU)?)$").unwrap();
         while !metar_parts.is_empty() && sky_condition_re.is_match(metar_parts[0]) {
           let sky_condition_string = metar_parts[0];
           metar_parts.remove(0);
@@ -311,7 +330,20 @@ impl Metar {
           let sky_cover = &sky_condition_string[0..3];
           sky_condition.sky_cover = sky_cover.to_string();
           if sky_condition_string.len() > 3 {
-            sky_condition.cloud_base_ft_agl = Some(sky_condition_string[3..sky_condition_string.len()].parse::<i32>().unwrap() * 100);
+            // Parse out the next three digits
+            let cloud_base_ft_agl = &sky_condition_string[3..6];
+            sky_condition.cloud_base_ft_agl = match cloud_base_ft_agl.parse::<i32>() {
+              Ok(c) => Some(c * 100),
+              Err(err) => {
+                warn!("Unable to parse cloud base in {}: {}", sky_condition_string, err);
+                None
+              }
+            };
+            if sky_condition_string.len() > 6 {
+              // Parse out the next two digits
+              let scc = &sky_condition_string[6..8];
+              sky_condition.significant_convective_clouds = Some(scc.to_string());
+            }
           }
           metar.sky_condition.push(sky_condition);
         }
@@ -525,7 +557,7 @@ impl Metar {
     let mut insert_metars: Vec<InsertMetar> = vec![];
     for metar in metars {
       insert_metars.push(InsertMetar {
-        station_id: metar.station_id.to_string(),
+        icao: metar.station_id.to_string(),
         observation_time: metar.observation_time,
         raw_text: metar.raw_text.to_string(),
         data: serde_json::to_value(metar).unwrap()
@@ -552,6 +584,13 @@ impl Metar {
     }
     trace!("Retrieving missing METAR data for {:?}", missing_icaos);
     let missing_icaos_string: Vec<String> = missing_icaos.iter().map(|icao| format!("{}", icao.to_string())).collect();
+    let mut airports: Vec<QueryAirport> = vec![];
+    missing_icaos_string.clone().iter().for_each(|icao| {
+      match QueryAirport::get(icao) {
+        Ok(a) => airports.push(a),
+        Err(_) => {}
+      }
+    });
     let mut missing_metars = Self::get_remote_metars(missing_icaos_string.join(",")).await;
     if missing_metars.len() > 0 {
       let insert_metars = Self::to_insert(&missing_metars);
@@ -559,6 +598,27 @@ impl Metar {
         Ok(rows) => trace!("Inserted {} metar rows", rows),
         Err(err) => warn!("Unable to insert metar data; {}", err)
       };
+      // Update airports with the appropriate has_metar flag
+      airports.iter().for_each(|airport| {
+        if missing_metars.iter().any(|metar| metar.station_id == airport.icao) {
+          let updated = QueryAirport {
+            icao: airport.icao.to_string(),
+            category: airport.category.to_string(),
+            name: airport.name.to_string(),
+            elevation_ft: airport.elevation_ft,
+            iso_country: airport.iso_country.to_string(),
+            iso_region: airport.iso_region.to_string(),
+            municipality: airport.municipality.to_string(),
+            has_metar: true,
+            point: airport.point,
+            data: airport.data.to_owned()
+          };
+          match QueryAirport::update(updated) {
+            Ok(_) => {},
+            Err(err) => warn!("Unable to update airport with has_metar flag; {}", err)
+          }
+        }
+      });
     }
     let mut metars: Vec<Metar> = vec![];
     metars.append(&mut missing_metars);
@@ -570,7 +630,7 @@ impl Metar {
 #[derive(Serialize, Deserialize, AsChangeset, Insertable)]
 #[diesel(table_name = metars)]
 struct InsertMetar {
-  station_id: String,
+  icao: String,
   observation_time: chrono::NaiveDateTime,
   raw_text: String,
   data: serde_json::Value
@@ -590,7 +650,7 @@ impl InsertMetar {
 #[diesel(table_name = metars)]
 struct QueryMetar {
   id: i32,
-  station_id: String,
+  icao: String,
   observation_time: chrono::NaiveDateTime,
   raw_text: String,
   data: serde_json::Value
@@ -598,11 +658,12 @@ struct QueryMetar {
 
 impl QueryMetar {
   fn get_all(icaos: &Vec<&str>) -> Result<Vec<QueryMetar>, ServiceError> {
+    // Sanitize search to only allow [a-zA-Z0-9]
+    let icaos = icaos.iter().map(|icao| icao.chars().filter(|c| c.is_alphanumeric()).collect::<String>()).collect::<Vec<String>>();
     let station_query: Vec<String> = icaos.iter().map(|icao| format!("'{}'", icao.to_string())).collect();
-      
     let mut conn = db::connection()?;
     let db_metars: Vec<Self> = match sql_query(
-      format!("SELECT DISTINCT ON (station_id) * FROM metars WHERE station_id IN ({}) ORDER BY station_id, observation_time DESC", station_query.join(","))
+      format!("SELECT DISTINCT ON (icao) * FROM metars WHERE icao IN ({}) ORDER BY icao, observation_time DESC", station_query.join(","))
     ).load(&mut conn) {
       Ok(m) => m,
       Err(err) => return Err(ServiceError { status: 500, message: format!("{}", err) })

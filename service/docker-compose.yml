@@ -22,6 +22,8 @@ services:
   redis:
     image: redis:latest
     container_name: weather-redis
+    volumes:
+      - redis:/data
     ports:
       - ${REDIS_PORT:-6379}:6379
     networks:
@@ -72,6 +74,7 @@ services:
 volumes:
   db:
   db_logs:
+  redis:
   minio:
 
 networks:
