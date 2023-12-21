@@ -3,12 +3,10 @@
 import { getAirports } from '@/api/airport';
 import { Airport, AirportOrderField } from '@/api/airport.types';
 import { getMetars } from '@/api/metar';
-import { DivIcon, LatLngBounds } from 'leaflet';
+import { LatLngBounds, icon } from 'leaflet';
 import { useEffect, useState } from 'react';
-import ReactDOMServer from 'react-dom/server';
 import { Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import MetarModal from './MetarModal';
-import { Avatar, MantineProvider } from '@mantine/core';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { coordinatesState, zoomState } from '@/state/map';
 
@@ -72,31 +70,20 @@ export default function MapTiles() {
   }
 
   function metarIcon(airport: Airport) {
-    function innerIcon({ tag, color, size = 'xs' }: { tag: string; color: string; size?: string }) {
-      return new DivIcon({
-        html: ReactDOMServer.renderToString(
-          <MantineProvider>
-            <Avatar variant='filled' color={color} radius={'xl'} size={size}>
-              {tag}
-            </Avatar>
-          </MantineProvider>
-        ),
-        className: 'metar-marker-icon'
-      });
-    }
+    let iconUrl = '/icons/unkn.svg';
     if (airport.latest_metar?.flight_category == 'VFR') {
-      return innerIcon({ tag: 'V', color: 'green' });
-    } else if (airport.latest_metar?.flight_category == 'MVFR') {
-      return innerIcon({ tag: 'M', color: 'blue' });
+      iconUrl = '/icons/vfr.svg';
+    }  else if (airport.latest_metar?.flight_category == 'MVFR') {
+      iconUrl = '/icons/mvfr.svg';
     } else if (airport.latest_metar?.flight_category == 'IFR') {
-      return innerIcon({ tag: 'I', color: 'red' });
+      iconUrl = '/icons/ifr.svg';
     } else if (airport.latest_metar?.flight_category == 'LIFR') {
-      return innerIcon({ tag: 'L', color: 'purple' });
-    } else if (airport.latest_metar?.flight_category == 'UNKN') {
-      return innerIcon({ tag: 'U', color: 'black', size: 'xs' });
-    } else {
-      return innerIcon({tag: ' ', color: 'grey', size: 'xs' });
+      iconUrl = '/icons/lifr.svg';
     }
+    return icon({
+      iconUrl: iconUrl,
+      iconSize: [20, 20]
+    })
   }
 
   useEffect(() => {

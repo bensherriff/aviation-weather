@@ -1,7 +1,5 @@
 'use client';
 
-import { login, register, refreshLoggedIn } from '@/api/auth';
-import { User } from '@/api/auth.types';
 import {
   Modal,
   Container,
@@ -16,16 +14,15 @@ import {
   Text
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { notifications } from '@mantine/notifications';
 
 interface HeaderModalProps {
   type?: string;
   toggle: any;
-  setUser: (user: User) => void;
-  setRefreshId: (id: NodeJS.Timeout) => void;
+  login: ({ email, password }: { email: string, password: string }) => Promise<boolean>;
+  register: ({ firstName, lastName, email, password }: { firstName: string, lastName: string, email: string, password: string }) => Promise<boolean>;
 }
 
-export function HeaderModal({ type, toggle, setUser, setRefreshId }: HeaderModalProps) {
+export function HeaderModal({ type, toggle, login, register }: HeaderModalProps) {
   function passwordValidator(value: string) {
     if (value.trim().length < 10) {
       return 'Password must be at least 10 characters';
@@ -129,52 +126,9 @@ export function HeaderModal({ type, toggle, setUser, setRefreshId }: HeaderModal
           <Paper withBorder shadow='md' p={30} mt={30} radius='md'>
             <form
               onSubmit={registerForm.onSubmit(async (values) => {
-                const id = notifications.show({
-                  loading: true,
-                  title: `Creating account`,
-                  message: `Please wait...`,
-                  autoClose: false,
-                  withCloseButton: false
-                });
-                const registerResponse = await register({
-                  first_name: values.firstName,
-                  last_name: values.lastName,
-                  email: values.email,
-                  password: values.password
-                });
-                if (registerResponse) {
-                  const loginResponse = await login(values.email, values.password);
-                  if (loginResponse) {
-                    setUser(loginResponse.user);
-                    setRefreshId(refreshLoggedIn());
-                    onClose();
-                    notifications.update({
-                      id,
-                      title: `Account created`,
-                      message: `Welcome ${loginResponse.user.first_name}!`,
-                      color: 'green',
-                      autoClose: 2000,
-                      loading: false
-                    });
-                  } else {
-                    notifications.update({
-                      id,
-                      title: `Unable to Login`,
-                      message: `Please try again.`,
-                      color: 'red',
-                      autoClose: 2000,
-                      loading: false
-                    });
-                  }
-                } else {
-                  notifications.update({
-                    id,
-                    title: `Unable to Register`,
-                    message: `Please try again.`,
-                    color: 'error',
-                    autoClose: 2000,
-                    loading: false
-                  });
+                const success = await register(values);
+                if (success) {
+                  onClose();
                 }
               })}
             >
@@ -219,18 +173,9 @@ export function HeaderModal({ type, toggle, setUser, setRefreshId }: HeaderModal
           <Paper withBorder shadow='md' p={30} mt={30} radius='md'>
             <form
               onSubmit={loginForm.onSubmit(async (values) => {
-                const response = await login(values.email, values.password);
-                if (response) {
-                  setUser(response.user);
-                  setRefreshId(refreshLoggedIn());
+                const success = await login(values);
+                if (success) {
                   onClose();
-                } else {
-                  notifications.show({
-                    title: `Unable to Login`,
-                    message: `Please try again.`,
-                    color: 'red',
-                    autoClose: 2000
-                  });
                 }
               })}
             >

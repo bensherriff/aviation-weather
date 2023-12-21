@@ -6,6 +6,8 @@ use crate::metars::Metar;
 
 pub fn update_airports() {
   tokio::spawn(async {
+    let mut airports: Vec<QueryAirport> = vec![];
+    let limit = 100;
     loop {
       debug!("METAR update start");
       let total = match QueryAirport::get_count(&QueryFilters::default()) {
@@ -15,17 +17,19 @@ pub fn update_airports() {
           break
         }
       };
-      let limit = 50;
-      let pages = ((total as f32) / (if limit <= 0 { 1 } else { limit} as f32)).ceil() as i32;
-      let mut airports: Vec<QueryAirport> = vec![];
-      for page in 1..(pages + 1) {
-        match QueryAirport::get_all(&QueryFilters::default(), limit, page) {
-          Ok(mut a) => {
-            airports.append(&mut a)
-          },
-          Err(err) => {
-            warn!("{}", err);
-            break
+      if total != airports.len() as i64 {
+        debug!("{} cached airports, expected {}", airports.len(), total);
+        airports = vec![];
+        let pages = ((total as f32) / (if limit <= 0 { 1 } else { limit} as f32)).ceil() as i32;
+        for page in 1..(pages + 1) {
+          match QueryAirport::get_all(&QueryFilters::default(), limit, page) {
+            Ok(mut a) => {
+              airports.append(&mut a)
+            },
+            Err(err) => {
+              warn!("{}", err);
+              break
+            }
           }
         }
       }
@@ -36,6 +40,7 @@ pub fn update_airports() {
       let mut observation_time = chrono::Utc::now().timestamp();
 
       if peekable.peek().is_none() {
+        debug!("No airports to update, sleeping for 1 hour");
         sleep(Duration::from_secs(3600)).await;
         continue;
       }
@@ -52,12 +57,13 @@ pub fn update_airports() {
                 observation_time = metar.observation_time.timestamp();
               }
             }
-            sleep(Duration::from_millis(100)).await;
           },
           Err(err) => {
             warn!("{}", err);
           }
         }
+        // Sleep for 100ms between chunks to avoid rate limiting
+        sleep(Duration::from_millis(100)).await;
       }
       debug!("METAR update complete");
       // Sleep until the earliest observation time is 1 hour old

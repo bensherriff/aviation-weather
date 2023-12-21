@@ -225,31 +225,50 @@ impl Metar {
         // Wind Direction and Speed
         let wind_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}(?:KT|MPS)$").unwrap();
         let wind_gust_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}G[0-9]{2}(?:KT|MPS)$").unwrap();
-        if !metar_parts.is_empty() && wind_re.is_match(metar_parts[0]) {
-          let wind = metar_parts[0];
+        // Handle input error where there is a space between the numbers and units
+        let mut value: Option<String> = None;
+        if metar_parts.len() >= 2 && metar_parts[0].len() == 5 && (metar_parts[1] == "KT" || metar_parts[1] == "MPS") {
+          value = Some(format!("{}{}", metar_parts[0], metar_parts[1]));
           metar_parts.remove(0);
-          let wind_dir_degrees = &wind[0..3];
-          metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
-          let mut wind_speed_kt = wind[3..5].to_string();
-          // Convert m/s to kt
-          if wind.len() == 8 {
-            wind_speed_kt = (wind_speed_kt.parse::<f64>().unwrap() * 1.94384).to_string();
-          }
-          metar.wind_speed_kt = Some(wind_speed_kt.parse::<f64>().unwrap());
+          metar_parts.remove(0);
+        } else if metar_parts.len() >= 2 && metar_parts[0].len() == 7 && metar_parts[0].contains("G") && (metar_parts[1] == "KT" || metar_parts[1] == "MPS") {
+          value = Some(format!("{}{}", metar_parts[0], metar_parts[1]));
+          metar_parts.remove(0);
+          metar_parts.remove(0);
+        } else if !metar_parts.is_empty() && wind_re.is_match(metar_parts[0]) {
+          value = Some(metar_parts[0].to_string());
+          metar_parts.remove(0);
         } else if !metar_parts.is_empty() && wind_gust_re.is_match(metar_parts[0]) {
-          let wind = metar_parts[0];
+          value = Some(metar_parts[0].to_string());
           metar_parts.remove(0);
-          let wind_dir_degrees = &wind[0..3];
-          metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
-          let mut wind_speed_kt = wind[3..5].to_string();
-          let mut wind_gust_kt = wind[6..8].to_string();
-          // Convert m/s to kt
-          if wind.len() == 9 {
-            wind_speed_kt = (wind_speed_kt.parse::<f64>().unwrap() * 1.94384).to_string();
-            wind_gust_kt = (wind_gust_kt.parse::<f64>().unwrap() * 1.94384).to_string();
-          }
-          metar.wind_speed_kt = Some(wind_speed_kt.parse::<f64>().unwrap());
-          metar.wind_gust_kt = Some(wind_gust_kt.parse::<f64>().unwrap());
+        }
+
+        match value {
+          Some(wind) => {
+            if wind_re.is_match(&wind) {
+              let wind_dir_degrees = &wind[0..3];
+              metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
+              let mut wind_speed_kt = wind[3..5].to_string();
+              // Convert m/s to kt
+              if wind.len() == 8 {
+                wind_speed_kt = (wind_speed_kt.parse::<f64>().unwrap() * 1.94384).to_string();
+              }
+              metar.wind_speed_kt = Some(wind_speed_kt.parse::<f64>().unwrap());
+            } else if wind_gust_re.is_match(&wind) {
+              let wind_dir_degrees = &wind[0..3];
+              metar.wind_dir_degrees = Some(wind_dir_degrees.to_string());
+              let mut wind_speed_kt = wind[3..5].to_string();
+              let mut wind_gust_kt = wind[6..8].to_string();
+              // Convert m/s to kt
+              if wind.len() == 9 {
+                wind_speed_kt = (wind_speed_kt.parse::<f64>().unwrap() * 1.94384).to_string();
+                wind_gust_kt = (wind_gust_kt.parse::<f64>().unwrap() * 1.94384).to_string();
+              }
+              metar.wind_speed_kt = Some(wind_speed_kt.parse::<f64>().unwrap());
+              metar.wind_gust_kt = Some(wind_gust_kt.parse::<f64>().unwrap());
+            }
+          },
+          None => {}
         }
         
         // Variable Wind Direction
@@ -516,17 +535,18 @@ impl Metar {
           }
           None => 5.0 // Assume VFR if no visibility is present
         };
+        // Ceiling is the lowest cloud base that is BKN or OVC
         let ceiling = match metar.sky_condition.first() {
           Some(s) => {
-            if s.sky_cover == "CLR" || s.sky_cover == "SKC" || s.sky_cover == "NSC" || s.sky_cover == "NCD" {
-              3000.0
-            } else if s.sky_cover == "VV" {
+            if s.sky_cover == "VV" {
               0.0
-            } else {
+            } else if s.sky_cover == "BKN" || s.sky_cover == "OVC" {
               match s.cloud_base_ft_agl {
                 Some(c) => c as f64,
                 None => 0.0
               }
+            } else {
+              3000.0 // Assume VFR if no BKN or OVC sky condition is present
             }
           },
           None => 3000.0 // Assume VFR if no sky condition is present
@@ -564,7 +584,7 @@ impl Metar {
     return missing_metar_icaos;
   }
 
-  async fn get_remote_metars(icaos: Vec<String>) -> Vec<Metar> {
+  async fn get_remote_metars(icaos: Vec<String>) -> Result<Vec<Metar>, ServiceError> {
     let gov_api_url = std::env::var("GOV_API_URL").expect("GOV_API_URL must be set");
     // Query the remote API for the missing METAR data 10 at a time
     let icao_chunks = icaos.chunks(10).map(|chunk| chunk.join(",")).collect::<Vec<String>>();
@@ -572,54 +592,27 @@ impl Metar {
     for icao_chunk in icao_chunks {
       let url = format!("{}/metar.php?ids={}", gov_api_url, icao_chunk);
       let mut m = match reqwest::get(url).await {
-        Ok(r) => match r.text().await {
-          Ok(r) => {
-            let metar_chunk = r.trim().split("\n").filter(|m| !m.trim().is_empty()).collect();
-            match Metar::parse(metar_chunk) {
-              Ok(m) => m,
-              Err(err) => {
-                warn!("{}", err);
-                return metars;
+        Ok(r) => {
+          // Check if the status code is 200
+          if r.status() != 200 {
+            return Err(ServiceError::new(500, format!("Unable to get METAR request: {}", r.status())));
+          }
+          match r.text().await {
+            Ok(r) => {
+              let metar_chunk = r.trim().split("\n").filter(|m| !m.trim().is_empty()).collect();
+              match Metar::parse(metar_chunk) {
+                Ok(m) => m,
+                Err(err) => return Err(err)
               }
-            }
-          },
-          Err(err) => {
-            warn!("Unable to parse METAR request: {}", err);
-            return metars;
+            },
+            Err(err) => return Err(ServiceError::new(500, format!("Unable to parse METAR request: {}", err)))
           }
         },
-        Err(err) => {
-          warn!("Unable to get METAR request: {}", err);
-          return metars;
-        }
+        Err(err) => return Err(ServiceError::new(500, format!("Unable to get METAR request: {}", err)))
       };
       metars.append(&mut m);
     }
-    
-    let icaos_string = icaos.join(",");
-    let url = format!("{}/metar.php?ids={}", gov_api_url, icaos_string);
-    match reqwest::get(url).await {
-      Ok(r) => match r.text().await {
-        Ok(r) => {
-          let metar_strings = r.trim().split("\n").filter(|m| !m.trim().is_empty()).collect();
-          match Metar::parse(metar_strings) {
-            Ok(m) => m,
-            Err(err) => {
-              warn!("{}", err);
-                return metars;
-            }
-          }
-        },
-        Err(err) => {
-          warn!("Unable to parse METAR request: {}", err);
-          return metars;
-        }
-      },
-      Err(err) => {
-        warn!("Unable to get METAR request: {}", err);
-        return metars;
-      }
-    }
+    return Ok(metars);
   }
 
   fn from_query(query_metars: Vec<QueryMetar>) -> Vec<Self> {
@@ -671,7 +664,14 @@ impl Metar {
         Err(_) => {}
       }
     });
-    let mut missing_metars = Self::get_remote_metars(missing_icaos_string).await;
+    let missing_result = Self::get_remote_metars(missing_icaos_string).await;
+    let mut missing_metars = match missing_result {
+      Ok(m) => m,
+      Err(err) => {
+        warn!("Unable to get remote METAR data; {}", err);
+        vec![]
+      }
+    };
     if missing_metars.len() > 0 {
       let insert_metars = Self::to_insert(&missing_metars);
       match InsertMetar::insert(&insert_metars) {

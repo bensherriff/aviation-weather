@@ -11,22 +11,40 @@ use postgis_diesel::types::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
+pub struct Runway {
+  pub id: String,
+  pub length_ft: f32,
+  pub width_ft: f32,
+  pub surface: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Frequency {
+  pub id: String,
+  pub frequency_mhz: f32,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Airport {
   pub icao: String,
-  pub category: AirportCategory,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub iata: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub local: Option<String>,
   pub name: String,
-  pub elevation_ft: f32,
+  pub category: AirportCategory,
   pub iso_country: String,
   pub iso_region: String,
   pub municipality: String,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub iata_code: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub local_code: Option<String>,
+  pub elevation_ft: f32,
   pub latitude: f64,
   pub longitude: f64,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub has_tower: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub has_beacon: Option<bool>,
+  pub runways: Vec<Runway>,
+  pub frequencies: Vec<Frequency>,
 }
 
 impl Into<QueryAirport> for Airport {

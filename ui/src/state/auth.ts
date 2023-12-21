@@ -6,6 +6,11 @@ export const userState = atom({
   default: undefined as User | undefined
 });
 
+export const refreshIdState = atom({
+  key: 'refreshIdState',
+  default: undefined as NodeJS.Timeout | undefined
+});
+
 export const isAuthenticatedState = atom({
   key: 'isAuthenticatedState',
   default: false

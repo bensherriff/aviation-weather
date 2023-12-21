@@ -30,7 +30,6 @@
       "@api/*": ["src/api"],
       "@app/*": ["./src/app/*"],
       "@components/*": ["src/components/*"],
-      "@lib/*": ["src/components/*"]
     }
   },
   "include": [
