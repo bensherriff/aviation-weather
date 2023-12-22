@@ -14,6 +14,7 @@ import {
   Text
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import Cookies from 'js-cookie';
 
 interface HeaderModalProps {
   type?: string;
@@ -72,9 +73,9 @@ export function HeaderModal({ type, toggle, login, register }: HeaderModalProps)
 
   const loginForm = useForm({
     initialValues: {
-      email: '',
+      email: Cookies.get('email') || '',
       password: '',
-      remember: false
+      remember: Cookies.get('remember') === 'true'
     }
   });
 
@@ -173,6 +174,12 @@ export function HeaderModal({ type, toggle, login, register }: HeaderModalProps)
           <Paper withBorder shadow='md' p={30} mt={30} radius='md'>
             <form
               onSubmit={loginForm.onSubmit(async (values) => {
+                Cookies.set('remember', 'true', { expires: 365 });
+                if (values.remember) {
+                  Cookies.set('email', values.email, { expires: 365 });
+                } else {
+                  Cookies.remove('email');
+                }
                 const success = await login(values);
                 if (success) {
                   onClose();
@@ -188,7 +195,7 @@ export function HeaderModal({ type, toggle, login, register }: HeaderModalProps)
                 {...loginForm.getInputProps('password')}
               />
               <Group justify='space-between' mt='lg'>
-                <Checkbox label='Remember me' {...loginForm.getInputProps('remember')} />
+                <Checkbox label='Remember me' defaultChecked={loginForm.values.remember} {...loginForm.getInputProps('remember')} />
                 <Anchor component='a' size='sm' onClick={() => toggle('reset')}>
                   Forgot password?
                 </Anchor>

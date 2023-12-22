@@ -3,7 +3,7 @@ import { deleteRequest, getRequest, postRequest } from '.';
 export async function getPicture(): Promise<Blob | undefined> {
   const response = await getRequest('users/picture');
   if (response?.status === 200) {
-    return response.blob();
+    return await response.blob();
   } else {
     return undefined;
   }

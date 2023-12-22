@@ -12,6 +12,8 @@ import { HeaderModal } from './HeaderModal';
 import { coordinatesState } from '@/state/map';
 import { User } from '@/api/auth.types';
 import { usePathname, useRouter } from 'next/navigation';
+import { FaMoon } from "react-icons/fa6";
+import { FaSun } from "react-icons/fa6";
 
 interface HeaderProps {
   user: User | undefined;
@@ -106,6 +108,10 @@ function UserSection({ user, profilePicture, setProfilePicture, logout, toggle }
   return (
     <div className='user-section'>
       <>
+        {/* <UnstyledButton> */}
+          {/* <FaMoon /> */}
+          {/* <FaSun /> */}
+        {/* </UnstyledButton> */}
         {user ? (
           <Menu shadow='md' width={200} openDelay={100} closeDelay={400}>
             <Menu.Target>
@@ -136,7 +142,7 @@ function UserSection({ user, profilePicture, setProfilePicture, logout, toggle }
                       });
                     }
                   }}
-                  accept='image/png,image/jpeg,image/jpg'
+                  accept='image/png,image/jpeg,image/svg+xml,image/webp,image/gif,image/apng,image/avif'
                   multiple={false}
                 >
                   {(props) => (

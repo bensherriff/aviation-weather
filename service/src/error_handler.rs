@@ -102,6 +102,20 @@ impl From<redis::RedisError> for ServiceError {
   }
 }
 
+impl From<s3::error::S3Error> for ServiceError {
+  fn from(error: s3::error::S3Error) -> ServiceError {
+    match error {
+      s3::error::S3Error::Credentials(err) => ServiceError::new(500, format!("Unknown s3 credentials error: {}", err)),
+      s3::error::S3Error::FromUtf8(err) => ServiceError::new(500, format!("Unknown s3 from utf8 error: {}", err)),
+      s3::error::S3Error::FmtError(err) => ServiceError::new(500, format!("Unknown s3 fmt error: {}", err)),
+      s3::error::S3Error::HeaderToStr(err) => ServiceError::new(500, format!("Unknown s3 header to str error: {}", err)),
+      s3::error::S3Error::HmacInvalidLength(err) => ServiceError::new(500, format!("Unknown s3 hmac invalid length error: {}", err)),
+      s3::error::S3Error::Http(status, msg) => ServiceError::new(status, msg),
+      _ => ServiceError::new(500, format!("Unknown s3 error: {}", error))
+    }
+  }
+}
+
 impl ResponseError for ServiceError {
   fn error_response(&self) -> HttpResponse {
     let status = match StatusCode::from_u16(self.status) {

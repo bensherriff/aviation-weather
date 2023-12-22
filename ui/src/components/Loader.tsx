@@ -1,36 +1,33 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import Header from "./Header";
-import { useRecoilState } from "recoil";
-import { refreshIdState, userState } from "@/state/auth";
-import { login, logout, refresh, refreshLoggedIn, register } from "@/api/auth";
-import { getFavorites, getPicture } from "@/api/users";
-import Cookies from "js-cookie";
-import { favoritesState, profilePictureState } from "@/state/user";
-import { notifications } from "@mantine/notifications";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from 'react';
+import Header from './Header';
+import { useRecoilState } from 'recoil';
+import { refreshIdState, userState } from '@/state/auth';
+import { login, logout, refresh, refreshLoggedIn, register } from '@/api/auth';
+import { getFavorites, getPicture } from '@/api/users';
+import Cookies from 'js-cookie';
+import { favoritesState } from '@/state/user';
+import { notifications } from '@mantine/notifications';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function Loader({ children }: { children: any }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useRecoilState(userState);
   const [refreshId, setRefreshId] = useRecoilState(refreshIdState);
   const [_, setFavorites] = useRecoilState(favoritesState);
-  const [profilePicture, setProfilePicture] = useRecoilState(profilePictureState);
+  const [profilePicture, setProfilePicture] = useState<File | undefined>(undefined);
   const path = usePathname();
   const router = useRouter();
 
   useEffect(() => {
-    setLoading(true);
-    if (!user || !Cookies.get("logged_in")) {
+    if (!user || !Cookies.get('logged_in')) {
       refreshUser();
     }
-    setLoading(false);
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     const p = path.split('/');
-    console.log(p[1], user);
 
     if (p.length > 1) {
       if (p[1] == 'admin' && user?.role != 'admin') {
@@ -41,31 +38,36 @@ export default function Loader({ children }: { children: any }) {
     }
   }, [path]);
 
-  function refreshUser() {
-    refresh().then((response) => {
-      if (response) {
-        setRefreshId(refreshLoggedIn());
-        setUser(response.user);
-        getFavorites().then((response) => {
-          if (response) {
-            setFavorites(response);
-          }
-        });
-        if (response.user.profile_picture) {
-          getPicture().then((response) => {
-            if (response) {
-              setProfilePicture(response as File);
-            }
-          });
+  async function refreshUser() {
+    setLoading(true);
+    const response = await refresh();
+    if (response) {
+      setRefreshId(refreshLoggedIn());
+      setUser(response.user);
+      const favoritesResponse = await getFavorites();
+      if (favoritesResponse) {
+        setFavorites(favoritesResponse);
+      }
+      if (response.user.profile_picture) {
+        const pictureResponse = await getPicture();
+        if (pictureResponse) {
+          setProfilePicture(pictureResponse as File);
         }
       }
-    });
+    }
+    setLoading(false);
   }
 
   async function loginUser({ email, password }: { email: string, password: string}): Promise<boolean> {
     const loginResponse = await login(email, password);
     if (loginResponse) {
       setUser(loginResponse.user);
+      if (loginResponse.user.profile_picture) {
+        const pictureResponse = await getPicture();
+        if (pictureResponse) {
+          setProfilePicture(pictureResponse as File);
+        }
+      }
       setRefreshId(refreshLoggedIn());
       notifications.show({
         title: `Welcome back ${loginResponse.user.first_name}!`,
@@ -89,7 +91,7 @@ export default function Loader({ children }: { children: any }) {
 
   async function logoutUser(): Promise<void> {
     await logout();
-    Cookies.remove("logged_in");
+    Cookies.remove('logged_in');
     setUser(undefined);
     setFavorites([]);
     setProfilePicture(undefined);
@@ -117,6 +119,12 @@ export default function Loader({ children }: { children: any }) {
       const loginResponse = await login(email, password);
       if (loginResponse) {
         setUser(loginResponse.user);
+        if (loginResponse.user.profile_picture) {
+          const pictureResponse = await getPicture();
+          if (pictureResponse) {
+            setProfilePicture(pictureResponse as File);
+          }
+        }
         setRefreshId(refreshLoggedIn());
         notifications.update({
           id,

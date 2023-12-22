@@ -4,9 +4,9 @@ import { getAirports } from "@/api/airport";
 import { Airport } from "@/api/airport.types";
 import { useEffect, useState } from "react";
 import { useRecoilState, useRecoilValue } from "recoil";
-import { Badge, Button, Card, Grid, Group, SimpleGrid, Text, Title } from "@mantine/core";
+import { Autocomplete, Badge, Box, Button, Card, Grid, Group, SimpleGrid, Text, Title } from "@mantine/core";
 import classes from './profile.module.css';
-import { getFavorites, removeFavorite } from "@/api/users";
+import { addFavorite, getFavorites, removeFavorite } from "@/api/users";
 import { getMetars } from "@/api/metar";
 import { Metar } from "@/api/metar.types";
 import { MdLocationSearching } from 'react-icons/md';
@@ -20,7 +20,7 @@ export default function Page() {
   return (
     <Grid gutter={80}>
       <Grid.Col span={12}>
-        <Card shadow="sm" m={"lg"} padding="lg" radius="md" withBorder>
+        <Box m="lg">
           <Title className={classes.title} order={2}>
             {user?.first_name} {user?.last_name}
           </Title>
@@ -28,7 +28,7 @@ export default function Page() {
           <Text c="dimmed">
             
           </Text>
-        </Card>
+        </Box>
       </Grid.Col>
       <Grid.Col span={12}>
         <TopSection />
@@ -40,6 +40,8 @@ export default function Page() {
 function TopSection() {
   const [airports, setAirports] = useState<Airport[]>([]);
   const [metars, setMetars] = useState<Metar[]>([]);
+  const [search, setSearch] = useState<string>('');
+  const [searchAirports, setSearchAirports] = useState<Airport[]>([]);
   const router = useRouter();
   const [_, setCoordinates] = useRecoilState(coordinatesState);
 
@@ -96,6 +98,9 @@ function TopSection() {
             size="sm"
             radius="lg"
             style={{ marginTop: '10px' }}
+            onClick={() => {
+              router.push(`/airport/${airport.icao}`);
+            }}
           >
             View
           </Button>
@@ -142,6 +147,28 @@ function TopSection() {
             Saved Airports
           </Title>
           <hr />
+          <Autocomplete
+            label='Add an airport to your favorites'
+            placeholder='ICAO or Airport Name'
+            value={search}
+            data={searchAirports.map((a) => ({ value: a.icao, label: `${a.icao} - ${a.name}` }))}
+            limit={5}
+            style={{ paddingBottom: '10px' }}
+            onChange={async (value) => {
+              setSearch(value);
+              if (value) {
+                const a = await getAirports({ icaos: [value], name: value });
+                setSearchAirports(a.data);
+              }
+            }}
+            onOptionSubmit={async (value) => {
+              if (!airports.find((a) => a.icao === value)) {
+                await addFavorite(value);
+                await updateFavorites();
+              }
+              setSearch('');
+            }}
+          />
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing={30}>
             {airports.map((airport) => AirportCard(airport))}
           </SimpleGrid>

@@ -21,7 +21,7 @@ mod scheduler;
 async fn main() -> std::io::Result<()> {
   dotenv().ok();
   env_logger::init_from_env(env_logger::Env::default().filter_or("RUST_LOG", "warn,service=info"));
-  db::init();
+  db::init().await;
   // scheduler::update_airports();
 
   let host = env::var("SERVICE_HOST").unwrap_or("localhost".to_string());
