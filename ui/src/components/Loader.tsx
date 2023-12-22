@@ -9,6 +9,7 @@ import { getFavorites, getPicture } from "@/api/users";
 import Cookies from "js-cookie";
 import { favoritesState, profilePictureState } from "@/state/user";
 import { notifications } from "@mantine/notifications";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function Loader({ children }: { children: any }) {
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,8 @@ export default function Loader({ children }: { children: any }) {
   const [refreshId, setRefreshId] = useRecoilState(refreshIdState);
   const [_, setFavorites] = useRecoilState(favoritesState);
   const [profilePicture, setProfilePicture] = useRecoilState(profilePictureState);
+  const path = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     setLoading(true);
@@ -24,6 +27,19 @@ export default function Loader({ children }: { children: any }) {
     }
     setLoading(false);
   }, [user]);
+
+  useEffect(() => {
+    const p = path.split('/');
+    console.log(p[1], user);
+
+    if (p.length > 1) {
+      if (p[1] == 'admin' && user?.role != 'admin') {
+        router.push('/');
+      } else if (p[1] == 'profile' && !user) {
+        router.push('/');
+      }
+    }
+  }, [path]);
 
   function refreshUser() {
     refresh().then((response) => {

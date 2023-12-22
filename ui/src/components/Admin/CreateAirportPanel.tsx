@@ -13,10 +13,14 @@ export default function CreateAirportPanel() {
       iso_country: '',
       iso_region: '',
       municipality: '',
-      iata_code: '',
-      local_code: '',
+      iata: '',
+      local: '',
       latitude: 0,
       longitude: 0,
+      has_tower: false,
+      has_beacon: false,
+      runways: [],
+      frequencies: [],
     }
   });
 
@@ -86,12 +90,12 @@ export default function CreateAirportPanel() {
         <TextInput
           label='IATA Code'
           placeholder='MNZ'
-          {...form.getInputProps('iata_code')}
+          {...form.getInputProps('iata')}
         />
         <TextInput
           label='Local Code'
           placeholder='HEF'
-          {...form.getInputProps('local_code')}
+          {...form.getInputProps('local')}
         />
       </Group>
       <Group>

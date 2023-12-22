@@ -16,13 +16,6 @@ import { userState } from "@/state/auth";
 
 export default function Page() {
   const user = useRecoilValue(userState);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!user) {
-      router.push('/');
-    }
-  }, []);
   
   return (
     <Grid gutter={80}>

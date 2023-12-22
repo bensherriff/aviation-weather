@@ -190,8 +190,6 @@ pub enum QueryOrderField {
   Country,
   Region,
   Municipality,
-  Iata,
-  Local,
 }
 
 impl FromStr for QueryOrderField {
@@ -204,8 +202,6 @@ impl FromStr for QueryOrderField {
       "iso_country" => Ok(QueryOrderField::Country),
       "iso_region" => Ok(QueryOrderField::Region),
       "municipality" => Ok(QueryOrderField::Municipality),
-      "iata_code" => Ok(QueryOrderField::Iata),
-      "local_code" => Ok(QueryOrderField::Local),
       _ => Err(())
     }
   }
@@ -229,8 +225,6 @@ impl QueryAirport {
               QueryOrderField::Country => format!("{}, iso_country ASC", query),
               QueryOrderField::Region => format!("{}, iso_region ASC", query),
               QueryOrderField::Municipality => format!("{}, municipality ASC", query),
-              QueryOrderField::Iata => format!("{}, iata_code ASC", query),
-              QueryOrderField::Local => format!("{}, local_code ASC", query),
             };
           };
         },
@@ -243,8 +237,6 @@ impl QueryAirport {
               QueryOrderField::Country => format!("{}, iso_country DESC", query),
               QueryOrderField::Region => format!("{}, iso_region DESC", query),
               QueryOrderField::Municipality => format!("{}, municipality DESC", query),
-              QueryOrderField::Iata => format!("{}, iata_code DESC", query),
-              QueryOrderField::Local => format!("{}, local_code DESC", query),
             };
           };
         }

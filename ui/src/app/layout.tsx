@@ -1,6 +1,6 @@
 import React from 'react';
 import RecoilRootWrapper from '@app/recoil-root-wrapper';
-import { MantineProvider } from '@mantine/core';
+import { MantineProvider, Skeleton } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
 import 'styles/globals.css';
 import 'styles/leaflet.css';
@@ -24,9 +24,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Notifications />
           <ModalsProvider>
             <RecoilRootWrapper>
-              <Loader>
-                {children}
-              </Loader>
+              <React.Suspense fallback={<Skeleton/>}>
+                <Loader>
+                  {children}
+                </Loader>
+              </React.Suspense>
             </RecoilRootWrapper>
           </ModalsProvider>
         </MantineProvider>

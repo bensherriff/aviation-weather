@@ -44,8 +44,8 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
       <Table.Td>{airport.iso_country}</Table.Td>
       <Table.Td>{airport.iso_region}</Table.Td>
       <Table.Td>{airport.municipality}</Table.Td>
-      <Table.Td>{airport.iata_code}</Table.Td>
-      <Table.Td>{airport.local_code}</Table.Td>
+      <Table.Td>{airport.iata}</Table.Td>
+      <Table.Td>{airport.local}</Table.Td>
     </Table.Tr>
   ))
 

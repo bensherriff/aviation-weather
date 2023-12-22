@@ -14,10 +14,14 @@ export default function UpdateAirportModal({ airport, setAirport }: { airport: A
       iso_country: airport?.iso_country || '',
       iso_region: airport?.iso_region || '',
       municipality:  airport?.municipality || '',
-      iata_code: airport?.iata_code || '',
-      local_code: airport?.local_code || '',
+      iata: airport?.iata || '',
+      local: airport?.local || '',
       latitude: airport?.latitude || 0,
       longitude: airport?.longitude || 0,
+      has_tower: airport?.has_tower || false,
+      has_beacon: airport?.has_beacon || false,
+      runways: airport?.runways || [],
+      frequencies: airport?.frequencies || [],
     }
   });
 
@@ -97,13 +101,13 @@ export default function UpdateAirportModal({ airport, setAirport }: { airport: A
                 required
                 label='IATA Code'
                 placeholder='HEF'
-                {...form.getInputProps('iata_code')}
+                {...form.getInputProps('iata')}
               />
               <TextInput
                 required
                 label='Local Code'
                 placeholder='HEF'
-                {...form.getInputProps('local_code')}
+                {...form.getInputProps('local')}
               />
             </Group>
             <Group>

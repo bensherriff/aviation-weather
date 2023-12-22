@@ -41,8 +41,6 @@ export enum AirportOrderField {
   ISO_COUNTRY = 'iso_country',
   ISO_REGION = 'iso_region',
   MUNICIPALITY = 'municipality',
-  IATA_CODE = 'iata_code',
-  LOCAL_CODE = 'local_code',
 }
 
 export interface Bounds {

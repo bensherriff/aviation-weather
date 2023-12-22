@@ -6,20 +6,12 @@ import CreateAirportPanel from "@/components/Admin/CreateAirportPanel";
 import UpdateAirportModal from "@/components/Admin/UpdateAirportModal";
 import { isAdminState } from "@/state/auth";
 import { Container, Grid, SimpleGrid } from "@mantine/core";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRecoilValue } from "recoil";
 
 export default function Page() {
   const [airport, setAirport] = useState<Airport | undefined>(undefined);
   const isAdmin = useRecoilValue(isAdminState);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isAdmin) {
-      router.push('/');
-    }
-  }, [airport]);
 
   return (
     <>
