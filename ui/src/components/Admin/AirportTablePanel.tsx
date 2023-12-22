@@ -7,7 +7,7 @@ import { CiSearch } from "react-icons/ci";
 import { notifications } from '@mantine/notifications';
 
 
-export default function AirportTablePanel({ setAirport }: { setAirport: (airport: Airport) => void }) {
+export default function AirportTablePanel({ setShowModal, setAirport }: { setShowModal: (value: boolean) => void, setAirport: (airport: Airport | undefined) => void }) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -35,7 +35,10 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
   const rows = airports.map((airport) => (
     <Table.Tr
       key={airport.icao}
-      onClick={() => setAirport(airport)}
+      onClick={() => {
+        setAirport(airport);
+        setShowModal(true);
+      }}
       style={{ cursor: 'pointer' }}
     >
       <Table.Td>{airport.icao}</Table.Td>
@@ -80,6 +83,14 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
       </Grid.Col>
       <Grid.Col span={2}>
         <Flex justify={'end'}>
+          <Space mr={'sm'}>
+            <PanelButton color={'green'} onClick={async () => {
+              setAirport(undefined);
+              setShowModal(true);
+            }}>
+              Create New
+            </PanelButton>
+          </Space>
           <Space mr={'sm'}>
             <PanelFileButton accept={'.json'} onChange={async (payload) => {
               if (payload instanceof File) {
