@@ -4,7 +4,7 @@ import { getAirport } from '@/api/airport';
 import { Airport } from '@/api/airport.types';
 import { getMetars } from '@/api/metar';
 import { Metar } from '@/api/metar.types';
-import SkyConditions from '@/components/Metars/SkyConditions';
+import { Grid, Title, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
 
 export default function Page({ params }: { params: { icao: string } }) {
@@ -25,12 +25,14 @@ export default function Page({ params }: { params: { icao: string } }) {
 
   if (airport) {
     return (
-      <>
-        <div className=''>
-          <h3 className=''>{airport.name}</h3>
-          {metar && <SkyConditions metar={metar} />}
-        </div>
-      </>
+      <Grid gutter={80} style={{ margin: '1em auto 0'}}>
+        <Grid.Col span={12}>
+          <Title className='title' order={1}>{airport.icao} - {airport.name}</Title>
+          <Text c="dimmed">
+            {airport.municipality} | {airport.iso_region} | {airport.iso_country}
+          </Text>
+        </Grid.Col>
+      </Grid>
     );
   } else {
     return <></>;

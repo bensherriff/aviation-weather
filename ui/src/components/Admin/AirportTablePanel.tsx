@@ -15,7 +15,8 @@ export default function AirportTablePanel({ setAirport }: { setAirport: (airport
 
   async function getAirportData() {
     const response = await getAirports({
-      search,
+      icaos: [search],
+      name: search,
       page,
       limit: 100
     });

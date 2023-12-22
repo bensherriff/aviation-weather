@@ -57,17 +57,33 @@ export interface Coordinate {
 
 export interface Airport {
   icao: string;
-  category: AirportCategory;
+  iata: string;
+  local: string;
   name: string;
-  elevation_ft: number;
+  category: AirportCategory;
   iso_country: string;
   iso_region: string;
   municipality: string;
-  iata_code: string;
-  local_code: string;
+  elevation_ft: number;
   latitude: number;
   longitude: number;
+  has_tower: boolean;
+  has_beacon: boolean;
+  runways: Runway[];
+  frequencies: Frequency[];
   latest_metar?: Metar;
+}
+
+export interface Runway {
+  id: string;
+  length_ft: number;
+  width_ft: number;
+  surface: string;
+}
+
+export interface Frequency {
+  id: string;
+  frequency_mhz: number;
 }
 
 export interface GetAirportResponse {

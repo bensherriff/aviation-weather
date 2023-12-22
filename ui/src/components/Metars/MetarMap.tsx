@@ -1,6 +1,6 @@
 'use client';
 
-import { MapContainer, useMap } from 'react-leaflet';
+import { MapContainer } from 'react-leaflet';
 import MapTiles from './MapTiles';
 import './metars.css';
 import { coordinatesState, zoomState } from '@/state/map';
@@ -18,8 +18,7 @@ export default function Map() {
         maxZoom={14} // Zoomed in
         minZoom={3} // Zoomed out
         id='map-container'
-        style={{ height: '94.5vh' }}
-        className={`overflow-y-hidden overflow-x-hidden`}
+        className={`map-container`}
         attributionControl={false}
       >
         <MapTiles />

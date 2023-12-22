@@ -22,7 +22,7 @@ import './metars.css';
 import SkyConditions from './SkyConditions';
 import { addFavorite, getFavorites, removeFavorite } from '@/api/users';
 import { favoritesState } from '@/state/user';
-import { useRecoilValue } from 'recoil';
+import { useRecoilState } from 'recoil';
 
 interface MetarModalProps {
   airport: Airport;
@@ -31,20 +31,21 @@ interface MetarModalProps {
 }
 
 export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps) {
-  const favorites = useRecoilValue(favoritesState);
+  const [favorites, setFavorites] = useRecoilState(favoritesState);
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     setIsFavorite(favorites.includes(airport.icao));
-  }, [favorites, airport]);
+  }, [airport, isOpen]);
 
-  function handleFavorite(value: boolean) {
+  async function updateIsFavorite(value: boolean) {
     setIsFavorite(value);
     if (value) {
-      addFavorite(airport.icao);
+      await addFavorite(airport.icao);
     } else {
-      removeFavorite(airport.icao);
+      await removeFavorite(airport.icao);
     }
+    setFavorites(await getFavorites());
   }
 
   return (
@@ -60,9 +61,9 @@ export default function MetarModal({ airport, isOpen, onClose }: MetarModalProps
           {airport.icao} {airport.name}
         </Link>
         {isFavorite ? (
-          <AiFillStar size={24} className='star' onClick={() => handleFavorite(false)} />
+          <AiFillStar size={24} className='star' onClick={async () => await updateIsFavorite(false)} />
         ) : (
-          <AiOutlineStar size={24} className='star' onClick={() => handleFavorite(true)} />
+          <AiOutlineStar size={24} className='star' onClick={async () => await updateIsFavorite(true)} />
         )}
       </span>
       <div className='min-w-0 flex-1'>
@@ -171,11 +172,6 @@ function MetarInfo({ metar }: { metar: Metar }) {
           <Grid.Col className='gutter-row' span={12}>
             <Grid gutter={18}>
               <Grid.Col className='gutter-row' span={12}>
-                <Card shadow='sm' padding='sm' radius='md' style={{ textAlign: 'center' }}>
-                  <Card.Section>
-                    
-                  </Card.Section>
-                </Card>
               </Grid.Col>
             </Grid>
           </Grid.Col>

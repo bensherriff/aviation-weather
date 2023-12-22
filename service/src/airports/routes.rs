@@ -10,7 +10,8 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GetAllParameters {
-  search: Option<String>,
+  icaos: Option<String>,
+  name: Option<String>,
   bounds: Option<String>,
   categories: Option<String>,
   order_field: Option<String>,
@@ -68,7 +69,11 @@ async fn import(mut payload: Multipart, auth: JwtAuth) -> HttpResponse {
 async fn get_all(req: HttpRequest) -> HttpResponse {
   let params = web::Query::<GetAllParameters>::from_query(req.query_string()).unwrap();
   let mut filters = QueryFilters::default();
-  filters.search = params.search.clone();
+  filters.icaos = match &params.icaos {
+    Some(i) => Some(i.split(",").map(|s| s.to_string()).collect()),
+    None => None
+  };
+  filters.name = params.name.clone();
   filters.categories = match &params.categories {
     Some(c) => Some(c.split(",").map(|s| AirportCategory::from_str(s).unwrap()).collect()),
     None => None

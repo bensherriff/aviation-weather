@@ -13,7 +13,8 @@ export async function getAirport({ icao }: GetAirportProps): Promise<GetAirportR
 interface GetAirportsProps {
   bounds?: Bounds;
   categories?: string[];
-  search?: string;
+  icaos?: string[];
+  name?: string;
   order_field?: AirportOrderField;
   order_by?: 'asc' | 'desc';
   page?: number;
@@ -23,7 +24,8 @@ interface GetAirportsProps {
 export async function getAirports({
   bounds,
   categories,
-  search,
+  icaos,
+  name,
   order_field,
   order_by,
   limit = 10,
@@ -34,7 +36,8 @@ export async function getAirports({
       ? `${bounds?.northEast.lat},${bounds?.northEast.lon},${bounds?.southWest.lat},${bounds?.southWest.lon}`
       : undefined,
     categories: categories ?? undefined,
-    search: search ?? undefined,
+    icaos: icaos ?? undefined,
+    name: name ?? undefined,
     order_field: order_field ?? undefined,
     order_by: order_by ?? undefined,
     limit,

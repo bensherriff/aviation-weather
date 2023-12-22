@@ -15,7 +15,6 @@ export default function MapTiles() {
   const [airports, setAirports] = useState<Airport[]>([]);
   const [selectedAirport, setSelectedAirport] = useState<Airport | undefined>();
   const coordinates = useRecoilValue(coordinatesState);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [zoom, setZoom] = useRecoilState(zoomState);
   // const [dragging, setDragging] = useState(false);
   const map = useMap();
@@ -46,7 +45,6 @@ export default function MapTiles() {
   async function updateAirports(bounds: LatLngBounds) {
     const ne = bounds.getNorthEast();
     const sw = bounds.getSouthWest();
-    console.log('zoom', zoom)
     const { data: airportData } = await getAirports({
       bounds: {
         northEast: { lat: ne.lat, lon: ne.lng },

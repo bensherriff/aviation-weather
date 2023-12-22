@@ -25,3 +25,9 @@
   margin-top: auto;
   margin-bottom: auto;
 }
+
+.navbar .user-section {
+  display: flex;
+  align-items: center;
+  padding-right: 2em;
+}

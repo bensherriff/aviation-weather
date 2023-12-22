@@ -11,6 +11,7 @@ import { useToggle } from '@mantine/hooks';
 import { HeaderModal } from './HeaderModal';
 import { coordinatesState } from '@/state/map';
 import { User } from '@/api/auth.types';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface HeaderProps {
   user: User | undefined;
@@ -26,10 +27,12 @@ export default function Header({ user, profilePicture, setProfilePicture, login,
   const [airports, setAirports] = useState<{ key: string; value: string; label: string }[]>([]);
   const [modalType, toggle] = useToggle([undefined, 'login', 'register', 'reset']);
   const [_, setCoordinates] = useRecoilState(coordinatesState);
+  const pathname = usePathname();
+  const router = useRouter();
 
   async function onChange(value: string) {
     setSearchValue(value);
-    const airportData = await getAirports({ search: value });
+    const airportData = await getAirports({ icaos: [value], name: value });
     setAirports(
       airportData.data.map((airport) => ({
         key: airport.icao,
@@ -40,9 +43,15 @@ export default function Header({ user, profilePicture, setProfilePicture, login,
   }
 
   async function onClick(value: string) {
-    const airport = await getAirport({ icao: value });
-    if (airport) {
-      setCoordinates({ lat: airport.data.latitude, lon: airport.data.longitude });
+    setSearchValue('');
+    // Get current path
+    if (pathname == '/') {
+      const airport = await getAirport({ icao: value });
+      if (airport) {
+        setCoordinates({ lat: airport.data.latitude, lon: airport.data.longitude });
+      }
+    } else {
+      router.push(`/airport/${value}`)
     }
   }
 

@@ -144,7 +144,8 @@ pub struct QueryAirport {
 
 #[derive(Debug)]
 pub struct QueryFilters {
-  pub search: Option<String>,
+  pub icaos: Option<Vec<String>>,
+  pub name: Option<String>,
   pub bounds: Option<Polygon<Point>>,
   pub categories: Option<Vec<AirportCategory>>,
   pub order_field: Option<QueryOrderField>,
@@ -154,7 +155,8 @@ pub struct QueryFilters {
 impl Default for QueryFilters {
   fn default() -> Self {
     QueryFilters {
-      search: None,
+      icaos: None,
+      name: None,
       bounds: None,
       categories: None,
       order_field: None,
@@ -305,11 +307,21 @@ impl QueryAirport {
     if let Some(categories) = &filters.categories {
       parts.push(format!("({})", categories.iter().map(|category| format!("category = '{}'", category.to_string())).collect::<Vec<String>>().join(" OR ")));
     }
-    if let Some(search) = &filters.search {
+    fn sanitize_icao(icao: &str) -> String {
       // Sanitize search to only allow [a-zA-Z0-9-\\s]
-      let search = search.chars().filter(|c| c.is_alphanumeric() || *c == '-' || *c == ' ').collect::<String>();
-      let search_strs = vec!["icao", "name", "iso_country", "iso_region", "municipality"];
-      parts.push(format!("({})", search_strs.iter().map(|s| format!("{} ILIKE '%{}%'", s, search)).collect::<Vec<String>>().join(" OR ")));
+      icao.chars().filter(|c| c.is_alphanumeric() || *c == '-' || *c == ' ').collect::<String>()
+    }
+    if &filters.icaos.is_some() == &true && &filters.name.is_some() == &true {
+      let icaos = filters.icaos.as_ref().unwrap();
+      let name = sanitize_icao(filters.name.as_ref().unwrap());
+      let icao_part = format!("({})", icaos.iter().map(|icao| format!("icao ILIKE '{}'", sanitize_icao(icao))).collect::<Vec<String>>().join(" OR "));
+      let name_part = format!("name ILIKE '%{}%'", name);
+      parts.push(format!("({} OR {})", icao_part, name_part));
+    } else if let Some(icaos) = &filters.icaos {
+      parts.push(format!("({})", icaos.iter().map(|icao| format!("icao ILIKE '{}'", sanitize_icao(icao))).collect::<Vec<String>>().join(" OR ")));
+    } else if let Some(name) = &filters.name {
+      let search = sanitize_icao(name);
+      parts.push(format!("name ILIKE '%{}%'", search));
     }
 
     if parts.len() > 0 {
