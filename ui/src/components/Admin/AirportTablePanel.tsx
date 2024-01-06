@@ -112,7 +112,23 @@ export default function AirportTablePanel({ setShowModal, setAirport }: { setSho
           </Space>
           <Space mr={'sm'}>
             <PanelButton color={'blue'} onClick={async () => {
-              
+              const airports = [];
+              let page = 1;
+              let totalPages = 1;
+              do {
+                const response = await getAirports({ limit: 1000, page });
+                airports.push(...response.data);
+                totalPages = response.meta.pages;
+                page++;
+              } while (page <= totalPages);
+              if (airports && airports.length > 0) {
+                const element = document.createElement("a");
+                const file = new Blob([JSON.stringify(airports)], {type: 'text/plain'});
+                element.href = URL.createObjectURL(file);
+                element.download = "airports.json";
+                document.body.appendChild(element); // Required for this to work in FireFox
+                element.click();
+              }
             }}>
               Export
             </PanelButton>

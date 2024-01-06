@@ -62,7 +62,7 @@ export async function createAirport({ airport }: { airport: Airport }): Promise<
 }
 
 export async function updateAirport({ airport }: { airport: Airport }): Promise<any> {
-  const response = await putRequest(`airports`, airport);
+  const response = await putRequest(`airports/${airport.icao}`, airport);
   return response?.json() || { data: undefined };
 }
 

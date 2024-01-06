@@ -56,7 +56,8 @@ export default function MapTiles() {
       limit: zoom < 4 ? 200 : 100,
       page: 1
     });
-    const { data: metars } = await getMetars(airportData.map((a) => a.icao));
+    const airports = airportData.filter((airport) => airport.has_metar);
+    const { data: metars } = await getMetars(airports.map((a) => a.icao));
     metars.forEach((metar) => {
       airportData.forEach((airport) => {
         if (metar.station_id == airport.icao) {
@@ -69,7 +70,9 @@ export default function MapTiles() {
 
   function metarIcon(airport: Airport) {
     let iconUrl = '/icons/unkn.svg';
-    if (airport.latest_metar?.flight_category == 'VFR') {
+    if (!airport.has_metar) {
+      iconUrl = '/icons/nometar.svg';
+    } else if (airport.latest_metar?.flight_category == 'VFR') {
       iconUrl = '/icons/vfr.svg';
     }  else if (airport.latest_metar?.flight_category == 'MVFR') {
       iconUrl = '/icons/mvfr.svg';
