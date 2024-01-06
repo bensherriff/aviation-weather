@@ -70,14 +70,6 @@ export default function MapTiles() {
 
   function metarIcon(airport: Airport) {
     let iconUrl = '/icons/unkn.svg';
-    // TEMP REMOVE THIS
-    if (airport.has_metar && airport.latest_metar == undefined) {
-      const a = {
-        ...airport,
-        has_metar: false
-      }
-      updateAirport({ airport: a });
-    }
     if (!airport.has_metar && airport.latest_metar == undefined) {
       iconUrl = '/icons/nometar.svg';
     } else if (airport.latest_metar?.flight_category == 'VFR') {
