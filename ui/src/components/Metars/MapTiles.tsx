@@ -1,6 +1,6 @@
 'use client';
 
-import { getAirports } from '@/api/airport';
+import { getAirports, updateAirport } from '@/api/airport';
 import { Airport, AirportOrderField } from '@/api/airport.types';
 import { getMetars } from '@/api/metar';
 import { LatLngBounds, icon } from 'leaflet';
@@ -70,7 +70,15 @@ export default function MapTiles() {
 
   function metarIcon(airport: Airport) {
     let iconUrl = '/icons/unkn.svg';
-    if (!airport.has_metar) {
+    // TEMP REMOVE THIS
+    if (airport.has_metar && airport.latest_metar == undefined) {
+      const a = {
+        ...airport,
+        has_metar: false
+      }
+      updateAirport({ airport: a });
+    }
+    if (!airport.has_metar && airport.latest_metar == undefined) {
       iconUrl = '/icons/nometar.svg';
     } else if (airport.latest_metar?.flight_category == 'VFR') {
       iconUrl = '/icons/vfr.svg';
