@@ -26,6 +26,8 @@ export default function AirportForm({ title, airport, submitText, onSubmit, onDe
       longitude: airport?.longitude || 0,
       has_tower: airport?.has_tower || false,
       has_beacon: airport?.has_beacon || false,
+      has_metar: airport?.has_metar || false,
+      public: airport?.public || false,
       runways: airport?.runways || [],
       frequencies: airport?.frequencies || [],
     }
@@ -99,18 +101,32 @@ export default function AirportForm({ title, airport, submitText, onSubmit, onDe
               {...form.getInputProps('municipality')}
             />
           </Group>
-          <Checkbox
-            mt={'xs'}
-            label='Has Tower'
-            defaultChecked={form.values.has_tower}
-            {...form.getInputProps('has_tower')}
-          />
-          <Checkbox
-            mt={'xs'}
-            label='Has Beacon'
-            defaultChecked={form.values.has_beacon}
-            {...form.getInputProps('has_beacon')}
-          />
+          <Group>
+            <Checkbox
+              mt={'xs'}
+              label='Has Tower'
+              defaultChecked={form.values.has_tower}
+              {...form.getInputProps('has_tower')}
+            />
+            <Checkbox
+              mt={'xs'}
+              label='Has Beacon'
+              defaultChecked={form.values.has_beacon}
+              {...form.getInputProps('has_beacon')}
+            />
+            <Checkbox
+              mt={'xs'}
+              label='Has Metar'
+              defaultChecked={form.values.has_metar}
+              {...form.getInputProps('has_metar')}
+            />
+            <Checkbox
+              mt={'xs'}
+              label='Public'
+              defaultChecked={form.values.public}
+              {...form.getInputProps('public')}
+            />
+          </Group>
           <NumberInput
             required
             hideControls

@@ -67,6 +67,8 @@ export interface Airport {
   longitude: number;
   has_tower: boolean;
   has_beacon: boolean;
+  has_metar: boolean;
+  public: boolean;
   runways: Runway[];
   frequencies: Frequency[];
   latest_metar?: Metar;

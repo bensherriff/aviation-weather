@@ -45,6 +45,8 @@ pub struct Airport {
   pub has_beacon: Option<bool>,
   pub runways: Vec<Runway>,
   pub frequencies: Vec<Frequency>,
+  pub has_metar: bool,
+  pub public: bool,
 }
 
 impl Into<QueryAirport> for Airport {

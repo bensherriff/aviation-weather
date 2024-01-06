@@ -26,7 +26,6 @@ async fn import(mut payload: Multipart, auth: JwtAuth) -> HttpResponse {
     return ResponseError::error_response(&err)
   };
 
-
   while let Some(item) = payload.next().await {
     let mut bytes = web::BytesMut::new();
     let mut field = match item {

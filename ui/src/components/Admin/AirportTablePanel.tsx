@@ -110,6 +110,13 @@ export default function AirportTablePanel({ setShowModal, setAirport }: { setSho
               Import
             </PanelFileButton>
           </Space>
+          <Space mr={'sm'}>
+            <PanelButton color={'blue'} onClick={async () => {
+              
+            }}>
+              Export
+            </PanelButton>
+          </Space>
           <Space>
             <PanelButton color={'red'} onClick={async () => {
               await removeAirport({});
