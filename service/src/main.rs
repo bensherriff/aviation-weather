@@ -14,15 +14,15 @@ mod auth;
 mod db;
 mod error_handler;
 mod metars;
-mod users;
 mod scheduler;
+mod users;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
   dotenv().ok();
   env_logger::init_from_env(env_logger::Env::default().filter_or("RUST_LOG", "warn,service=info"));
   db::init().await;
-  // scheduler::update_airports();
+  scheduler::update_airports();
 
   let host = env::var("SERVICE_HOST").unwrap_or("localhost".to_string());
   let port = env::var("SERVICE_PORT").unwrap_or("5000".to_string());
@@ -42,11 +42,12 @@ async fn main() -> std::io::Result<()> {
       .configure(auth::init_routes)
       .configure(users::init_routes)
   })
-  .bind(format!("{}:{}", host, port)) {
+  .bind(format!("{}:{}", host, port))
+  {
     Ok(b) => {
       info!("Binding server to {}:{}", host, port);
       b
-    },
+    }
     Err(err) => {
       error!("Could not bind server: {}", err);
       return Err(err);

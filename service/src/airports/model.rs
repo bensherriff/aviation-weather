@@ -67,8 +67,8 @@ impl Into<QueryAirport> for Airport {
           error!("{}", err);
           serde_json::Value::Null
         }
-      }
-    }
+      },
+    };
   }
 }
 
@@ -95,7 +95,7 @@ pub enum AirportCategory {
   #[serde(rename = "balloonport")]
   Balloonport,
   #[serde(rename = "unknown")]
-  Unknown
+  Unknown,
 }
 
 impl FromStr for AirportCategory {
@@ -109,7 +109,7 @@ impl FromStr for AirportCategory {
       "closed" => Ok(AirportCategory::Closed),
       "seaplane_base" => Ok(AirportCategory::Seaplane),
       "balloonport" => Ok(AirportCategory::Balloonport),
-      _ => Ok(AirportCategory::Unknown)
+      _ => Ok(AirportCategory::Unknown),
     }
   }
 }
@@ -124,7 +124,7 @@ impl Display for AirportCategory {
       AirportCategory::Closed => write!(f, "closed"),
       AirportCategory::Seaplane => write!(f, "seaplane_base"),
       AirportCategory::Balloonport => write!(f, "balloonport"),
-      AirportCategory::Unknown => write!(f, "unknown")
+      AirportCategory::Unknown => write!(f, "unknown"),
     }
   }
 }
@@ -141,7 +141,7 @@ pub struct QueryAirport {
   pub municipality: String,
   pub has_metar: bool,
   pub point: Point,
-  pub data: serde_json::Value
+  pub data: serde_json::Value,
 }
 
 #[derive(Debug)]
@@ -151,7 +151,8 @@ pub struct QueryFilters {
   pub bounds: Option<Polygon<Point>>,
   pub categories: Option<Vec<AirportCategory>>,
   pub order_field: Option<QueryOrderField>,
-  pub order_by: Option<QueryOrderBy>
+  pub order_by: Option<QueryOrderBy>,
+  pub has_metar: Option<bool>,
 }
 
 impl Default for QueryFilters {
@@ -162,7 +163,8 @@ impl Default for QueryFilters {
       bounds: None,
       categories: None,
       order_field: None,
-      order_by: None
+      order_by: None,
+      has_metar: None,
     }
   }
 }
@@ -170,7 +172,7 @@ impl Default for QueryFilters {
 #[derive(Debug)]
 pub enum QueryOrderBy {
   Asc,
-  Desc
+  Desc,
 }
 
 impl FromStr for QueryOrderBy {
@@ -179,7 +181,7 @@ impl FromStr for QueryOrderBy {
     match s {
       "asc" => Ok(QueryOrderBy::Asc),
       "desc" => Ok(QueryOrderBy::Desc),
-      _ => Err(())
+      _ => Err(()),
     }
   }
 }
@@ -204,7 +206,7 @@ impl FromStr for QueryOrderField {
       "iso_country" => Ok(QueryOrderField::Country),
       "iso_region" => Ok(QueryOrderField::Region),
       "municipality" => Ok(QueryOrderField::Municipality),
-      _ => Err(())
+      _ => Err(()),
     }
   }
 }
@@ -229,7 +231,7 @@ impl QueryAirport {
               QueryOrderField::Municipality => format!("{}, municipality ASC", query),
             };
           };
-        },
+        }
         QueryOrderBy::Desc => {
           if let Some(order_field) = &filters.order_field {
             query = match order_field {
@@ -249,7 +251,12 @@ impl QueryAirport {
 
     let airports: Vec<QueryAirport> = match sql_query(query).load(&mut conn) {
       Ok(a) => a,
-      Err(err) => return Err(ServiceError { status: 500, message: format!("{}", err) })
+      Err(err) => {
+        return Err(ServiceError {
+          status: 500,
+          message: format!("{}", err),
+        })
+      }
     };
     Ok(airports)
   }
@@ -268,12 +275,17 @@ impl QueryAirport {
     #[derive(Debug, Queryable, QueryableByName)]
     #[diesel(table_name = airports)]
     struct Count {
-      count: i64
+      count: i64,
     }
 
     let count: Vec<Count> = match sql_query(query).load(&mut conn) {
       Ok(a) => a,
-      Err(err) => return Err(ServiceError { status: 500, message: format!("{}", err) })
+      Err(err) => {
+        return Err(ServiceError {
+          status: 500,
+          message: format!("{}", err),
+        })
+      }
     };
     return Ok(count[0].count);
   }
@@ -286,7 +298,10 @@ impl QueryAirport {
     if let Some(bounds) = &filters.bounds {
       // convert bounds to a WKT polygon
       if bounds.rings.len() > 1 {
-        return Err(ServiceError { status: 400, message: "Only one polygon is allowed".to_string() })
+        return Err(ServiceError {
+          status: 400,
+          message: "Only one polygon is allowed".to_string(),
+        });
       } else {
         let mut points: Vec<String> = vec![];
         bounds.rings.iter().for_each(|ring| {
@@ -295,27 +310,57 @@ impl QueryAirport {
           });
         });
         let bounds = format!("POLYGON(({}))", points.join(","));
-        parts.push(format!("ST_Contains(ST_GeomFromText('{}', 4326), point)", bounds));
+        parts.push(format!(
+          "ST_Contains(ST_GeomFromText('{}', 4326), point)",
+          bounds
+        ));
       }
     }
     if let Some(categories) = &filters.categories {
-      parts.push(format!("({})", categories.iter().map(|category| format!("category = '{}'", category.to_string())).collect::<Vec<String>>().join(" OR ")));
+      parts.push(format!(
+        "({})",
+        categories
+          .iter()
+          .map(|category| format!("category = '{}'", category.to_string()))
+          .collect::<Vec<String>>()
+          .join(" OR ")
+      ));
     }
     fn sanitize_icao(icao: &str) -> String {
       // Sanitize search to only allow [a-zA-Z0-9-\\s]
-      icao.chars().filter(|c| c.is_alphanumeric() || *c == '-' || *c == ' ').collect::<String>()
+      icao
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '-' || *c == ' ')
+        .collect::<String>()
     }
     if &filters.icaos.is_some() == &true && &filters.name.is_some() == &true {
       let icaos = filters.icaos.as_ref().unwrap();
       let name = sanitize_icao(filters.name.as_ref().unwrap());
-      let icao_part = format!("({})", icaos.iter().map(|icao| format!("icao ILIKE '{}'", sanitize_icao(icao))).collect::<Vec<String>>().join(" OR "));
+      let icao_part = format!(
+        "({})",
+        icaos
+          .iter()
+          .map(|icao| format!("icao ILIKE '{}'", sanitize_icao(icao)))
+          .collect::<Vec<String>>()
+          .join(" OR ")
+      );
       let name_part = format!("name ILIKE '%{}%'", name);
       parts.push(format!("({} OR {})", icao_part, name_part));
     } else if let Some(icaos) = &filters.icaos {
-      parts.push(format!("({})", icaos.iter().map(|icao| format!("icao ILIKE '{}'", sanitize_icao(icao))).collect::<Vec<String>>().join(" OR ")));
+      parts.push(format!(
+        "({})",
+        icaos
+          .iter()
+          .map(|icao| format!("icao ILIKE '{}'", sanitize_icao(icao)))
+          .collect::<Vec<String>>()
+          .join(" OR ")
+      ));
     } else if let Some(name) = &filters.name {
       let search = sanitize_icao(name);
       parts.push(format!("name ILIKE '%{}%'", search));
+    }
+    if let Some(has_metar) = &filters.has_metar {
+      parts.push(format!("has_metar = {}", has_metar));
     }
 
     if parts.len() > 0 {
@@ -327,27 +372,33 @@ impl QueryAirport {
 
   pub fn get(icao: &str) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
-    let airport = airports::table.filter(airports::icao.eq(icao)).first(&mut conn)?;
+    let airport = airports::table
+      .filter(airports::icao.eq(icao))
+      .first(&mut conn)?;
     Ok(airport)
   }
 
   pub fn insert(airport: Self) -> Result<Self, ServiceError> {
-    let mut conn: r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>> = db::connection()?;
+    let mut conn: r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>> =
+      db::connection()?;
     let airport = Self::from(airport);
     let airport = diesel::insert_into(airports::table)
-        .values(airport)
-        .get_result(&mut conn)?;
+      .values(airport)
+      .on_conflict_do_nothing()
+      .get_result(&mut conn)?;
     Ok(airport)
   }
 
-  pub fn insert_all (airports: Vec<Self>) -> Result<Vec<Self>, ServiceError> {
-    let mut conn: r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>> = db::connection()?;
+  pub fn insert_all(airports: Vec<Self>) -> Result<Vec<Self>, ServiceError> {
+    let mut conn: r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>> =
+      db::connection()?;
     let mut inserted_airports: Vec<Self> = vec![];
     for airport in airports {
       let airport = Self::from(airport);
       let airport = diesel::insert_into(airports::table)
-          .values(airport)
-          .get_result(&mut conn)?;
+        .values(airport)
+        .on_conflict_do_nothing()
+        .get_result(&mut conn)?;
       inserted_airports.push(airport);
     }
     Ok(inserted_airports)
@@ -356,17 +407,19 @@ impl QueryAirport {
   pub fn update(airport: Self) -> Result<Self, ServiceError> {
     let mut conn = db::connection()?;
     let airport = diesel::update(airports::table)
-        .filter(airports::icao.eq(airport.icao.clone()))
-        .set(airport)
-        .get_result(&mut conn)?;
+      .filter(airports::icao.eq(airport.icao.clone()))
+      .set(airport)
+      .get_result(&mut conn)?;
     Ok(airport)
   }
 
   pub fn delete(icao: Option<String>) -> Result<usize, ServiceError> {
     let mut conn = db::connection()?;
     let res = match icao {
-      Some(icao) => diesel::delete(airports::table.filter(airports::icao.eq(icao))).execute(&mut conn)?,
-      None => diesel::delete(airports::table).execute(&mut conn)?
+      Some(icao) => {
+        diesel::delete(airports::table.filter(airports::icao.eq(icao))).execute(&mut conn)?
+      }
+      None => diesel::delete(airports::table).execute(&mut conn)?,
     };
     Ok(res)
   }

@@ -6,13 +6,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct MetarsResponse {
-    pub data: Vec<Metar>,
-    pub meta: Metadata
+  pub data: Vec<Metar>,
+  pub meta: Metadata,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GetAllParameters {
-  icaos: Option<String>
+  icaos: Option<String>,
 }
 
 #[get("metars")]
@@ -21,26 +21,33 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
   let icao_option = params.icaos.clone();
   let icao_string = match icao_option {
     Some(i) => i,
-    None => return HttpResponse::UnprocessableEntity().body("Missing icaos parameter")
+    None => return HttpResponse::UnprocessableEntity().body("Missing icaos parameter"),
   };
 
-  let airports = match web::block(|| Ok::<_, ServiceError>(async {Metar::get_all(icao_string).await}))
-    .await
-    .unwrap()
-    .unwrap()
-    .await {
+  let airports =
+    match web::block(|| Ok::<_, ServiceError>(async { Metar::get_all(icao_string).await }))
+      .await
+      .unwrap()
+      .unwrap()
+      .await
+    {
       Ok(a) => a,
       Err(err) => {
         error!("{}", err);
         return err.to_http_response();
       }
-  };
+    };
   HttpResponse::Ok().json(MetarsResponse {
     data: airports,
-    meta: Metadata { page: 0, limit: 0, pages: 0, total: 0 }
+    meta: Metadata {
+      page: 0,
+      limit: 0,
+      pages: 0,
+      total: 0,
+    },
   })
 }
 
 pub fn init_routes(config: &mut web::ServiceConfig) {
-    config.service(get_all);
+  config.service(get_all);
 }

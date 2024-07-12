@@ -4,6 +4,8 @@ SHELL := /bin/bash
 GIT_HASH ?= $(shell git log --format="%h" -n 1)
 
 include .env
+-include .env.local
+export
 
 .PHONY: help build start stop lint
 

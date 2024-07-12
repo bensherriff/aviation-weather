@@ -6,27 +6,21 @@
   color: white;
 }
 
-.navbar .left {
+.left {
   display: flex;
 }
 
-.navbar .title {
+.title {
   padding-left: 2em;
   padding-right: 2em;
   margin: auto;
 }
 
-.navbar .left .search {
+.search {
   margin: auto;
 }
 
-.navbar .avatar {
-  padding-right: 2em;
-  margin-top: auto;
-  margin-bottom: auto;
-}
-
-.navbar .user-section {
+.right {
   display: flex;
   align-items: center;
   padding-right: 2em;

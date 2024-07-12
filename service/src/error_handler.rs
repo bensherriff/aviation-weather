@@ -14,10 +14,7 @@ pub struct ServiceError {
 
 impl ServiceError {
   pub fn new(status: u16, message: String) -> ServiceError {
-    ServiceError {
-      status,
-      message,
-    }
+    ServiceError { status, message }
   }
 
   pub fn to_http_response(&self) -> HttpResponse {
@@ -46,27 +43,24 @@ impl From<std::io::Error> for ServiceError {
 
 impl From<std::env::VarError> for ServiceError {
   fn from(error: std::env::VarError) -> ServiceError {
-    ServiceError::new(500, format!("Unknown environment variable error: {}", error))
+    ServiceError::new(
+      500,
+      format!("Unknown environment variable error: {}", error),
+    )
   }
 }
 
 impl From<DieselError> for ServiceError {
   fn from(error: DieselError) -> ServiceError {
     match error {
-      DieselError::DatabaseError(kind, err) => {
-        match kind {
-          diesel::result::DatabaseErrorKind::UniqueViolation => {
-            ServiceError::new(409, err.message().to_string())
-          },
-          _ => ServiceError::new(500, err.message().to_string())
+      DieselError::DatabaseError(kind, err) => match kind {
+        diesel::result::DatabaseErrorKind::UniqueViolation => {
+          ServiceError::new(409, err.message().to_string())
         }
+        _ => ServiceError::new(500, err.message().to_string()),
       },
-      DieselError::NotFound => {
-        ServiceError::new(404, "The record was not found".to_string())
-      },
-      DieselError::SerializationError(err) => {
-        ServiceError::new(422, err.to_string())
-      },
+      DieselError::NotFound => ServiceError::new(404, "The record was not found".to_string()),
+      DieselError::SerializationError(err) => ServiceError::new(422, err.to_string()),
       err => ServiceError::new(500, format!("Unknown Diesel error: {}", err)),
     }
   }
@@ -105,13 +99,24 @@ impl From<redis::RedisError> for ServiceError {
 impl From<s3::error::S3Error> for ServiceError {
   fn from(error: s3::error::S3Error) -> ServiceError {
     match error {
-      s3::error::S3Error::Credentials(err) => ServiceError::new(500, format!("Unknown s3 credentials error: {}", err)),
-      s3::error::S3Error::FromUtf8(err) => ServiceError::new(500, format!("Unknown s3 from utf8 error: {}", err)),
-      s3::error::S3Error::FmtError(err) => ServiceError::new(500, format!("Unknown s3 fmt error: {}", err)),
-      s3::error::S3Error::HeaderToStr(err) => ServiceError::new(500, format!("Unknown s3 header to str error: {}", err)),
-      s3::error::S3Error::HmacInvalidLength(err) => ServiceError::new(500, format!("Unknown s3 hmac invalid length error: {}", err)),
-      s3::error::S3Error::Http(status, msg) => ServiceError::new(status, msg),
-      _ => ServiceError::new(500, format!("Unknown s3 error: {}", error))
+      s3::error::S3Error::Credentials(err) => {
+        ServiceError::new(500, format!("Unknown s3 credentials error: {}", err))
+      }
+      s3::error::S3Error::FromUtf8(err) => {
+        ServiceError::new(500, format!("Unknown s3 from utf8 error: {}", err))
+      }
+      s3::error::S3Error::FmtError(err) => {
+        ServiceError::new(500, format!("Unknown s3 fmt error: {}", err))
+      }
+      s3::error::S3Error::HeaderToStr(err) => {
+        ServiceError::new(500, format!("Unknown s3 header to str error: {}", err))
+      }
+      s3::error::S3Error::HmacInvalidLength(err) => ServiceError::new(
+        500,
+        format!("Unknown s3 hmac invalid length error: {}", err),
+      ),
+      s3::error::S3Error::Http(error) => ServiceError::new(error.status_code().as_u16(), error.to_string()),
+      _ => ServiceError::new(500, format!("Unknown s3 error: {}", error)),
     }
   }
 }

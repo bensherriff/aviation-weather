@@ -17,6 +17,7 @@ interface GetAirportsProps {
   name?: string;
   order_field?: AirportOrderField;
   order_by?: 'asc' | 'desc';
+  has_metar?: boolean;
   page?: number;
   limit?: number;
 }
@@ -28,6 +29,7 @@ export async function getAirports({
   name,
   order_field,
   order_by,
+  has_metar,
   limit = 10,
   page = 1
 }: GetAirportsProps): Promise<GetAirportsResponse> {
@@ -40,6 +42,7 @@ export async function getAirports({
     name: name ?? undefined,
     order_field: order_field ?? undefined,
     order_by: order_by ?? undefined,
+    has_metar: has_metar ?? undefined,
     limit,
     page
   });

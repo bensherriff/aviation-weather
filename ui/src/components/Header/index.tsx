@@ -3,10 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { getAirport, getAirports } from '@/api/airport';
-import { Autocomplete, Avatar, Button, Card, FileButton, Grid, Group, Menu, Text, UnstyledButton } from '@mantine/core';
-import './header.css';
+import { Autocomplete, Button, Group, UnstyledButton } from '@mantine/core';
 import { SetterOrUpdater, useRecoilState } from 'recoil';
-import { setPicture } from '@/api/users';
 import { useToggle } from '@mantine/hooks';
 import { HeaderModal } from './HeaderModal';
 import { coordinatesState } from '@/state/map';
@@ -14,6 +12,8 @@ import { User } from '@/api/auth.types';
 import { usePathname, useRouter } from 'next/navigation';
 import { FaMoon } from "react-icons/fa6";
 import { FaSun } from "react-icons/fa6";
+import UserMenu from './UserMenu';
+import './styles.css';
 
 interface HeaderProps {
   user: User | undefined;
@@ -77,13 +77,28 @@ export default function Header({ user, profilePicture, setProfilePicture, login,
             />
           </div>
         </div>
-        <UserSection
-          user={user}
-          profilePicture={profilePicture}
-          setProfilePicture={setProfilePicture}
-          toggle={toggle}
-          logout={logout}
-        />
+        <div className='right'>
+          <UnstyledButton style={{ paddingRight: '1em', margin: 'auto' }}>
+            <FaMoon />
+            {/* <FaSun /> */}
+          </UnstyledButton>
+          {user ? (
+            <UserMenu
+              user={user}
+              profilePicture={profilePicture}
+              setProfilePicture={setProfilePicture}
+              toggle={toggle}
+              logout={logout}
+            />
+          ) : (
+            <Group className='user'>
+              <Button onClick={() => toggle('login')}>Login</Button>
+              <Button variant='outline' onClick={() => toggle('register')}>
+                Sign up
+              </Button>
+            </Group>
+          )}
+        </div>
       </nav>
       <HeaderModal
         type={modalType}
@@ -93,119 +108,4 @@ export default function Header({ user, profilePicture, setProfilePicture, login,
       />
     </>
   );
-}
-
-interface UserSectionProps {
-  user: User | undefined;
-  profilePicture: File | undefined;
-  setProfilePicture: SetterOrUpdater<File | undefined>;
-  toggle: (type: string) => void;
-  logout: () => Promise<void>;
-}
-
-function UserSection({ user, profilePicture, setProfilePicture, logout, toggle }: UserSectionProps) {
-
-  return (
-    <div className='user-section'>
-      <>
-        {/* <UnstyledButton> */}
-          {/* <FaMoon /> */}
-          {/* <FaSun /> */}
-        {/* </UnstyledButton> */}
-        {user ? (
-          <Menu shadow='md' width={200} openDelay={100} closeDelay={400}>
-            <Menu.Target>
-              <UnstyledButton className='user user-button'>
-                <Group>
-                  <Avatar src={profilePicture ? URL.createObjectURL(profilePicture) : undefined} />
-                  <div style={{ flex: 1 }}>
-                    <Text size='sm' fw={500}>
-                      {user.first_name} {user.last_name}
-                    </Text>
-                    <Text c='dimmed' size='xs' style={{ textTransform: 'uppercase' }}>
-                      {user.role}
-                    </Text>
-                  </div>
-                </Group>
-              </UnstyledButton>
-            </Menu.Target>
-            <Menu.Dropdown p={0}>
-              <Card>
-                <Card.Section h={140} style={{ backgroundColor: '#4481e3' }} />
-                <FileButton
-                  onChange={(payload) => {
-                    if (payload) {
-                      setPicture(payload).then((response) => {
-                        if (response) {
-                          setProfilePicture(payload);
-                        }
-                      });
-                    }
-                  }}
-                  accept='image/png,image/jpeg,image/svg+xml,image/webp,image/gif,image/apng,image/avif'
-                  multiple={false}
-                >
-                  {(props) => (
-                    <Avatar
-                      {...props}
-                      component='button'
-                      size={80}
-                      radius={80}
-                      mx={'auto'}
-                      mt={-30}
-                      style={{ cursor: 'pointer' }}
-                      bg={profilePicture ? 'transparent' : 'white'}
-                      src={profilePicture ? URL.createObjectURL(profilePicture) : undefined}
-                    />
-                  )}
-                </FileButton>
-                <Text ta='center' fz='lg' fw={500} mt='sm'>
-                  {user.first_name} {user.last_name}
-                </Text>
-                <Text ta='center' fz='sm' c='dimmed' style={{ textTransform: 'uppercase' }}>
-                  {user.role}
-                </Text>
-                <Grid mt='xl'>
-                  <Grid.Col span={6}>
-                    <Link href='/profile'>
-                      <Button fullWidth radius='md' size='xs' variant='default'>
-                        Profile
-                      </Button>
-                    </Link>
-                  </Grid.Col>
-                  <Grid.Col span={6}>
-                    <Button
-                      fullWidth
-                      radius='md'
-                      size='xs'
-                      variant='default'
-                      onClick={logout}
-                    >
-                      Logout
-                    </Button>
-                  </Grid.Col>
-                  {user.role == 'admin' && (
-                    <Grid.Col span={12}>
-                      <Link href='/admin'>
-                        <Button fullWidth radius='md' size='xs' variant='default'>
-                          Administration
-                        </Button>
-                      </Link>
-                    </Grid.Col>
-                  )}
-                </Grid>
-              </Card>
-            </Menu.Dropdown>
-          </Menu>
-        ) : (
-          <Group className='user'>
-            <Button onClick={() => toggle('login')}>Login</Button>
-            <Button variant='outline' onClick={() => toggle('register')}>
-              Sign up
-            </Button>
-          </Group>
-        )}
-      </>
-    </div>
-  )
 }

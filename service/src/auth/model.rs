@@ -1,4 +1,7 @@
-use std::{future::{ready, Ready}, env};
+use std::{
+  future::{ready, Ready},
+  env,
+};
 use actix_web::{FromRequest, Error as ActixError, HttpRequest, dev::Payload, http};
 use diesel::prelude::*;
 use log::error;
@@ -93,7 +96,10 @@ impl InsertUser {
     Ok(user)
   }
 
-  pub fn update_profile_picture(email: &str, profile_picture: Option<&str>) -> Result<QueryUser, ServiceError> {
+  pub fn update_profile_picture(
+    email: &str,
+    profile_picture: Option<&str>,
+  ) -> Result<QueryUser, ServiceError> {
     let mut conn = connection()?;
     let user = diesel::update(users::table)
       .filter(users::email.eq(&email))
@@ -136,7 +142,7 @@ impl From<QueryUser> for ResponseUser {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JwtAuth {
   pub token: uuid::Uuid,
-  pub user: ResponseUser
+  pub user: ResponseUser,
 }
 
 impl FromRequest for JwtAuth {
@@ -147,18 +153,23 @@ impl FromRequest for JwtAuth {
       .cookie("access_token")
       .map(|c| c.value().to_string())
       .or_else(|| {
-        req.headers().get(http::header::AUTHORIZATION)
-        .map(|h| h.to_str().unwrap().split_at(7).1.to_string())
+        req
+          .headers()
+          .get(http::header::AUTHORIZATION)
+          .map(|h| h.to_str().unwrap().split_at(7).1.to_string())
       }) {
-        Some(token) => token,
-        None => return ready(Err(ActixError::from(ServiceError {
+      Some(token) => token,
+      None => {
+        return ready(Err(ActixError::from(ServiceError {
           status: 401,
-          message: "Unauthorized".to_string()
+          message: "Unauthorized".to_string(),
         })))
-      };
+      }
+    };
 
     let keys_dir = env::var("KEYS_DIR_PATH").expect("KEYS_DIR_PATH must be set");
-    let public_key = std::fs::read_to_string(format!("{}/access_public_key.pem", keys_dir)).expect("Failed to read access public key");
+    let public_key = std::fs::read_to_string(format!("{}/access_public_key.pem", keys_dir))
+      .expect("Failed to read access public key");
 
     let access_token_details = match verify_token(&access_token, &public_key) {
       Ok(token_details) => token_details,
@@ -166,21 +177,22 @@ impl FromRequest for JwtAuth {
         error!("Failed to verify access token: {}", err);
         return ready(Err(ActixError::from(ServiceError {
           status: 401,
-          message: format!("Failed to verify access token: {}", err)
-        })))
+          message: format!("Failed to verify access token: {}", err),
+        })));
       }
     };
 
-    let access_token_uuid = uuid::Uuid::parse_str(&access_token_details.token_uuid.to_string()).unwrap();
-    
+    let access_token_uuid =
+      uuid::Uuid::parse_str(&access_token_details.token_uuid.to_string()).unwrap();
+
     let mut conn = match crate::db::redis_connection() {
       Ok(conn) => conn,
       Err(err) => {
         error!("Failed to get redis connection: {}", err);
         return ready(Err(ActixError::from(ServiceError {
           status: 500,
-          message: format!("Failed to get redis connection: {}", err)
-        })))
+          message: format!("Failed to get redis connection: {}", err),
+        })));
       }
     };
     let user_email = match conn.get::<_, String>(access_token_uuid.clone().to_string()) {
@@ -188,19 +200,22 @@ impl FromRequest for JwtAuth {
       Err(_) => {
         return ready(Err(ActixError::from(ServiceError {
           status: 401,
-          message: format!("Access token was not found")
+          message: format!("Access token was not found"),
         })))
       }
     };
 
     match QueryUser::get_by_email(&user_email) {
-      Ok(user) => {
-        ready(Ok(JwtAuth { token: access_token_uuid, user: user.into() }))
+      Ok(user) => ready(Ok(JwtAuth {
+        token: access_token_uuid,
+        user: user.into(),
+      })),
+      Err(_) => {
+        return ready(Err(ActixError::from(ServiceError {
+          status: 401,
+          message: format!("User was not found"),
+        })))
       }
-      Err(_) => return ready(Err(ActixError::from(ServiceError {
-        status: 401,
-        message: format!("User was not found")
-      })))
     }
   }
 }
@@ -211,7 +226,7 @@ pub fn verify_role(auth: &JwtAuth, role: &str) -> Result<(), ServiceError> {
   } else {
     Err(ServiceError {
       status: 403,
-      message: "Forbidden".to_string()
+      message: "Forbidden".to_string(),
     })
   }
 }

@@ -45,7 +45,7 @@ pub struct SkyCondition {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub cloud_base_ft_agl: Option<i32>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub significant_convective_clouds: Option<String>
+  pub significant_convective_clouds: Option<String>,
 }
 
 impl Default for SkyCondition {
@@ -66,7 +66,7 @@ pub struct RunwayVisualRange {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub variable_visibility_high_ft: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub variable_visibility_low_ft: Option<String>
+  pub variable_visibility_low_ft: Option<String>,
 }
 
 impl Default for RunwayVisualRange {
@@ -75,7 +75,7 @@ impl Default for RunwayVisualRange {
       runway: "".to_string(),
       visibility_ft: None,
       variable_visibility_high_ft: None,
-      variable_visibility_low_ft: None
+      variable_visibility_low_ft: None,
     }
   }
 }
@@ -86,7 +86,7 @@ pub enum FlightCategory {
   MVFR,
   LIFR,
   IFR,
-  UNKN
+  UNKN,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -132,7 +132,11 @@ impl Default for Metar {
     Metar {
       raw_text: "".to_string(),
       station_id: "".to_string(),
-      observation_time: chrono::NaiveDateTime::parse_from_str("1970-01-01T00:00:00", "%Y-%m-%dT%H:%M:%S").unwrap(),
+      observation_time: chrono::NaiveDateTime::parse_from_str(
+        "1970-01-01T00:00:00",
+        "%Y-%m-%dT%H:%M:%S",
+      )
+      .unwrap(),
       temp_c: None,
       dewpoint_c: None,
       wind_dir_degrees: None,
@@ -164,19 +168,25 @@ impl Metar {
       metar.raw_text = metar_string.to_owned();
       let mut metar_parts: Vec<&str> = metar_string.split_whitespace().collect();
       if metar_parts.len() < 4 {
-        warn!("Unable to parse METAR data in an unexpected format: {}", metar_string);
+        warn!(
+          "Unable to parse METAR data in an unexpected format: {}",
+          metar_string
+        );
         continue;
       }
-      
+
       // Station Identifier
       metar.station_id = metar_parts[0].to_string();
       metar_parts.remove(0);
-      
+
       // Date/Time
       let observation_time = metar_parts[0];
       metar_parts.remove(0);
       if observation_time.len() != 7 {
-        warn!("Unable to parse observation time in {}: {}", observation_time, metar_string);
+        warn!(
+          "Unable to parse observation time in {}: {}",
+          observation_time, metar_string
+        );
         continue;
       }
       let observation_time_day = &observation_time[0..2];
@@ -184,11 +194,12 @@ impl Metar {
       let observation_time_minute = &observation_time[4..6];
       let current_time = chrono::Utc::now().naive_utc();
       // Check if the observation time is from the previous month
-      let observation_time_month = if current_time.day() > observation_time_day.parse::<u32>().unwrap() {
-        current_time.month() - 1
-      } else {
-        current_time.month()
-      };
+      let observation_time_month =
+        if current_time.day() > observation_time_day.parse::<u32>().unwrap() {
+          current_time.month() - 1
+        } else {
+          current_time.month()
+        };
       // Check if the observation time is from the previous year
       let observation_time_year = if current_time.month() > observation_time_month {
         current_time.year() - 1
@@ -196,13 +207,22 @@ impl Metar {
         current_time.year()
       };
       // Handle Daylight Savings Time
-      let observation_time_hour = if observation_time_month == 3 && observation_time_day.parse::<u32>().unwrap() < 14 {
-        observation_time_hour.parse::<u32>().unwrap() - 1
-      } else {
-        observation_time_hour.parse::<u32>().unwrap()
-      };
-      let observation_time = format!("{}-{}-{}T{}:{}:00Z", observation_time_year, observation_time_month, observation_time_day, observation_time_hour, observation_time_minute);
-      metar.observation_time = chrono::NaiveDateTime::parse_from_str(&observation_time, "%Y-%m-%dT%H:%M:%SZ").unwrap();
+      let observation_time_hour =
+        if observation_time_month == 3 && observation_time_day.parse::<u32>().unwrap() < 14 {
+          observation_time_hour.parse::<u32>().unwrap() - 1
+        } else {
+          observation_time_hour.parse::<u32>().unwrap()
+        };
+      let observation_time = format!(
+        "{}-{}-{}T{}:{}:00Z",
+        observation_time_year,
+        observation_time_month,
+        observation_time_day,
+        observation_time_hour,
+        observation_time_minute
+      );
+      metar.observation_time =
+        chrono::NaiveDateTime::parse_from_str(&observation_time, "%Y-%m-%dT%H:%M:%SZ").unwrap();
 
       loop {
         if metar_parts.is_empty() {
@@ -224,14 +244,22 @@ impl Metar {
 
         // Wind Direction and Speed
         let wind_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}(?:KT|MPS)$").unwrap();
-        let wind_gust_re = regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}G[0-9]{2}(?:KT|MPS)$").unwrap();
+        let wind_gust_re =
+          regex::Regex::new(r"^(?:[0-9]{3}|VRB)[0-9]{2}G[0-9]{2}(?:KT|MPS)$").unwrap();
         // Handle input error where there is a space between the numbers and units
         let mut value: Option<String> = None;
-        if metar_parts.len() >= 2 && metar_parts[0].len() == 5 && (metar_parts[1] == "KT" || metar_parts[1] == "MPS") {
+        if metar_parts.len() >= 2
+          && metar_parts[0].len() == 5
+          && (metar_parts[1] == "KT" || metar_parts[1] == "MPS")
+        {
           value = Some(format!("{}{}", metar_parts[0], metar_parts[1]));
           metar_parts.remove(0);
           metar_parts.remove(0);
-        } else if metar_parts.len() >= 2 && metar_parts[0].len() == 7 && metar_parts[0].contains("G") && (metar_parts[1] == "KT" || metar_parts[1] == "MPS") {
+        } else if metar_parts.len() >= 2
+          && metar_parts[0].len() == 7
+          && metar_parts[0].contains("G")
+          && (metar_parts[1] == "KT" || metar_parts[1] == "MPS")
+        {
           value = Some(format!("{}{}", metar_parts[0], metar_parts[1]));
           metar_parts.remove(0);
           metar_parts.remove(0);
@@ -267,10 +295,10 @@ impl Metar {
               metar.wind_speed_kt = Some(wind_speed_kt.parse::<f64>().unwrap());
               metar.wind_gust_kt = Some(wind_gust_kt.parse::<f64>().unwrap());
             }
-          },
+          }
           None => {}
         }
-        
+
         // Variable Wind Direction
         let variable_wind_re = regex::Regex::new(r"^[0-9]{3}V[0-9]{3}$").unwrap();
         if !metar_parts.is_empty() && variable_wind_re.is_match(metar_parts[0]) {
@@ -289,29 +317,67 @@ impl Metar {
             let visibility_left = visibility_parts[0];
             let visibility_right = visibility_parts[1].parse::<f64>().unwrap();
             if visibility_left.starts_with("M") {
-              format!("M{}", visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right)
+              format!(
+                "M{}",
+                visibility_left[1..visibility_left.len()]
+                  .parse::<f64>()
+                  .unwrap()
+                  / visibility_right
+              )
             } else if visibility_left.starts_with("P") {
-              format!("P{}", visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right)
+              format!(
+                "P{}",
+                visibility_left[1..visibility_left.len()]
+                  .parse::<f64>()
+                  .unwrap()
+                  / visibility_right
+              )
             } else {
-              format!("{}", visibility_left.parse::<f64>().unwrap() / visibility_right)
+              format!(
+                "{}",
+                visibility_left.parse::<f64>().unwrap() / visibility_right
+              )
             }
           } else {
             visibility_str.to_string()
           };
           metar.visibility_statute_mi = Some(visibility);
-        } else if !metar_parts.is_empty() && metar_parts[0].parse::<f64>().is_ok() && metar_parts.len() > 1 && visibility_re.is_match(metar_parts[1]) {
+        } else if !metar_parts.is_empty()
+          && metar_parts[0].parse::<f64>().is_ok()
+          && metar_parts.len() > 1
+          && visibility_re.is_match(metar_parts[1])
+        {
           let visibility_whole = metar_parts[0].parse::<f64>().unwrap();
           metar_parts.remove(0);
           let visibility_parts: Vec<&str> = metar_parts[0].split("/").collect();
           metar_parts.remove(0);
           let visibility_left = visibility_parts[0];
-          let visibility_right = visibility_parts[1][0..visibility_parts[1].len() - 2].parse::<f64>().unwrap();
+          let visibility_right = visibility_parts[1][0..visibility_parts[1].len() - 2]
+            .parse::<f64>()
+            .unwrap();
           let visibility = if visibility_left.starts_with("M") {
-            format!("M{}", visibility_whole + (visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right))
+            format!(
+              "M{}",
+              visibility_whole
+                + (visibility_left[1..visibility_left.len()]
+                  .parse::<f64>()
+                  .unwrap()
+                  / visibility_right)
+            )
           } else if visibility_left.starts_with("P") {
-            format!("P{}", visibility_whole + (visibility_left[1..visibility_left.len()].parse::<f64>().unwrap() / visibility_right))
+            format!(
+              "P{}",
+              visibility_whole
+                + (visibility_left[1..visibility_left.len()]
+                  .parse::<f64>()
+                  .unwrap()
+                  / visibility_right)
+            )
           } else {
-            format!("{}", visibility_whole + (visibility_left.parse::<f64>().unwrap() / visibility_right))
+            format!(
+              "{}",
+              visibility_whole + (visibility_left.parse::<f64>().unwrap() / visibility_right)
+            )
           };
           metar.visibility_statute_mi = Some(visibility);
         } else if !metar_parts.is_empty() && visibility_re_m.is_match(metar_parts[0]) {
@@ -328,8 +394,11 @@ impl Metar {
 
         // Runway Visual Range
         let rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R|C)?/[PM]?[0-9]{4}FT$").unwrap();
-        let variable_rvr_re = regex::Regex::new(r"^R[0-9]{1,3}(?:L|R|C)?/[PM]?[0-9]{4}V[PM]?[0-9]{4}FT$").unwrap();
-        while !metar_parts.is_empty() && (rvr_re.is_match(metar_parts[0]) || variable_rvr_re.is_match(metar_parts[0])) {
+        let variable_rvr_re =
+          regex::Regex::new(r"^R[0-9]{1,3}(?:L|R|C)?/[PM]?[0-9]{4}V[PM]?[0-9]{4}FT$").unwrap();
+        while !metar_parts.is_empty()
+          && (rvr_re.is_match(metar_parts[0]) || variable_rvr_re.is_match(metar_parts[0]))
+        {
           let rvr_string = metar_parts[0];
           metar_parts.remove(0);
           let mut rvr = RunwayVisualRange::default();
@@ -340,7 +409,10 @@ impl Metar {
           } else {
             let rvr_variable_parts: Vec<&str> = rvr_parts[1].split("V").collect();
             if rvr_variable_parts.len() != 2 {
-              warn!("Unable to parse runway visual range in {}: {}", rvr_string, metar_string);
+              warn!(
+                "Unable to parse runway visual range in {}: {}",
+                rvr_string, metar_string
+              );
             } else {
               rvr.variable_visibility_low_ft = Some(rvr_variable_parts[0].to_string());
               rvr.variable_visibility_high_ft = Some(rvr_variable_parts[1].to_string());
@@ -351,8 +423,13 @@ impl Metar {
         // Weather Phenomena
         let wx_intensity = "(?:[+-]|VC)?";
         let wx_descriptor = "(?:MI|PR|BC|DR|BL|SH|TS|FZ)?";
-        let wx_precipitation = "(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)?";
-        let wx_re = regex::Regex::new(&format!(r"^{}{}{}$", wx_intensity, wx_descriptor, wx_precipitation)).unwrap();
+        let wx_precipitation =
+          "(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)?";
+        let wx_re = regex::Regex::new(&format!(
+          r"^{}{}{}$",
+          wx_intensity, wx_descriptor, wx_precipitation
+        ))
+        .unwrap();
         while !metar_parts.is_empty() && wx_re.is_match(metar_parts[0]) {
           metar.weather_phenomena.push(metar_parts[0].to_string());
           metar_parts.remove(0);
@@ -363,11 +440,13 @@ impl Metar {
           metar.sky_condition.push(SkyCondition {
             sky_cover: "CLR".to_string(),
             cloud_base_ft_agl: None,
-            significant_convective_clouds: None
+            significant_convective_clouds: None,
           });
           metar_parts.remove(0);
         }
-        let sky_condition_re = regex::Regex::new(r"^(?:CLR|SKC|NSC|NCD|(?:FEW|SCT|BKN|OVC|VV)([0-9/]{3})?(?:CB|TCU)?)$").unwrap();
+        let sky_condition_re =
+          regex::Regex::new(r"^(?:CLR|SKC|NSC|NCD|(?:FEW|SCT|BKN|OVC|VV)([0-9/]{3})?(?:CB|TCU)?)$")
+            .unwrap();
         while !metar_parts.is_empty() && sky_condition_re.is_match(metar_parts[0]) {
           let sky_condition_string = metar_parts[0];
           metar_parts.remove(0);
@@ -388,7 +467,10 @@ impl Metar {
               sky_condition.cloud_base_ft_agl = match cloud_base_ft_agl.parse::<i32>() {
                 Ok(c) => Some(c * 100),
                 Err(err) => {
-                  warn!("Unable to parse cloud base in {}: {}", sky_condition_string, err);
+                  warn!(
+                    "Unable to parse cloud base in {}: {}",
+                    sky_condition_string, err
+                  );
                   None
                 }
               };
@@ -478,7 +560,9 @@ impl Metar {
             let remark = metar_parts[0];
             metar_parts.remove(0);
             if remark == "AO1" {
-              metar.quality_control_flags.auto_station_without_precipication = Some(true);
+              metar
+                .quality_control_flags
+                .auto_station_without_precipication = Some(true);
             } else if remark == "AO2" {
               metar.quality_control_flags.auto_station_with_precipication = Some(true);
             } else if remark == "$" {
@@ -513,10 +597,13 @@ impl Metar {
             }
           }
         }
-        
+
         // Skip unexpected fields
         if !metar_parts.is_empty() {
-          warn!("Skipping unexpected field: '{}' ({})", metar_parts[0], metar_string);
+          warn!(
+            "Skipping unexpected field: '{}' ({})",
+            metar_parts[0], metar_string
+          );
           metar_parts.remove(0);
         }
       }
@@ -533,7 +620,7 @@ impl Metar {
               v.parse::<f64>().unwrap()
             }
           }
-          None => 5.0 // Assume VFR if no visibility is present
+          None => 5.0, // Assume VFR if no visibility is present
         };
         // Ceiling is the lowest cloud base that is BKN or OVC
         let ceiling = match metar.sky_condition.first() {
@@ -543,13 +630,13 @@ impl Metar {
             } else if s.sky_cover == "BKN" || s.sky_cover == "OVC" {
               match s.cloud_base_ft_agl {
                 Some(c) => c as f64,
-                None => 0.0
+                None => 0.0,
               }
             } else {
               3000.0 // Assume VFR if no BKN or OVC sky condition is present
             }
-          },
-          None => 3000.0 // Assume VFR if no sky condition is present
+          }
+          None => 3000.0, // Assume VFR if no sky condition is present
         };
         if visibility >= 5.0 && ceiling >= 3000.0 {
           metar.flight_category = FlightCategory::VFR;
@@ -564,19 +651,22 @@ impl Metar {
 
       metars.push(metar);
     }
-    return Ok(metars)
+    return Ok(metars);
   }
 
   fn get_missing_metar_icaos(db_metars: &Vec<Self>, station_icaos: &Vec<&str>) -> Vec<String> {
     let mut missing_metar_icaos: Vec<String> = vec![];
-    let current_time = chrono::Local::now().naive_local().timestamp();
-    let db_metars_set: HashSet<&str> = db_metars.iter().map(|icao| icao.station_id.as_str()).collect();
+    let current_time = chrono::Local::now().naive_local().and_utc().timestamp();
+    let db_metars_set: HashSet<&str> = db_metars
+      .iter()
+      .map(|icao| icao.station_id.as_str())
+      .collect();
     let station_icaos_set: HashSet<&str> = station_icaos.to_owned().into_iter().collect();
     for difference in db_metars_set.symmetric_difference(&station_icaos_set) {
       missing_metar_icaos.push(difference.to_string());
     }
     for metar in db_metars {
-      if current_time > (metar.observation_time.timestamp() + 3600) {
+      if current_time > (metar.observation_time.and_utc().timestamp() + 3600) {
         trace!("{} METAR data is outdated", metar.station_id);
         missing_metar_icaos.push(metar.station_id.to_string());
       }
@@ -587,7 +677,10 @@ impl Metar {
   async fn get_remote_metars(icaos: Vec<String>) -> Result<Vec<Metar>, ServiceError> {
     let gov_api_url = std::env::var("GOV_API_URL").expect("GOV_API_URL must be set");
     // Query the remote API for the missing METAR data 10 at a time
-    let icao_chunks = icaos.chunks(10).map(|chunk| chunk.join(",")).collect::<Vec<String>>();
+    let icao_chunks = icaos
+      .chunks(10)
+      .map(|chunk| chunk.join(","))
+      .collect::<Vec<String>>();
     let mut metars: Vec<Metar> = vec![];
     for icao_chunk in icao_chunks {
       let url = format!("{}/metar.php?ids={}", gov_api_url, icao_chunk);
@@ -595,20 +688,37 @@ impl Metar {
         Ok(r) => {
           // Check if the status code is 200
           if r.status() != 200 {
-            return Err(ServiceError::new(500, format!("Unable to get METAR request: {}", r.status())));
+            return Err(ServiceError::new(
+              500,
+              format!("Unable to get METAR request: {}", r.status()),
+            ));
           }
           match r.text().await {
             Ok(r) => {
-              let metar_chunk = r.trim().split("\n").filter(|m| !m.trim().is_empty()).collect();
+              let metar_chunk = r
+                .trim()
+                .split("\n")
+                .filter(|m| !m.trim().is_empty())
+                .collect();
               match Metar::parse(metar_chunk) {
                 Ok(m) => m,
-                Err(err) => return Err(err)
+                Err(err) => return Err(err),
               }
-            },
-            Err(err) => return Err(ServiceError::new(500, format!("Unable to parse METAR request: {}", err)))
+            }
+            Err(err) => {
+              return Err(ServiceError::new(
+                500,
+                format!("Unable to parse METAR request: {}", err),
+              ))
+            }
           }
-        },
-        Err(err) => return Err(ServiceError::new(500, format!("Unable to get METAR request: {}", err)))
+        }
+        Err(err) => {
+          return Err(ServiceError::new(
+            500,
+            format!("Unable to get METAR request: {}", err),
+          ))
+        }
       };
       metars.append(&mut m);
     }
@@ -633,7 +743,7 @@ impl Metar {
         icao: metar.station_id.to_string(),
         observation_time: metar.observation_time,
         raw_text: metar.raw_text.to_string(),
-        data: serde_json::to_value(metar).unwrap()
+        data: serde_json::to_value(metar).unwrap(),
       });
     }
     return insert_metars;
@@ -648,7 +758,7 @@ impl Metar {
 
     let mut db_metars = match QueryMetar::get_all(&icaos) {
       Ok(m) => Self::from_query(m),
-        Err(err) => return Err(err)
+      Err(err) => return Err(err),
     };
 
     let missing_icaos = Self::get_missing_metar_icaos(&db_metars, &icaos);
@@ -656,14 +766,18 @@ impl Metar {
       return Ok(db_metars);
     }
     trace!("Retrieving missing METAR data for {:?}", missing_icaos);
-    let missing_icaos_string: Vec<String> = missing_icaos.iter().map(|icao| format!("{}", icao.to_string())).collect();
+    let missing_icaos_string: Vec<String> = missing_icaos
+      .iter()
+      .map(|icao| format!("{}", icao.to_string()))
+      .collect();
     let mut airports: Vec<QueryAirport> = vec![];
-    missing_icaos_string.clone().iter().for_each(|icao| {
-      match QueryAirport::get(icao) {
+    missing_icaos_string
+      .clone()
+      .iter()
+      .for_each(|icao| match QueryAirport::get(icao) {
         Ok(a) => airports.push(a),
         Err(_) => {}
-      }
-    });
+      });
     let missing_result = Self::get_remote_metars(missing_icaos_string).await;
     let mut missing_metars = match missing_result {
       Ok(m) => m,
@@ -676,11 +790,14 @@ impl Metar {
       let insert_metars = Self::to_insert(&missing_metars);
       match InsertMetar::insert(&insert_metars) {
         Ok(rows) => trace!("Inserted {} metar rows", rows),
-        Err(err) => warn!("Unable to insert metar data; {}", err)
+        Err(err) => warn!("Unable to insert metar data; {}", err),
       };
       // Update airports with the appropriate has_metar flag
       airports.iter().for_each(|airport| {
-        if missing_metars.iter().any(|metar| metar.station_id == airport.icao) {
+        if missing_metars
+          .iter()
+          .any(|metar| metar.station_id == airport.icao)
+        {
           let updated = QueryAirport {
             icao: airport.icao.to_string(),
             category: airport.category.to_string(),
@@ -691,11 +808,11 @@ impl Metar {
             municipality: airport.municipality.to_string(),
             has_metar: true,
             point: airport.point,
-            data: airport.data.to_owned()
+            data: airport.data.to_owned(),
           };
           match QueryAirport::update(updated) {
-            Ok(_) => {},
-            Err(err) => warn!("Unable to update airport with has_metar flag; {}", err)
+            Ok(_) => {}
+            Err(err) => warn!("Unable to update airport with has_metar flag; {}", err),
           }
         }
       });
@@ -713,15 +830,21 @@ struct InsertMetar {
   icao: String,
   observation_time: chrono::NaiveDateTime,
   raw_text: String,
-  data: serde_json::Value
+  data: serde_json::Value,
 }
 
 impl InsertMetar {
   fn insert(metars: &Vec<Self>) -> Result<usize, ServiceError> {
     let mut conn = db::connection()?;
-    match diesel::insert_into(metars::table).values(metars).execute(&mut conn) {
+    match diesel::insert_into(metars::table)
+      .values(metars)
+      .execute(&mut conn)
+    {
       Ok(rows) => Ok(rows),
-      Err(err) => Err(ServiceError { status: 500, message: format!("{}", err) })
+      Err(err) => Err(ServiceError {
+        status: 500,
+        message: format!("{}", err),
+      }),
     }
   }
 }
@@ -733,14 +856,25 @@ struct QueryMetar {
   icao: String,
   observation_time: chrono::NaiveDateTime,
   raw_text: String,
-  data: serde_json::Value
+  data: serde_json::Value,
 }
 
 impl QueryMetar {
   fn get_all(icaos: &Vec<&str>) -> Result<Vec<QueryMetar>, ServiceError> {
     // Sanitize search to only allow [a-zA-Z0-9]
-    let icaos = icaos.iter().map(|icao| icao.chars().filter(|c| c.is_alphanumeric()).collect::<String>()).collect::<Vec<String>>();
-    let station_query: Vec<String> = icaos.iter().map(|icao| format!("'{}'", icao.to_string())).collect();
+    let icaos = icaos
+      .iter()
+      .map(|icao| {
+        icao
+          .chars()
+          .filter(|c| c.is_alphanumeric())
+          .collect::<String>()
+      })
+      .collect::<Vec<String>>();
+    let station_query: Vec<String> = icaos
+      .iter()
+      .map(|icao| format!("'{}'", icao.to_string()))
+      .collect();
     let mut conn = db::connection()?;
     let db_metars: Vec<Self> = match sql_query(
       format!("SELECT DISTINCT ON (icao) * FROM metars WHERE icao IN ({}) ORDER BY icao, observation_time DESC", station_query.join(","))

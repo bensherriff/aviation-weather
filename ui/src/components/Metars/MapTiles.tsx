@@ -3,7 +3,7 @@
 import { getAirports, updateAirport } from '@/api/airport';
 import { Airport, AirportOrderField } from '@/api/airport.types';
 import { getMetars } from '@/api/metar';
-import { LatLngBounds, icon } from 'leaflet';
+import { LatLngBounds, PointTuple, icon } from 'leaflet';
 import { useEffect, useState } from 'react';
 import { Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import MetarModal from './MetarModal';
@@ -70,8 +70,10 @@ export default function MapTiles() {
 
   function metarIcon(airport: Airport) {
     let iconUrl = '/icons/unkn.svg';
+    let iconSize: PointTuple = [20, 20];
     if (!airport.has_metar && airport.latest_metar == undefined) {
       iconUrl = '/icons/nometar.svg';
+      iconSize = [10, 10];
     } else if (airport.latest_metar?.flight_category == 'VFR') {
       iconUrl = '/icons/vfr.svg';
     }  else if (airport.latest_metar?.flight_category == 'MVFR') {
@@ -81,10 +83,7 @@ export default function MapTiles() {
     } else if (airport.latest_metar?.flight_category == 'LIFR') {
       iconUrl = '/icons/lifr.svg';
     }
-    return icon({
-      iconUrl: iconUrl,
-      iconSize: [20, 20]
-    })
+    return icon({ iconUrl, iconSize })
   }
 
   useEffect(() => {

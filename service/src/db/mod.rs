@@ -1,7 +1,10 @@
 use crate::error_handler::ServiceError;
 use diesel::{r2d2::ConnectionManager, PgConnection};
-use redis::{Client as RedisClient, aio::Connection as RedisConnection};
-use s3::{Bucket, Region, creds::Credentials, BucketConfiguration, request::ResponseData, bucket_ops::CreateBucketResponse};
+use redis::{Client as RedisClient, aio::MultiplexedConnection as RedisConnection};
+use s3::{
+  Bucket, Region, creds::Credentials, BucketConfiguration, request::ResponseData,
+  bucket_ops::CreateBucketResponse,
+};
 use serde::{Deserialize, Serialize};
 use crate::diesel_migrations::MigrationHarness;
 use lazy_static::lazy_static;
@@ -23,9 +26,15 @@ lazy_static! {
     let host = env::var("DATABASE_HOST").unwrap_or("localhost".to_string());
     let name = env::var("DATABASE_NAME").expect("Database name is not set");
     let port = env::var("DATABASE_PORT").unwrap_or("5432".to_string());
-    let url = format!("postgres://{}:{}@{}:{}/{}", username, password, host, port, name);
+    let url = format!(
+      "postgres://{}:{}@{}:{}/{}",
+      username, password, host, port, name
+    );
     let manager = ConnectionManager::<PgConnection>::new(url);
-    Pool::builder().test_on_check_out(true).build(manager).expect("Failed to create db pool")
+    Pool::builder()
+      .test_on_check_out(true)
+      .build(manager)
+      .expect("Failed to create db pool")
   };
   static ref REDIS: RedisClient = {
     let host = env::var("REDIS_HOST").unwrap_or("localhost".to_string());
@@ -39,21 +48,23 @@ lazy_static! {
     let user = env::var("MINIO_ROOT_USER").expect("MINIO_ROOT_USER is not set");
     let password = env::var("MINIO_ROOT_PASSWORD").expect("MINIO_ROOT_PASSWORD is not set");
     let base_url = format!("http://{}:{}", url, port);
-  
+
     let region = Region::Custom {
       region: "".to_string(),
       endpoint: base_url,
     };
-  
+
     let credentials = Credentials {
       access_key: Some(user),
       secret_key: Some(password),
       security_token: None,
       session_token: None,
-      expiration: None
+      expiration: None,
     };
-  
-    Bucket::new("aviation", region.clone(), credentials.clone()).expect("Failed to create S3 Bucket").with_path_style()
+
+    Bucket::new("aviation", region.clone(), credentials.clone())
+      .expect("Failed to create S3 Bucket")
+      .with_path_style()
   };
 }
 
@@ -63,22 +74,21 @@ pub async fn init() {
   lazy_static::initialize(&BUCKET);
   match create_bucket().await {
     Ok(_) => info!("Bucket initialized"),
-    Err(err) => {
-      match err.status {
-        409 => warn!("Bucket already exists"),
-        _ => error!("Failed to initialize bucket; {}", err.message)
-      }
-    }
+    Err(err) => match err.status {
+      409 => warn!("Bucket already exists"),
+      _ => error!("Failed to initialize bucket; {}", err.message),
+    },
   };
   let mut pool: DbConnection = connection().expect("Failed to get db connection");
   match pool.run_pending_migrations(MIGRATIONS) {
     Ok(_) => info!("Database initialized"),
-    Err(err) => error!("Failed to initialize database; {}", err)
+    Err(err) => error!("Failed to initialize database; {}", err),
   };
 }
 
 pub fn connection() -> Result<DbConnection, ServiceError> {
-  POOL.get()
+  POOL
+    .get()
     .map_err(|e| ServiceError::new(500, format!("Failed getting db connection: {}", e)))
 }
 
@@ -88,7 +98,7 @@ pub fn redis_connection() -> Result<redis::Connection, ServiceError> {
 }
 
 pub async fn redis_async_connection() -> Result<RedisConnection, ServiceError> {
-  let conn = REDIS.get_async_connection().await?;
+  let conn = REDIS.get_multiplexed_async_connection().await?;
   Ok(conn)
 }
 
@@ -109,10 +119,16 @@ async fn create_bucket() -> Result<CreateBucketResponse, ServiceError> {
     secret_key: Some(password),
     security_token: None,
     session_token: None,
-    expiration: None
+    expiration: None,
   };
   let bucket_name = "aviation";
-  let response = Bucket::create_with_path_style(bucket_name, region, credentials, BucketConfiguration::default()).await?;
+  let response = Bucket::create_with_path_style(
+    bucket_name,
+    region,
+    credentials,
+    BucketConfiguration::default(),
+  )
+  .await?;
   Ok(response)
 }
 
@@ -135,7 +151,7 @@ pub async fn delete_file(path: &str) -> Result<ResponseData, ServiceError> {
 #[derive(Serialize, Deserialize)]
 pub struct Response<T> {
   pub data: T,
-  pub meta: Option<Metadata>
+  pub meta: Option<Metadata>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -149,5 +165,5 @@ pub struct Metadata {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Coordinate {
   pub lon: f64,
-  pub lat: f64
+  pub lat: f64,
 }
