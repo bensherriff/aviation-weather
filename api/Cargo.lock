@@ -370,6 +370,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "api"
+version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-multipart",
+ "actix-web",
+ "actix-web-httpauth",
+ "argon2",
+ "chrono",
+ "diesel",
+ "diesel_migrations",
+ "dotenv",
+ "env_logger",
+ "futures-util",
+ "lazy_static",
+ "log",
+ "postgis_diesel",
+ "r2d2",
+ "rand",
+ "rand_chacha",
+ "redis",
+ "regex",
+ "reqwest",
+ "rust-s3",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "arc-swap"
 version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2250,37 +2281,6 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "service"
-version = "0.1.0"
-dependencies = [
- "actix-cors",
- "actix-multipart",
- "actix-web",
- "actix-web-httpauth",
- "argon2",
- "chrono",
- "diesel",
- "diesel_migrations",
- "dotenv",
- "env_logger",
- "futures-util",
- "lazy_static",
- "log",
- "postgis_diesel",
- "r2d2",
- "rand",
- "rand_chacha",
- "redis",
- "regex",
- "reqwest",
- "rust-s3",
- "serde",
- "serde_json",
- "tokio",
- "uuid",
 ]
 
 [[package]]

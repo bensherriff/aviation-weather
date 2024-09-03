@@ -27,10 +27,10 @@ RUN openssl rsa -in refresh.pem -pubout -outform PEM -out refresh.pem.pub
 #  Runtime
 # =========
 FROM keys as runtime
-WORKDIR /service
+WORKDIR /api
 USER root
 
-COPY --from=builder /builder/target/release/service /usr/local/bin/service
+COPY --from=builder /builder/target/release/api /usr/local/bin/api
 COPY --from=keys /keys /keys
 
-CMD ["service"]
+CMD ["api"]

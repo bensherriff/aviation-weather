@@ -19,12 +19,12 @@ mod users;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
   dotenv().ok();
-  env_logger::init_from_env(env_logger::Env::default().filter_or("RUST_LOG", "warn,service=info"));
+  env_logger::init_from_env(env_logger::Env::default().filter_or("RUST_LOG", "warn,api=info"));
   db::init().await;
   // scheduler::update_airports();
 
-  let host = env::var("SERVICE_HOST").unwrap_or("localhost".to_string());
-  let port = env::var("SERVICE_PORT").unwrap_or("5000".to_string());
+  let host = env::var("API_HOST").unwrap_or("localhost".to_string());
+  let port = env::var("API_PORT").unwrap_or("5000".to_string());
 
   let server = match HttpServer::new(move || {
     let cors = Cors::default()

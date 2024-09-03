@@ -15,7 +15,7 @@ help: ## This info
 	@echo
 
 format: ## Format code
-	@cd service && cargo fmt
+	@cd api && cargo fmt
 	@cd ui && npm run format
 
 backend-up: ## Start Docker containers
@@ -29,7 +29,7 @@ backend-down: ## Stop Docker containers
 down-backend: backend-down
 
 run: ## Run the api
-	@cd service && cargo run
+	@cd api && cargo run
 
 frontend-up: ## Start Docker containers
 	@docker compose --profile frontend up -d
