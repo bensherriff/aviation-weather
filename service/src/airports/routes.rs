@@ -4,7 +4,7 @@ use futures_util::stream::StreamExt as _;
 use crate::{
   airports::{QueryAirport, QueryFilters, QueryOrderField, QueryOrderBy, Airport, AirportCategory},
   db::{Response, Metadata},
-  auth::{JwtAuth, verify_role},
+  auth::{Auth, verify_role},
 };
 use actix_multipart::Multipart;
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest, ResponseError};
@@ -26,7 +26,7 @@ struct AirportsQuery {
 }
 
 #[post("/import")]
-async fn import_airports(mut payload: Multipart, auth: JwtAuth) -> HttpResponse {
+async fn import_airports(mut payload: Multipart, auth: Auth) -> HttpResponse {
   if let Err(err) = verify_role(&auth, "admin") {
     return ResponseError::error_response(&err);
   };
@@ -193,11 +193,7 @@ async fn get_airports(req: HttpRequest) -> HttpResponse {
       }
       HttpResponse::Ok().json(Response {
         data: airports,
-        meta: Some(Metadata {
-          page,
-          limit,
-          total,
-        }),
+        meta: Some(Metadata { page, limit, total }),
       })
     }
     Err(err) => {
@@ -222,7 +218,7 @@ async fn get_airport(icao: web::Path<String>) -> HttpResponse {
 }
 
 #[post("")]
-async fn create_airport(airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
+async fn create_airport(airport: web::Json<Airport>, auth: Auth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {}
     Err(err) => return ResponseError::error_response(&err),
@@ -244,7 +240,7 @@ async fn create_airport(airport: web::Json<Airport>, auth: JwtAuth) -> HttpRespo
 async fn update_airport(
   _icao: web::Path<String>,
   airport: web::Json<Airport>,
-  auth: JwtAuth,
+  auth: Auth,
 ) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {}
@@ -264,7 +260,7 @@ async fn update_airport(
 }
 
 #[delete("")]
-async fn delete_airports(auth: JwtAuth) -> HttpResponse {
+async fn delete_airports(auth: Auth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {}
     Err(err) => return ResponseError::error_response(&err),
@@ -279,7 +275,7 @@ async fn delete_airports(auth: JwtAuth) -> HttpResponse {
 }
 
 #[delete("/{icao}")]
-async fn delete_airport(icao: web::Path<String>, auth: JwtAuth) -> HttpResponse {
+async fn delete_airport(icao: web::Path<String>, auth: Auth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {}
     Err(err) => return ResponseError::error_response(&err),

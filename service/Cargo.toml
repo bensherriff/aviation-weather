@@ -36,3 +36,5 @@ ahash = "0.8.11" # https://github.com/tkaitchuck/aHash/issues/200
 regex = "1.10.5"
 futures-util = "0.3.30"
 rust-s3 = "0.34.0"
+rand = "0.8.5"
+rand_chacha = "0.3.1"

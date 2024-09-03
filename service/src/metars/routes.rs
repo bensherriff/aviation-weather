@@ -1,4 +1,4 @@
-use crate::{error_handler::ServiceError, db::Metadata};
+use crate::{error::ApiError, db::Metadata};
 use crate::metars::Metar;
 use actix_web::{get, web, HttpResponse, HttpRequest};
 use log::error;
@@ -25,7 +25,7 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
   };
 
   let metars =
-    match web::block(|| Ok::<_, ServiceError>(async { Metar::get_all(icao_string).await }))
+    match web::block(|| Ok::<_, ApiError>(async { Metar::get_all(icao_string).await }))
       .await
       .unwrap()
       .unwrap()

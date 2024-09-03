@@ -7,12 +7,11 @@ use std::env;
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, middleware::Logger};
 use dotenv::dotenv;
-use log::{info, error};
 
 mod airports;
 mod auth;
 mod db;
-mod error_handler;
+mod error;
 mod metars;
 mod scheduler;
 mod users;
@@ -45,11 +44,11 @@ async fn main() -> std::io::Result<()> {
   .bind(format!("{}:{}", host, port))
   {
     Ok(b) => {
-      info!("Binding server to {}:{}", host, port);
+      log::info!("Binding server to {}:{}", host, port);
       b
     }
     Err(err) => {
-      error!("Could not bind server: {}", err);
+      log::error!("Could not bind server: {}", err);
       return Err(err);
     }
   };

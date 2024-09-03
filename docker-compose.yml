@@ -1,12 +1,15 @@
-version: '3'
+x-env_file: &env
+  - path: .env
+    required: true
+  - path: .env.local
+    required: false
 
 name: aviation
 services:
   db:
     image: postgis/postgis:latest
     container_name: aviation-db
-    env_file:
-      - .env
+    env_file: *env
     environment:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
@@ -18,7 +21,10 @@ services:
       - "${DATABASE_PORT:-5432}:5432"
     networks:
       - backend
+    profiles:
+      - backend
     restart: unless-stopped
+
   redis:
     image: redis:latest
     container_name: aviation-redis
@@ -28,7 +34,10 @@ services:
       - ${REDIS_PORT:-6379}:6379
     networks:
       - backend
+    profiles:
+      - backend
     restart: unless-stopped
+
   minio:
     image: minio/minio
     container_name: aviation-minio
@@ -42,17 +51,14 @@ services:
       - ${MINIO_PORT_INTERNAL:-9001}:9001
     networks:
       - backend
+    profiles:
+      - backend
     command: server --console-address ":9001" /data
     restart: unless-stopped
 
-  service:
-    container_name: aviation-service
-    env_file:
-      - .env
-    environment:
-      KEYS_DIR_PATH: /keys
-    volumes:
-      - ${KEYS_DIR_PATH}:/keys
+  api:
+    container_name: aviation-api
+    env_file: *env
     ports:
       - "${SERVICE_PORT:-5000}:5000"
     build:
@@ -64,22 +70,29 @@ services:
     networks:
       - frontend
       - backend
+    profiles:
+      - api
     restart: unless-stopped
 
   ui:
     container_name: aviation-ui
-    env_file:
-      - .env
+    env_file: *env
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
+      - NODE_ENV=${NODE_ENV:-development}
     ports:
       - ${UI_PORT:-3000}:3000
     build:
-      context: ui
-    depends_on:
-      - service
+      context: ./ui/
+      target: dev
+    volumes:
+      - ./ui/src:/app/src
+      - ./ui/public:/app/public
+      - ./ui/styles:/app/styles
     networks:
       - frontend
+    profiles:
+      - frontend
+    command: ["npm", "run", "dev"]
     restart: unless-stopped
 
 volumes:

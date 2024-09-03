@@ -1,5 +1,6 @@
 use crate::airports::QueryAirport;
-use crate::{error_handler::ServiceError, db};
+use crate::error::ApiError;
+use crate::{error::ApiResult, db};
 use crate::db::schema::metars::{self};
 use chrono::Datelike;
 use diesel::{prelude::*, sql_query};
@@ -160,7 +161,7 @@ impl Default for Metar {
 }
 
 impl Metar {
-  fn parse(metar_strings: Vec<&str>) -> Result<Vec<Self>, ServiceError> {
+  fn parse(metar_strings: Vec<&str>) -> ApiResult<Vec<Self>> {
     let mut metars: Vec<Self> = vec![];
     for metar_string in metar_strings {
       trace!("Parsing METAR data: {}", metar_string);
@@ -674,7 +675,7 @@ impl Metar {
     return missing_metar_icaos;
   }
 
-  async fn get_remote_metars(icaos: Vec<String>) -> Result<Vec<Metar>, ServiceError> {
+  async fn get_remote_metars(icaos: Vec<String>) -> ApiResult<Vec<Metar>> {
     let gov_api_url = std::env::var("GOV_API_URL").expect("GOV_API_URL must be set");
     // Query the remote API for the missing METAR data 10 at a time
     let icao_chunks = icaos
@@ -688,7 +689,7 @@ impl Metar {
         Ok(r) => {
           // Check if the status code is 200
           if r.status() != 200 {
-            return Err(ServiceError::new(
+            return Err(ApiError::new(
               500,
               format!("Unable to get METAR request: {}", r.status()),
             ));
@@ -706,7 +707,7 @@ impl Metar {
               }
             }
             Err(err) => {
-              return Err(ServiceError::new(
+              return Err(ApiError::new(
                 500,
                 format!("Unable to parse METAR request: {}", err),
               ))
@@ -714,7 +715,7 @@ impl Metar {
           }
         }
         Err(err) => {
-          return Err(ServiceError::new(
+          return Err(ApiError::new(
             500,
             format!("Unable to get METAR request: {}", err),
           ))
@@ -749,7 +750,7 @@ impl Metar {
     return insert_metars;
   }
 
-  pub async fn get_all(icao_string: String) -> Result<Vec<Self>, ServiceError> {
+  pub async fn get_all(icao_string: String) -> ApiResult<Vec<Self>> {
     if icao_string.is_empty() {
       return Ok(vec![]);
     }
@@ -834,14 +835,14 @@ struct InsertMetar {
 }
 
 impl InsertMetar {
-  fn insert(metars: &Vec<Self>) -> Result<usize, ServiceError> {
+  fn insert(metars: &Vec<Self>) -> ApiResult<usize> {
     let mut conn = db::connection()?;
     match diesel::insert_into(metars::table)
       .values(metars)
       .execute(&mut conn)
     {
       Ok(rows) => Ok(rows),
-      Err(err) => Err(ServiceError {
+      Err(err) => Err(ApiError {
         status: 500,
         message: format!("{}", err),
       }),
@@ -860,7 +861,7 @@ struct QueryMetar {
 }
 
 impl QueryMetar {
-  fn get_all(icaos: &Vec<&str>) -> Result<Vec<QueryMetar>, ServiceError> {
+  fn get_all(icaos: &Vec<&str>) -> ApiResult<Vec<QueryMetar>> {
     // Sanitize search to only allow [a-zA-Z0-9]
     let icaos = icaos
       .iter()
@@ -880,7 +881,7 @@ impl QueryMetar {
       format!("SELECT DISTINCT ON (icao) * FROM metars WHERE icao IN ({}) ORDER BY icao, observation_time DESC", station_query.join(","))
     ).load(&mut conn) {
       Ok(m) => m,
-      Err(err) => return Err(ServiceError { status: 500, message: format!("{}", err) })
+      Err(err) => return Err(ApiError { status: 500, message: format!("{}", err) })
     };
     return Ok(db_metars);
   }

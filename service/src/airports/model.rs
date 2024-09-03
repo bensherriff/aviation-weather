@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use crate::db;
-use crate::error_handler::ServiceError;
+use crate::error::{ApiError, ApiResult};
 use crate::db::schema::airports;
 use diesel::prelude::*;
 use diesel::sql_query;
@@ -218,7 +218,7 @@ impl FromStr for QueryOrderField {
 }
 
 impl QueryAirport {
-  pub fn get_all(filters: &QueryFilters, limit: i32, page: i32) -> Result<Vec<Self>, ServiceError> {
+  pub fn get_all(filters: &QueryFilters, limit: i32, page: i32) -> ApiResult<Vec<Self>> {
     let mut conn = db::connection()?;
     let mut query: String = "SELECT * FROM airports".to_string();
     query = format!("{} {}", query, QueryAirport::build_filter_query(&filters)?);
@@ -258,7 +258,7 @@ impl QueryAirport {
     let airports: Vec<QueryAirport> = match sql_query(query).load(&mut conn) {
       Ok(a) => a,
       Err(err) => {
-        return Err(ServiceError {
+        return Err(ApiError {
           status: 500,
           message: format!("{}", err),
         })
@@ -267,7 +267,7 @@ impl QueryAirport {
     Ok(airports)
   }
 
-  pub fn get_count(filters: &QueryFilters) -> Result<i64, ServiceError> {
+  pub fn get_count(filters: &QueryFilters) -> ApiResult<i64> {
     let mut conn = db::connection()?;
     let mut query = "SELECT COUNT(*) FROM airports".to_string();
     query = format!("{} {}", query, QueryAirport::build_filter_query(&filters)?);
@@ -287,7 +287,7 @@ impl QueryAirport {
     let count: Vec<Count> = match sql_query(query).load(&mut conn) {
       Ok(a) => a,
       Err(err) => {
-        return Err(ServiceError {
+        return Err(ApiError {
           status: 500,
           message: format!("{}", err),
         })
@@ -297,14 +297,14 @@ impl QueryAirport {
   }
 
   // TODO: Unsafe query, need to sanitize inputs
-  fn build_filter_query(filters: &QueryFilters) -> Result<String, ServiceError> {
+  fn build_filter_query(filters: &QueryFilters) -> ApiResult<String> {
     let mut query = "".to_string();
     let mut parts: Vec<String> = vec![];
 
     if let Some(bounds) = &filters.bounds {
       // convert bounds to a WKT polygon
       if bounds.rings.len() > 1 {
-        return Err(ServiceError {
+        return Err(ApiError {
           status: 400,
           message: "Only one polygon is allowed".to_string(),
         });
@@ -376,7 +376,7 @@ impl QueryAirport {
     return Ok(query);
   }
 
-  pub fn get(icao: &str) -> Result<Self, ServiceError> {
+  pub fn get(icao: &str) -> ApiResult<Self> {
     let mut conn = db::connection()?;
     let airport = airports::table
       .filter(airports::icao.eq(icao))
@@ -384,7 +384,7 @@ impl QueryAirport {
     Ok(airport)
   }
 
-  pub fn insert(airport: Self) -> Result<Self, ServiceError> {
+  pub fn insert(airport: Self) -> ApiResult<Self> {
     let mut conn: r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>> =
       db::connection()?;
     let airport = Self::from(airport);
@@ -395,7 +395,7 @@ impl QueryAirport {
     Ok(airport)
   }
 
-  pub fn insert_all(airports: Vec<Self>) -> Result<Vec<Self>, ServiceError> {
+  pub fn insert_all(airports: Vec<Self>) -> ApiResult<Vec<Self>> {
     let mut conn: r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>> =
       db::connection()?;
     let mut inserted_airports: Vec<Self> = vec![];
@@ -410,7 +410,7 @@ impl QueryAirport {
     Ok(inserted_airports)
   }
 
-  pub fn update(airport: Self) -> Result<Self, ServiceError> {
+  pub fn update(airport: Self) -> ApiResult<Self> {
     let mut conn = db::connection()?;
     let airport = diesel::update(airports::table)
       .filter(airports::icao.eq(airport.icao.clone()))
@@ -419,7 +419,7 @@ impl QueryAirport {
     Ok(airport)
   }
 
-  pub fn delete(icao: Option<String>) -> Result<usize, ServiceError> {
+  pub fn delete(icao: Option<String>) -> ApiResult<usize> {
     let mut conn = db::connection()?;
     let res = match icao {
       Some(icao) => {

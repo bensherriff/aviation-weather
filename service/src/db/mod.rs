@@ -1,4 +1,4 @@
-use crate::error_handler::ServiceError;
+use crate::error::{ApiError, ApiResult};
 use diesel::{r2d2::ConnectionManager, PgConnection};
 use redis::{Client as RedisClient, aio::MultiplexedConnection as RedisConnection};
 use s3::{
@@ -76,7 +76,7 @@ pub async fn init() {
     Ok(_) => info!("Bucket initialized"),
     Err(err) => match err.status {
       409 => warn!("Bucket already exists"),
-      _ => error!("Failed to initialize bucket; {}", err.message),
+      _ => error!("Failed to initialize bucket; {}", err),
     },
   };
   let mut pool: DbConnection = connection().expect("Failed to get db connection");
@@ -86,23 +86,23 @@ pub async fn init() {
   };
 }
 
-pub fn connection() -> Result<DbConnection, ServiceError> {
+pub fn connection() -> ApiResult<DbConnection> {
   POOL
     .get()
-    .map_err(|e| ServiceError::new(500, format!("Failed getting db connection: {}", e)))
+    .map_err(|e| ApiError::new(500, format!("Failed getting db connection: {}", e)))
 }
 
-pub fn redis_connection() -> Result<redis::Connection, ServiceError> {
+pub fn redis_connection() -> ApiResult<redis::Connection> {
   let conn = REDIS.get_connection()?;
   Ok(conn)
 }
 
-pub async fn redis_async_connection() -> Result<RedisConnection, ServiceError> {
+pub async fn redis_async_connection() -> ApiResult<RedisConnection> {
   let conn = REDIS.get_multiplexed_async_connection().await?;
   Ok(conn)
 }
 
-async fn create_bucket() -> Result<CreateBucketResponse, ServiceError> {
+async fn create_bucket() -> ApiResult<CreateBucketResponse> {
   let url = env::var("MINIO_URL").unwrap_or("localhost".to_string());
   let port = env::var("MINIO_PORT").unwrap_or("9000".to_string());
   let user = env::var("MINIO_ROOT_USER").expect("MINIO_ROOT_USER is not set");
@@ -132,18 +132,18 @@ async fn create_bucket() -> Result<CreateBucketResponse, ServiceError> {
   Ok(response)
 }
 
-pub async fn upload_file(path: &str, content: &[u8]) -> Result<ResponseData, ServiceError> {
+pub async fn upload_file(path: &str, content: &[u8]) -> ApiResult<ResponseData> {
   let response = BUCKET.put_object(path, content).await?;
   Ok(response)
 }
 
-pub async fn get_file(path: &str) -> Result<Vec<u8>, ServiceError> {
+pub async fn get_file(path: &str) -> ApiResult<Vec<u8>> {
   let response = BUCKET.get_object(path).await?;
   let bytes = response.bytes();
   Ok(bytes.to_vec())
 }
 
-pub async fn delete_file(path: &str) -> Result<ResponseData, ServiceError> {
+pub async fn delete_file(path: &str) -> ApiResult<ResponseData> {
   let response = BUCKET.delete_object(path).await?;
   Ok(response)
 }

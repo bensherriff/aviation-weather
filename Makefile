@@ -14,29 +14,39 @@ help: ## This info
 	@cat Makefile | grep -E '^[a-zA-Z\/_-]+:.*?## .*$$' | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	@echo
 
-build: ## Build Docker containers
-	docker compose build
+format: ## Format code
+	@cd service && cargo fmt
+	@cd ui && npm run format
 
-tag: ## Tag Docker images
-	docker tag aviation-ui:latest aviation-ui:${GIT_HASH}
-	docker tag aviation-service:latest aviation-service:${GIT_HASH}
+backend-up: ## Start Docker containers
+	@docker compose --profile backend up -d
 
-up: ## Start Docker containers
-	docker compose up -d
+up-backend: backend-up
 
-down: ## Stop Docker containers
-	docker compose down
+backend-down: ## Stop Docker containers
+	@docker compose --profile backend down
 
-clean: ## Cleanup Docker containers
-	docker compose down && \
-	docker image rm aviation-ui || \
-	docker image rm aviation-service || \
-	docker network rm aviation-frontend || \
-	docker network rm aviation-backend
+down-backend: backend-down
 
-generate: ## Generate RSA keys
-	mkdir keys
-	openssl genrsa -out keys/access_private_key.pem 4096
-	openssl rsa -in keys/access_private_key.pem -pubout -outform PEM -out keys/access_public_key.pem
-	openssl genrsa -out keys/refresh_private_key.pem 4096
-	openssl rsa -in keys/refresh_private_key.pem -pubout -outform PEM -out keys/refresh_public_key.pem
+run: ## Run the api
+	@cd service && cargo run
+
+frontend-up: ## Start Docker containers
+	@docker compose --profile frontend up -d
+
+up-frontend: frontend-up
+
+frontend-down: ## Stop Docker containers
+	@docker compose --profile frontend down
+
+down-frontend: frontend-down
+
+docker-clean: ## Stop the docker containers and remove volumes
+	@echo "Stopping docker container and removing volumes..."
+	@docker compose --profile frontend --profile api --profile backend down -v
+	@echo "Docker container stopped and volumes removed"
+
+docker-refresh: docker-clean up-backend ## Refresh the database
+
+psql: ## Connect to the PSQL DB
+	@docker exec -it ${DATABASE_CONTAINER} psql -U ${DATABASE_USER} -P pager=off
