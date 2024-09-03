@@ -75,6 +75,5 @@ export async function deleteRequest(endpoint: string): Promise<Response> {
 export interface Metadata {
   limit: number;
   page: number;
-  pages: number;
   total: number;
 }

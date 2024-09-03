@@ -13,7 +13,7 @@ use postgis_diesel::types::{Polygon, Point};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-struct GetAllParameters {
+struct AirportsQuery {
   icaos: Option<String>,
   name: Option<String>,
   bounds: Option<String>,
@@ -26,7 +26,7 @@ struct GetAllParameters {
 }
 
 #[post("/import")]
-async fn import(mut payload: Multipart, auth: JwtAuth) -> HttpResponse {
+async fn import_airports(mut payload: Multipart, auth: JwtAuth) -> HttpResponse {
   if let Err(err) = verify_role(&auth, "admin") {
     return ResponseError::error_response(&err);
   };
@@ -70,8 +70,8 @@ async fn import(mut payload: Multipart, auth: JwtAuth) -> HttpResponse {
 }
 
 #[get("")]
-async fn get_all(req: HttpRequest) -> HttpResponse {
-  let params = web::Query::<GetAllParameters>::from_query(req.query_string()).unwrap();
+async fn get_airports(req: HttpRequest) -> HttpResponse {
+  let params = web::Query::<AirportsQuery>::from_query(req.query_string()).unwrap();
   let mut filters = QueryFilters::default();
   filters.icaos = match &params.icaos {
     Some(i) => Some(i.split(",").map(|s| s.to_string()).collect()),
@@ -180,7 +180,6 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
     Ok(t) => t,
     Err(_) => 0,
   };
-  let pages = ((total as f64) / (if limit <= 0 { 1 } else { limit } as f64)).ceil() as i64;
 
   match web::block(move || QueryAirport::get_all(&filters, limit, page))
     .await
@@ -197,7 +196,6 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
         meta: Some(Metadata {
           page,
           limit,
-          pages,
           total,
         }),
       })
@@ -210,19 +208,11 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
 }
 
 #[get("/{icao}")]
-async fn get(icao: web::Path<String>) -> HttpResponse {
+async fn get_airport(icao: web::Path<String>) -> HttpResponse {
   match QueryAirport::get(&icao.into_inner()) {
     Ok(a) => {
       let airport: Airport = a.into();
-      HttpResponse::Ok().json(Response {
-        data: airport,
-        meta: Some(Metadata {
-          page: 1,
-          limit: 1,
-          pages: 1,
-          total: 1,
-        }),
-      })
+      HttpResponse::Ok().json(airport)
     }
     Err(err) => {
       error!("{}", err);
@@ -232,7 +222,7 @@ async fn get(icao: web::Path<String>) -> HttpResponse {
 }
 
 #[post("")]
-async fn create(airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
+async fn create_airport(airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {}
     Err(err) => return ResponseError::error_response(&err),
@@ -251,7 +241,7 @@ async fn create(airport: web::Json<Airport>, auth: JwtAuth) -> HttpResponse {
 }
 
 #[put("/{icao}")]
-async fn update(
+async fn update_airport(
   _icao: web::Path<String>,
   airport: web::Json<Airport>,
   auth: JwtAuth,
@@ -274,7 +264,7 @@ async fn update(
 }
 
 #[delete("")]
-async fn delete_all(auth: JwtAuth) -> HttpResponse {
+async fn delete_airports(auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {}
     Err(err) => return ResponseError::error_response(&err),
@@ -289,7 +279,7 @@ async fn delete_all(auth: JwtAuth) -> HttpResponse {
 }
 
 #[delete("/{icao}")]
-async fn delete(icao: web::Path<String>, auth: JwtAuth) -> HttpResponse {
+async fn delete_airport(icao: web::Path<String>, auth: JwtAuth) -> HttpResponse {
   let _ = match verify_role(&auth, "admin") {
     Ok(_) => {}
     Err(err) => return ResponseError::error_response(&err),
@@ -306,12 +296,12 @@ async fn delete(icao: web::Path<String>, auth: JwtAuth) -> HttpResponse {
 pub fn init_routes(config: &mut web::ServiceConfig) {
   config.service(
     web::scope("airports")
-      .service(get_all)
-      .service(get)
-      .service(create)
-      .service(update)
-      .service(delete)
-      .service(delete_all)
-      .service(import),
+      .service(import_airports)
+      .service(get_airports)
+      .service(get_airport)
+      .service(create_airport)
+      .service(update_airport)
+      .service(delete_airports)
+      .service(delete_airport),
   );
 }

@@ -86,11 +86,6 @@ export interface Frequency {
   frequency_mhz: number;
 }
 
-export interface GetAirportResponse {
-  data: Airport;
-  meta: Metadata;
-}
-
 export interface GetAirportsResponse {
   data: Airport[];
   meta: Metadata;

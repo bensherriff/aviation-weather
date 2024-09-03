@@ -1,13 +1,13 @@
-import { Airport, AirportOrderField, Bounds, GetAirportResponse, GetAirportsResponse } from './airport.types';
+import { Airport, AirportOrderField, Bounds, GetAirportsResponse } from './airport.types';
 import { getRequest, deleteRequest, postRequest, putRequest } from '.';
 
 interface GetAirportProps {
   icao: string;
 }
 
-export async function getAirport({ icao }: GetAirportProps): Promise<GetAirportResponse> {
+export async function getAirport({ icao }: GetAirportProps): Promise<Airport> {
   const response = await getRequest(`airports/${icao}`);
-  return response?.json() || { data: undefined };
+  return response?.json() || {};
 }
 
 interface GetAirportsProps {

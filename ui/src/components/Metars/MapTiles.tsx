@@ -57,7 +57,7 @@ export default function MapTiles() {
       page: 1
     });
     const airports = airportData.filter((airport) => airport.has_metar);
-    const { data: metars } = await getMetars(airports.map((a) => a.icao));
+    const metars = await getMetars(airports.map((a) => a.icao));
     metars.forEach((metar) => {
       airportData.forEach((airport) => {
         if (metar.station_id == airport.icao) {

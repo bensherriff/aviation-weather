@@ -158,7 +158,6 @@ pub struct Response<T> {
 pub struct Metadata {
   pub page: i32,
   pub limit: i32,
-  pub pages: i64,
   pub total: i64,
 }
 

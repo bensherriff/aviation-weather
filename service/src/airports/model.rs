@@ -45,8 +45,14 @@ pub struct Airport {
   pub has_beacon: Option<bool>,
   pub runways: Vec<Runway>,
   pub frequencies: Vec<Frequency>,
-  pub has_metar: bool,
   pub public: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AirportMetarCache {
+  pub icao: String,
+  pub has_metar: bool,
+  pub last_checked: chrono::NaiveDateTime,
 }
 
 impl Into<QueryAirport> for Airport {

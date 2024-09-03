@@ -13,9 +13,9 @@ export default function Page({ params }: { params: { icao: string } }) {
 
   useEffect(() => {
     async function loadAirport() {
-      const { data: airportData } = await getAirport({ icao: params.icao });
+      const airportData = await getAirport({ icao: params.icao });
       setAirport(airportData);
-      const { data: metarData } = await getMetars([airportData.icao]);
+      const metarData = await getMetars([airportData.icao]);
       if (metarData.length > 0) {
         setMetar(metarData[0]);
       }

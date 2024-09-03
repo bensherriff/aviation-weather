@@ -59,4 +59,6 @@ generate-keys: ## Generate RSA keys
 	@openssl rsa -in ../keys/access_private_key.pem -pubout -outform PEM -out ../keys/access_public_key.pem
 	@openssl genrsa -out ../keys/refresh_private_key.pem 4096
 	@openssl rsa -in ../keys/refresh_private_key.pem -pubout -outform PEM -out ../keys/refresh_public_key.pem
-	
+
+psql: ## Connect to the PSQL DB
+	@docker exec -it ${DATABASE_CONTAINER} psql -U ${DATABASE_USER}

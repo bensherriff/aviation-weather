@@ -24,7 +24,7 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
     None => return HttpResponse::UnprocessableEntity().body("Missing icaos parameter"),
   };
 
-  let airports =
+  let metars =
     match web::block(|| Ok::<_, ServiceError>(async { Metar::get_all(icao_string).await }))
       .await
       .unwrap()
@@ -37,15 +37,7 @@ async fn get_all(req: HttpRequest) -> HttpResponse {
         return err.to_http_response();
       }
     };
-  HttpResponse::Ok().json(MetarsResponse {
-    data: airports,
-    meta: Metadata {
-      page: 0,
-      limit: 0,
-      pages: 0,
-      total: 0,
-    },
-  })
+  HttpResponse::Ok().json(metars)
 }
 
 pub fn init_routes(config: &mut web::ServiceConfig) {
