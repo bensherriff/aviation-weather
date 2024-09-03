@@ -62,7 +62,7 @@ lazy_static! {
       expiration: None,
     };
 
-    Bucket::new("aviation", region.clone(), credentials.clone())
+    *Bucket::new("aviation", region.clone(), credentials.clone())
       .expect("Failed to create S3 Bucket")
       .with_path_style()
   };

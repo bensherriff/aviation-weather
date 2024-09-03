@@ -87,12 +87,6 @@ impl From<argon2::password_hash::Error> for ApiError {
   }
 }
 
-impl From<jsonwebtoken::errors::Error> for ApiError {
-  fn from(error: jsonwebtoken::errors::Error) -> Self {
-    Self::new(500, format!("Unknown jsonwebtoken error: {}", error))
-  }
-}
-
 impl From<redis::RedisError> for ApiError {
   fn from(error: redis::RedisError) -> Self {
     Self::new(500, format!("Unknown redis error: {}", error))
