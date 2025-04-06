@@ -4,6 +4,7 @@ use argon2::{
 };
 use rand::prelude::*;
 use rand_chacha::ChaCha20Rng;
+use serde::{Deserialize, Serialize};
 
 mod model;
 mod routes;
@@ -13,11 +14,9 @@ pub use model::*;
 pub use session::*;
 pub use routes::init_routes;
 
-use crate::error::{ApiError, ApiResult};
+use crate::error::{Error, ApiResult};
 
-pub const SESSION_COOKIE_NAME: &str = "session";
-
-pub fn csprng_128bit(take: usize) -> String {
+pub fn csprng(take: usize) -> String {
   // Generate a CSPRNG 128-bit (16 byte) ID using alphanumeric characters (a-z, A-Z, 0-9)
   let rng = ChaCha20Rng::from_entropy();
   rng
@@ -27,32 +26,51 @@ pub fn csprng_128bit(take: usize) -> String {
     .collect()
 }
 
-pub fn hash(str: &str) -> ApiResult<String> {
+pub fn hash(string: &str) -> ApiResult<String> {
   let salt = SaltString::generate(&mut OsRng);
-  let bytes = str.as_bytes();
-  let hash = Argon2::default().hash_password(bytes, &salt)?.to_string();
+  let hash = Argon2::default()
+    .hash_password(string.as_bytes(), &salt)?
+    .to_string();
   Ok(hash)
 }
 
-pub fn verify_hash(str: &str, hash: &str) -> bool {
-  let bytes = str.as_bytes();
-  let parsed_hash = match PasswordHash::new(hash) {
+pub fn verify_hash(string: &str, hashed_string: &str) -> bool {
+  let bytes = string.as_bytes();
+  let parsed_hash = match PasswordHash::new(hashed_string) {
     Ok(h) => h,
-    Err(_) => return false,
+    Err(err) => {
+      log::error!(
+        "Failed to construct PasswordHash from '{}': {}",
+        hashed_string,
+        err
+      );
+      return false;
+    }
   };
-  match Argon2::default().verify_password(bytes, &parsed_hash) {
-    Ok(_) => true,
-    Err(_) => false,
-  }
+  Argon2::default()
+    .verify_password(bytes, &parsed_hash)
+    .is_ok()
 }
 
 pub fn verify_role(auth: &Auth, role: &str) -> ApiResult<()> {
   if auth.user.role == role {
     Ok(())
   } else {
-    Err(ApiError {
+    Err(Error {
       status: 403,
-      message: "User does not have permission to perform this action.".to_string(),
+      details: "User does not have permission to perform this action.".to_string(),
     })
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_hash() {
+    let password = hash("password").unwrap();
+    assert!(!verify_hash(&password, "bad_password"));
+    assert!(verify_hash("password", &password));
   }
 }

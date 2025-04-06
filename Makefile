@@ -1,7 +1,8 @@
 #!make
 SHELL := /bin/bash
 
-GIT_HASH ?= $(shell git log --format="%h" -n 1)
+export API_VERSION = $(shell awk -F ' = ' '$$1 ~ /package.version/ { gsub(/[\"]/, "", $$2); printf("%s",$$2) }' api/Cargo.toml)
+export UI_VERSION := $(shell awk -F'"' '/"version"/ { print $$4 }' ui/package.json)
 
 include .env
 -include .env.local
@@ -14,9 +15,46 @@ help: ## This info
 	@cat Makefile | grep -E '^[a-zA-Z\/_-]+:.*?## .*$$' | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	@echo
 
-format: ## Format code
+format: format-api format-ui ## Format code
+
+psql: ## Connect to the PSQL DB
+	@docker exec -it aviation-postgres psql -U ${POSTGRES_USER} -P pager=off
+
+#################
+# API Commands  #
+#################
+
+format-api: ## Format code
 	@cd api && cargo fmt
+
+build-api: ## Build the project
+	@cd api && cargo build
+
+run-api: ## Run the API project
+	@cd api && cargo run -p api
+
+#################
+#  UI Commands  #
+#################
+
+lint-ui:  ## Run the linter
+	@cd ui && npm run lint
+
+format-ui: ## Run the formatter
 	@cd ui && npm run format
+
+build-ui:  ## Build the UI app
+	@cd ui && npm install && npm run build
+
+clean-ui:  ## Remove UI build files
+	@cd ui && rm -rf node_modules dist
+
+run-ui:  ## Run the UI app
+	@cd ui && npm install && npm run dev
+
+###################
+# Docker Commands #
+###################
 
 backend-up: ## Start Docker containers
 	@docker compose --profile backend up -d
@@ -41,12 +79,16 @@ frontend-down: ## Stop Docker containers
 
 down-frontend: frontend-down
 
+docker-prune: ## Prune the docker system
+	@docker system prune -a
+
 docker-clean: ## Stop the docker containers and remove volumes
-	@echo "Stopping docker container and removing volumes..."
 	@docker compose --profile frontend --profile api --profile backend down -v
-	@echo "Docker container stopped and volumes removed"
+
+docker-down: ## Stop the docker container
+	@docker compose --profile frontend --profile api --profile backend down
+
+docker-up: ## Start the docker container
+	@docker compose --profile backend --profile api --profile frontend up -d
 
 docker-refresh: docker-clean up-backend ## Refresh the database
-
-psql: ## Connect to the PSQL DB
-	@docker exec -it ${DATABASE_CONTAINER} psql -U ${DATABASE_USER} -P pager=off

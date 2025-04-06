@@ -1,1 +1,0 @@
-DROP TABLE airport_metar_cache;

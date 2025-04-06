@@ -6,19 +6,19 @@ x-env_file: &env
 
 name: aviation
 services:
-  db:
-    image: postgis/postgis:latest
-    container_name: aviation-db
+  postgres:
+    image: postgis/postgis:17-3.5
+    container_name: aviation-postgres
     env_file: *env
     environment:
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_NAME}
     volumes:
-     - db:/var/lib/postgresql/data
-     - db_logs:/var/log
+     - postgres:/var/lib/postgresql/data
+     - postgres_logs:/var/log
     ports:
-      - "${DATABASE_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     networks:
       - backend
     profiles:
@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:latest
+    image: redis:8.0-M03 # Replace with valkey?
     container_name: aviation-redis
     volumes:
       - redis:/data
@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
     container_name: aviation-minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -64,7 +64,7 @@ services:
     build:
       context: api
     depends_on:
-      - db
+      - postgres
       - redis
       - minio
     networks:
@@ -96,8 +96,8 @@ services:
     restart: unless-stopped
 
 volumes:
-  db:
-  db_logs:
+  postgres:
+  postgres_logs:
   redis:
   minio:
 

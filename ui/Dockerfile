@@ -1,39 +1,30 @@
-# Base
-FROM node:21-alpine AS base
+FROM node:18-alpine AS base
 
-# Dependencies
-FROM base as deps
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# Dev
-FROM base AS dev
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Builder
 FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+RUN apk add --no-cache libc6-compat
+WORKDIR /builder
 COPY . .
-RUN npm run build
+RUN \
+  if [ -f package.json ]; then npm i && npm run build; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
 
-# Runner
 FROM base AS runner
+ARG PORT=3000
+ENV PORT=${PORT}
+
 WORKDIR /app
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
-COPY --from=builder /app/next.config.js ./
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-USER nextjs
-EXPOSE 3000
-ENV PORT 3000
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
 
-CMD ["node", "server.js"]
+#RUN addgroup --system --gid 1001 node
+#RUN adduser --system --uid 1001 node
+
+COPY --from=builder /builder /app
+#RUN chown -R node:node /app
+
+USER node
+
+EXPOSE ${PORT}
+
+CMD ["npm", "run", "dev"]
