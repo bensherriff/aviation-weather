@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use actix_web::web::Json;
 use serde::{Deserialize, Serialize};
-use sqlx::{Postgres, QueryBuilder};
+use sqlx::{Execute, Postgres, QueryBuilder};
 use crate::airports::model::airport_category::AirportCategory;
 use crate::airports::{Frequency, Runway, UpdateFrequency, UpdateRunway};
 use crate::db;
@@ -33,7 +33,38 @@ pub struct Airport {
   pub public: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Deserialize)]
+pub struct AirportQuery {
+  pub page: Option<u32>,
+  pub limit: Option<u32>,
+  pub icaos: Option<String>,
+  pub iatas: Option<String>,
+  pub locals: Option<String>,
+  pub names: Option<String>,
+  pub categories: Option<String>,
+  pub iso_countries: Option<String>,
+  pub iso_regions: Option<String>,
+  pub municipalities: Option<String>,
+}
+
+impl Default for AirportQuery {
+  fn default() -> Self {
+    Self {
+      page: Some(1),
+      limit: Some(1000),
+      icaos: None,
+      iatas: None,
+      locals: None,
+      names: None,
+      categories: None,
+      iso_countries: None,
+      iso_regions: None,
+      municipalities: None,
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, sqlx::FromRow)]
 struct AirportRow {
   pub icao: String,
   pub iata: Option<String>,
@@ -51,39 +82,23 @@ struct AirportRow {
   pub public: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct UpdateAirport {
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub icao: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub iata: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub local: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub name: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub category: Option<AirportCategory>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub iso_country: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub iso_region: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub municipality: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub elevation_ft: Option<f32>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub longitude: Option<f32>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub latitude: Option<f32>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub has_tower: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub has_beacon: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub runways: Option<Vec<UpdateRunway>>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub frequencies: Option<Vec<UpdateFrequency>>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub public: Option<bool>,
 }
 
@@ -161,19 +176,95 @@ impl Airport {
     }
   }
 
-  pub async fn select_all() -> ApiResult<Vec<Self>> {
+  pub async fn select_all(query: &AirportQuery) -> ApiResult<Vec<Self>> {
     let pool = db::pool();
 
-    let airports: Vec<AirportRow> = sqlx::query_as(&format!(
-      r#"
-      SELECT * FROM {}
-      "#,
-      TABLE_NAME
-    ))
-    .fetch_all(pool)
-    .await?;
+    let mut builder = QueryBuilder::<Postgres>::new("SELECT * FROM ");
+    builder.push(TABLE_NAME);
 
-    Ok(airports.into_iter().map(From::from).collect())
+    let mut has_where = false;
+    macro_rules! push_condition {
+      ($field:expr, $value:expr) => {
+        if let Some(ref val) = $value {
+          if !has_where {
+            builder.push(" WHERE ");
+            has_where = true;
+          } else {
+            builder.push(" AND ");
+          }
+          builder.push($field).push(" = ").push_bind(val);
+        }
+      };
+    }
+
+    // push_condition!("icao", query.icaos);
+    // push_condition!("iata", query.iata);
+    // push_condition!("iso_country", query.iso_country);
+    // push_condition!("iso_region", query.iso_region);
+    // push_condition!("municipality", query.municipality);
+
+    // Apply pagination.
+    if let Some(limit) = query.limit {
+      builder.push(" LIMIT ").push_bind(limit as i64);
+      let offset = if let Some(page) = query.page {
+        // Calculate offset (page is 1-based).
+        (page.saturating_sub(1) * limit) as i64
+      } else {
+        0
+      };
+      builder.push(" OFFSET ").push_bind(offset);
+    }
+
+    let query = builder.build_query_as();
+    let airport_rows: Vec<AirportRow> = query.fetch_all(pool).await?;
+    Ok(airport_rows.into_iter().map(From::from).collect())
+  }
+
+  pub async fn count(query: &AirportQuery) -> i64 {
+    let pool = db::pool();
+
+    let mut builder = QueryBuilder::<Postgres>::new("SELECT COUNT(*) FROM ");
+    builder.push(TABLE_NAME);
+
+    let mut has_where = false;
+    macro_rules! push_condition_array {
+      ($column:expr, $field:expr) => {
+        if let Some(ref value_str) = $field {
+          // split on commas, trim whitespace, and drop empties
+          let values: Vec<&str> = value_str
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect();
+          if !values.is_empty() {
+            if !has_where {
+              builder.push(" WHERE ");
+              has_where = true;
+            } else {
+              builder.push(" AND ");
+            }
+            dbg!(&values);
+            builder.push($column);
+            builder.push(" = ANY(");
+            builder.push_bind(values);
+            builder.push(")");
+          }
+        }
+      };
+    }
+
+    push_condition_array!("icao", query.icaos);
+    push_condition_array!("iata", query.iatas);
+    push_condition_array!("iso_country", query.iso_countries);
+    push_condition_array!("iso_region", query.iso_regions);
+    push_condition_array!("municipality", query.municipalities);
+    push_condition_array!("local", query.locals);
+    push_condition_array!("name", query.names);
+    push_condition_array!("category", query.categories);
+
+    let sql_query = builder.build_query_scalar();
+    dbg!(&sql_query.sql());
+    sql_query.fetch_one(pool).await.unwrap_or_else(|_| 0)
   }
 
   pub async fn insert(&self) -> ApiResult<Self> {

@@ -168,8 +168,8 @@ pub async fn delete_file(path: &str) -> ApiResult<ResponseData> {
 #[derive(Serialize, Deserialize)]
 pub struct Paged<T> {
   pub data: T,
-  pub page: i32,
-  pub limit: i32,
+  pub page: u32,
+  pub limit: u32,
   pub total: i64,
 }
 

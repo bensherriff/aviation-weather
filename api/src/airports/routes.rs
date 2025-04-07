@@ -9,21 +9,8 @@ use crate::{
 use actix_multipart::Multipart;
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest, ResponseError};
 use serde::{Serialize, Deserialize};
-use crate::airports::UpdateAirport;
+use crate::airports::{AirportQuery, UpdateAirport};
 use crate::users::ADMIN_ROLE;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct AirportsQuery {
-  icaos: Option<String>,
-  name: Option<String>,
-  bounds: Option<String>,
-  categories: Option<String>,
-  order_field: Option<String>,
-  order_by: Option<String>,
-  has_metar: Option<String>,
-  limit: Option<i32>,
-  page: Option<i32>,
-}
 
 #[post("/import")]
 async fn import_airports(mut payload: Multipart, auth: Auth) -> HttpResponse {
@@ -69,8 +56,27 @@ async fn import_airports(mut payload: Multipart, auth: Auth) -> HttpResponse {
 
 #[get("")]
 async fn get_airports(req: HttpRequest) -> HttpResponse {
-  match Airport::select_all().await {
-    Ok(airports) => HttpResponse::Ok().json(airports),
+  let mut query = match web::Query::<AirportQuery>::from_query(req.query_string()) {
+    Ok(q) => q.into_inner(),
+    Err(_) => AirportQuery::default(),
+  };
+
+  let total = Airport::count(&query).await;
+  let page = query.page.unwrap_or(1);
+  let mut limit = query.limit.unwrap_or(total as u32);
+  if limit > 1000 {
+    limit = 1000
+  }
+  query.limit = Some(limit);
+  query.page = Some(page);
+
+  match Airport::select_all(&query).await {
+    Ok(airports) => HttpResponse::Ok().json(Paged {
+      data: airports,
+      page,
+      limit,
+      total,
+    }),
     Err(err) => {
       log::error!("{}", err);
       ResponseError::error_response(&err)
