@@ -2,6 +2,7 @@ use argon2::{
   password_hash::{rand_core::OsRng, SaltString},
   Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
 };
+use rand::distr::Alphanumeric;
 use rand::prelude::*;
 use rand_chacha::ChaCha20Rng;
 use serde::{Deserialize, Serialize};
@@ -18,9 +19,9 @@ use crate::error::{Error, ApiResult};
 
 pub fn csprng(take: usize) -> String {
   // Generate a CSPRNG 128-bit (16 byte) ID using alphanumeric characters (a-z, A-Z, 0-9)
-  let rng = ChaCha20Rng::from_entropy();
+  let rng = ChaCha20Rng::from_os_rng();
   rng
-    .sample_iter(rand::distributions::Alphanumeric)
+    .sample_iter(Alphanumeric)
     .take(take)
     .map(char::from)
     .collect()
