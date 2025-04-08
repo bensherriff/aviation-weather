@@ -1,3 +1,4 @@
+use std::sync::OnceLock;
 use actix_web::{
   post, web, HttpResponse, ResponseError,
   cookie::{Cookie, time::Duration},
@@ -12,23 +13,36 @@ use crate::{
 use crate::auth::{Auth, DEFAULT_SESSION_TTL};
 
 #[post("/register")]
-async fn register(user: web::Json<RegisterRequest>) -> HttpResponse {
-  let register_user = user.0;
-  let insert_user: User = match register_user.to_user() {
+async fn register(user: web::Json<RegisterRequest>, req: HttpRequest) -> HttpResponse {
+  let register_user = user.into_inner();
+  let email = register_user.email.clone();
+  let ip_address = req.peer_addr().unwrap().ip().to_string();
+  let mut insert_user: User = match register_user.to_user() {
     Ok(user) => user,
     Err(err) => return ResponseError::error_response(&err),
   };
+
   match insert_user.insert().await {
     Ok(user) => {
       let response: UserResponse = user.into();
-      log::trace!("Registered user '{}'", response.email);
+      log::info!(
+        "Successful user registration [Email: {}] [IP Address: {}]",
+        email,
+        ip_address
+      );
       HttpResponse::Created().json(response)
     }
     Err(err) => {
       // Obfuscate the service error message to prevent leaking database details
       if err.status == 409 {
+        log::warn!(
+          "Duplicate user registration attempt [Email: {}] [IP Address: {}]",
+          email,
+          ip_address
+        );
         HttpResponse::Conflict().finish()
       } else {
+        log::error!("attemptFailed to register user [Email: {}]: {}", email, err);
         ResponseError::error_response(&err)
       }
     }
@@ -51,28 +65,54 @@ async fn login(request: web::Json<LoginRequest>, req: HttpRequest) -> HttpRespon
     let session_cookie = session.to_cookie();
     // Save the session to the database
     if let Err(err) = session.store().await {
-      log::error!("Failed to store session");
+      log::error!(
+        "Login attempt failure [Email: {}] [IP Address: {}]: {}",
+        email,
+        ip_address,
+        err
+      );
       return ResponseError::error_response(&Error::new(500, err.to_string()));
     }
+    log::info!(
+      "Successful login attempt [Email: {}] [IP Address: {}]",
+      email,
+      ip_address
+    );
     HttpResponse::Ok().cookie(session_cookie).finish()
   } else {
-    log::error!("Invalid login attempt for {}", email);
+    log::error!(
+      "Invalid login attempt [Email: {}] [IP Address: {}]",
+      email,
+      ip_address
+    );
     HttpResponse::Unauthorized().finish()
   }
 }
 
 #[post("/logout")]
-async fn logout(req: HttpRequest, _auth: Auth) -> HttpResponse {
+async fn logout(req: HttpRequest, auth: Auth) -> HttpResponse {
+  let email = auth.user.email;
+  let ip_address = req.peer_addr().unwrap().ip().to_string();
   // Delete the session from the store
   match req.cookie(SESSION_COOKIE_NAME) {
     Some(cookie) => {
       let session_id = cookie.value().to_string();
       if let Err(err) = Session::delete(&session_id).await {
-        log::error!("Failed to delete session");
+        log::error!(
+          "Logout attempt failure [Email: {}] [IP Address: {}]: {}",
+          email,
+          ip_address,
+          err
+        );
         return ResponseError::error_response(&Error::new(500, err.to_string()));
       }
     }
     None => {
+      log::error!(
+        "Invalid logout attempt [Email: {}] [IP Address: {}]",
+        email,
+        ip_address
+      );
       return ResponseError::error_response(&Error::new(400, "Invalid session".to_string()));
     }
   }
@@ -84,6 +124,11 @@ async fn logout(req: HttpRequest, _auth: Auth) -> HttpResponse {
     .http_only(true)
     .finish();
 
+  log::info!(
+    "Successful logout attempt [Email: {}] [IP Address: {}]",
+    email,
+    ip_address
+  );
   HttpResponse::Ok().cookie(session_cookie).finish()
 }
 

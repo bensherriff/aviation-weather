@@ -82,6 +82,20 @@ pub struct QualityControlFlags {
   pub no_significant_change: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub temporary_change: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub rvr_missing: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub precipication_identifier_information_not_available: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub precipication_information_not_available: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub freezing_rain_information_not_available: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub thunderstorm_information_not_available: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub visibility_at_secondary_location_not_available: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub sky_condition_at_secondary_location_not_available: Option<String>,
 }
 
 impl Default for QualityControlFlags {
@@ -94,6 +108,13 @@ impl Default for QualityControlFlags {
       corrected: None,
       no_significant_change: None,
       temporary_change: None,
+      rvr_missing: None,
+      precipication_identifier_information_not_available: None,
+      precipication_information_not_available: None,
+      freezing_rain_information_not_available: None,
+      thunderstorm_information_not_available: None,
+      visibility_at_secondary_location_not_available: None,
+      sky_condition_at_secondary_location_not_available: None,
     }
   }
 }
@@ -200,6 +221,11 @@ impl Metar {
           metar_string
         ),
       ));
+    }
+
+    // Remove METAR at start of text
+    if metar_parts[0].to_string() == "METAR".to_string() {
+      metar_parts.remove(0);
     }
 
     // Station Identifier
@@ -602,6 +628,36 @@ impl Metar {
             metar.quality_control_flags.auto_station_with_precipication = Some(true);
           } else if remark == "$" {
             metar.quality_control_flags.maintenance_indicator_on = Some(true);
+          } else if remark == "PNO" {
+            metar
+              .quality_control_flags
+              .precipication_information_not_available = Some(true);
+          } else if remark == "RVRNO" {
+            metar.quality_control_flags.rvr_missing = Some(true);
+          } else if remark == "PWINO" {
+            metar
+              .quality_control_flags
+              .precipication_identifier_information_not_available = Some(true);
+          } else if remark == "FZRANO" {
+            metar
+              .quality_control_flags
+              .freezing_rain_information_not_available = Some(true);
+          } else if remark == "TSNO" {
+            metar
+              .quality_control_flags
+              .thunderstorm_information_not_available = Some(true);
+          } else if remark == "VISNO" {
+            let location = metar_parts[0];
+            metar_parts.remove(0);
+            metar
+              .quality_control_flags
+              .visibility_at_secondary_location_not_available = Some(location.to_string());
+          } else if remark == "CHINO" {
+            let location = metar_parts[0];
+            metar_parts.remove(0);
+            metar
+              .quality_control_flags
+              .sky_condition_at_secondary_location_not_available = Some(location.to_string());
           } else if slp_re.is_match(remark) {
             let slp = slp_re.captures(remark).unwrap();
             let sea_level_pressure = slp[1].parse::<f64>().unwrap();
@@ -851,5 +907,20 @@ impl Metar {
     .await?;
 
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_metar() {
+    let metar_string = "METAR KABC 121755Z AUTO 21016G24KT 180V240 1SM R11/P6000FT -RA BR BKN015 OVC025 06/04 A2990
+RMK AO2 PK WND 20032/25 WSHFT 1715 VIS 3/4V1 1/2 VIS 3/4 RWY11 RAB07 CIG 013V017 CIG 017 RWY11 PRESFR
+SLP125 P0003 60009 T00640036 10066 21012 58033 TSNO $".to_string();
+
+    let metar = Metar::parse(&metar_string).unwrap();
+    dbg!(&metar);
   }
 }

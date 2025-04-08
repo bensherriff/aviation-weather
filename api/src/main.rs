@@ -24,16 +24,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   let port = env::var("API_PORT").unwrap_or("5000".to_string());
 
   // Initialize admin user
-  let admin_username = env::var("ADMIN_USERNAME");
+  let admin_email = env::var("ADMIN_EMAIL");
   let admin_password = env::var("ADMIN_PASSWORD");
-  if admin_username.is_ok() && admin_password.is_ok() {
-    let username = admin_username.unwrap();
-    if User::select(&username).await.is_none() {
+  if admin_email.is_ok() && admin_password.is_ok() {
+    let email = admin_email.unwrap();
+    if User::select(&email).await.is_none() {
       log::debug!("Creating default administrator");
       let password = admin_password.unwrap();
       let password_hash = hash(&password)?;
       let admin_user = User {
-        email: username,
+        email,
         password_hash,
         role: ADMIN_ROLE.to_string(),
         first_name: "Admin".to_string(),

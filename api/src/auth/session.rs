@@ -93,12 +93,26 @@ impl Session {
       None => DEFAULT_SESSION_TTL,
     };
     let ttl = expires_at - Utc::now().timestamp();
-    Cookie::build(SESSION_COOKIE_NAME, self.session_id.clone())
+    let mut cookie = Cookie::build(SESSION_COOKIE_NAME, self.session_id.clone())
       .path("/")
       .max_age(Duration::seconds(ttl))
       // TODO: enable secure and http_only
-      // .secure(true)
-      // .http_only(true)
-      .finish()
+      .secure(true)
+      .http_only(true)
+      .finish();
+
+    if let Ok(environment) = std::env::var("ENVIRONMENT") {
+      if environment == "development" || environment == "dev" {
+        log::debug!(
+          "Development cookie [Email: {}]: {}",
+          self.email,
+          self.session_id
+        );
+        cookie.set_secure(false);
+        cookie.set_http_only(false);
+      }
+    }
+
+    cookie
   }
 }

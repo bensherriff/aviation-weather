@@ -96,6 +96,20 @@ impl User {
     user
   }
 
+  pub async fn count() -> i64 {
+    let pool = db::pool();
+
+    sqlx::query_scalar(&format!(
+      r#"
+      SELECT COUNT(*) FROM {}
+      "#,
+      TABLE_NAME
+    ))
+    .fetch_one(pool)
+    .await
+    .unwrap_or_else(|_| 0)
+  }
+
   pub async fn insert(&self) -> ApiResult<User> {
     let pool = db::pool();
     let user: User = sqlx::query_as::<_, Self>(&format!(
