@@ -30,7 +30,7 @@ pub struct Metar {
   pub altim_in_hg: Option<f64>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub sea_level_pressure_mb: Option<f64>,
-  pub quality_control_flags: QualityControlFlags,
+  pub remarks: Remarks,
   pub weather_phenomena: Vec<String>,
   pub sky_condition: Vec<SkyCondition>,
   pub flight_category: FlightCategory,
@@ -67,7 +67,9 @@ impl Default for RunwayVisualRange {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct QualityControlFlags {
+pub struct Remarks {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub peak_wind: Option<PeakWind>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub auto: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -98,9 +100,18 @@ pub struct QualityControlFlags {
   pub sky_condition_at_secondary_location_not_available: Option<String>,
 }
 
-impl Default for QualityControlFlags {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PeakWind {
+  pub degrees: i32,
+  pub speed: i32,
+  pub hour: Option<i32>,
+  pub minutes: i32,
+}
+
+impl Default for Remarks {
   fn default() -> Self {
-    QualityControlFlags {
+    Remarks {
+      peak_wind: None,
       auto: None,
       auto_station_without_precipication: None,
       auto_station_with_precipication: None,
@@ -165,7 +176,7 @@ impl Default for Metar {
       runway_visual_range: vec![],
       altim_in_hg: None,
       sea_level_pressure_mb: None,
-      quality_control_flags: QualityControlFlags::default(),
+      remarks: Remarks::default(),
       weather_phenomena: vec![],
       sky_condition: vec![],
       flight_category: FlightCategory::UNKN,
@@ -289,15 +300,15 @@ impl Metar {
       }
       // Report Modifiers
       if !metar_parts.is_empty() && metar_parts[0] == "AUTO" {
-        metar.quality_control_flags.auto = Some(true);
+        metar.remarks.auto = Some(true);
         metar_parts.remove(0);
       }
       if !metar_parts.is_empty() && metar_parts[0] == "COR" {
-        metar.quality_control_flags.corrected = Some(true);
+        metar.remarks.corrected = Some(true);
         metar_parts.remove(0);
       }
       if !metar_parts.is_empty() && metar_parts[0] == "NOSIG" {
-        metar.quality_control_flags.no_significant_change = Some(true);
+        metar.remarks.no_significant_change = Some(true);
         metar_parts.remove(0);
       }
 
@@ -605,7 +616,7 @@ impl Metar {
 
       // Temporary Change
       if !metar_parts.is_empty() && metar_parts[0] == "TEMPO" {
-        metar.quality_control_flags.temporary_change = Some(true);
+        metar.remarks.temporary_change = Some(true);
         metar_parts.remove(0);
       }
 
@@ -622,41 +633,67 @@ impl Metar {
           metar_parts.remove(0);
           if remark == "AO1" {
             metar
-              .quality_control_flags
+              .remarks
               .auto_station_without_precipication = Some(true);
           } else if remark == "AO2" {
-            metar.quality_control_flags.auto_station_with_precipication = Some(true);
+            metar.remarks.auto_station_with_precipication = Some(true);
           } else if remark == "$" {
-            metar.quality_control_flags.maintenance_indicator_on = Some(true);
+            metar.remarks.maintenance_indicator_on = Some(true);
+          } else if remark == "PK" && metar_parts.len() >= 2 && metar_parts[0] == "WND"{
+            metar_parts.remove(0);
+            let string = metar_parts[0];
+            metar_parts.remove(0);
+            let re = regex::Regex::new(r"(?<degrees>\d{3})(?<speed>\d{2,3})/(?:(?<hour>\d{2}))?(?<minutes>\d{2})").unwrap();
+            if let Some(caps) = re.captures(string) {
+              // Get degrees, speed, minutes
+              let degrees: i32 = caps["degrees"].parse()?;
+              let speed: i32 = caps["speed"].parse()?;
+              let minutes: i32 = caps["minutes"].parse()?;
+
+              // Get optional hours
+              let hour = if let Some(hour_match) = caps.name("hour") {
+                Some(hour_match.as_str().parse()?)
+              } else {
+                None
+              };
+              metar.remarks.peak_wind = Some(PeakWind {
+                degrees,
+                speed,
+                hour,
+                minutes
+              });
+            } else {
+              return Err(Error::new(500, "Input string format is invalid".to_string()));
+            }
           } else if remark == "PNO" {
             metar
-              .quality_control_flags
+              .remarks
               .precipication_information_not_available = Some(true);
           } else if remark == "RVRNO" {
-            metar.quality_control_flags.rvr_missing = Some(true);
+            metar.remarks.rvr_missing = Some(true);
           } else if remark == "PWINO" {
             metar
-              .quality_control_flags
+              .remarks
               .precipication_identifier_information_not_available = Some(true);
           } else if remark == "FZRANO" {
             metar
-              .quality_control_flags
+              .remarks
               .freezing_rain_information_not_available = Some(true);
           } else if remark == "TSNO" {
             metar
-              .quality_control_flags
+              .remarks
               .thunderstorm_information_not_available = Some(true);
           } else if remark == "VISNO" {
             let location = metar_parts[0];
             metar_parts.remove(0);
             metar
-              .quality_control_flags
+              .remarks
               .visibility_at_secondary_location_not_available = Some(location.to_string());
           } else if remark == "CHINO" {
             let location = metar_parts[0];
             metar_parts.remove(0);
             metar
-              .quality_control_flags
+              .remarks
               .sky_condition_at_secondary_location_not_available = Some(location.to_string());
           } else if slp_re.is_match(remark) {
             let slp = slp_re.captures(remark).unwrap();
@@ -916,10 +953,13 @@ mod tests {
 
   #[test]
   fn test_metar() {
-    let metar_string = "METAR KABC 121755Z AUTO 21016G24KT 180V240 1SM R11/P6000FT -RA BR BKN015 OVC025 06/04 A2990
+    let mut metar_string = "METAR KABC 121755Z AUTO 21016G24KT 180V240 1SM R11/P6000FT -RA BR BKN015 OVC025 06/04 A2990
 RMK AO2 PK WND 20032/25 WSHFT 1715 VIS 3/4V1 1/2 VIS 3/4 RWY11 RAB07 CIG 013V017 CIG 017 RWY11 PRESFR
 SLP125 P0003 60009 T00640036 10066 21012 58033 TSNO $".to_string();
+    let metar = Metar::parse(&metar_string).unwrap();
+    dbg!(&metar);
 
+    metar_string = "KMRB 082253Z 30014G23KT 10SM CLR 05/M12 A3002 RMK AO2 PK WND 30028/2157 SLP168 T00501117".to_string();
     let metar = Metar::parse(&metar_string).unwrap();
     dbg!(&metar);
   }
