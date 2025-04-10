@@ -17,6 +17,22 @@ CREATE TABLE IF NOT EXISTS airports (
     public BOOLEAN DEFAULT false
 );
 
+CREATE TABLE IF NOT EXISTS runways (
+    id UUID PRIMARY KEY NOT NULL,
+    icao TEXT NOT NULL,
+    runway_id TEXT NOT NULL,
+    length_ft REAL NOT NULL,
+    width_ft REAL NOT NULL,
+    surface TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS frequencies (
+    id UUID PRIMARY KEY NOT NULL,
+    icao TEXT NOT NULL,
+    frequency_id TEXT NOT NULL,
+    frequency_mhz REAL NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS metars (
     icao TEXT NOT NULL,
     observation_time TIMESTAMPTZ NOT NULL,

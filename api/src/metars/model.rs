@@ -42,6 +42,10 @@ pub struct Metar {
   pub min_t_c: Option<f64>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub precip_in: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub humidity: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub density_altitude: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -184,6 +188,8 @@ impl Default for Metar {
       max_t_c: None,
       min_t_c: None,
       precip_in: None,
+      humidity: None,
+      density_altitude: None,
     }
   }
 }
@@ -632,18 +638,19 @@ impl Metar {
           let remark = metar_parts[0];
           metar_parts.remove(0);
           if remark == "AO1" {
-            metar
-              .remarks
-              .auto_station_without_precipication = Some(true);
+            metar.remarks.auto_station_without_precipication = Some(true);
           } else if remark == "AO2" {
             metar.remarks.auto_station_with_precipication = Some(true);
           } else if remark == "$" {
             metar.remarks.maintenance_indicator_on = Some(true);
-          } else if remark == "PK" && metar_parts.len() >= 2 && metar_parts[0] == "WND"{
+          } else if remark == "PK" && metar_parts.len() >= 2 && metar_parts[0] == "WND" {
             metar_parts.remove(0);
             let string = metar_parts[0];
             metar_parts.remove(0);
-            let re = regex::Regex::new(r"(?<degrees>\d{3})(?<speed>\d{2,3})/(?:(?<hour>\d{2}))?(?<minutes>\d{2})").unwrap();
+            let re = regex::Regex::new(
+              r"(?<degrees>\d{3})(?<speed>\d{2,3})/(?:(?<hour>\d{2}))?(?<minutes>\d{2})",
+            )
+            .unwrap();
             if let Some(caps) = re.captures(string) {
               // Get degrees, speed, minutes
               let degrees: i32 = caps["degrees"].parse()?;
@@ -660,15 +667,16 @@ impl Metar {
                 degrees,
                 speed,
                 hour,
-                minutes
+                minutes,
               });
             } else {
-              return Err(Error::new(500, "Input string format is invalid".to_string()));
+              return Err(Error::new(
+                500,
+                "Input string format is invalid".to_string(),
+              ));
             }
           } else if remark == "PNO" {
-            metar
-              .remarks
-              .precipication_information_not_available = Some(true);
+            metar.remarks.precipication_information_not_available = Some(true);
           } else if remark == "RVRNO" {
             metar.remarks.rvr_missing = Some(true);
           } else if remark == "PWINO" {
@@ -676,19 +684,14 @@ impl Metar {
               .remarks
               .precipication_identifier_information_not_available = Some(true);
           } else if remark == "FZRANO" {
-            metar
-              .remarks
-              .freezing_rain_information_not_available = Some(true);
+            metar.remarks.freezing_rain_information_not_available = Some(true);
           } else if remark == "TSNO" {
-            metar
-              .remarks
-              .thunderstorm_information_not_available = Some(true);
+            metar.remarks.thunderstorm_information_not_available = Some(true);
           } else if remark == "VISNO" {
             let location = metar_parts[0];
             metar_parts.remove(0);
-            metar
-              .remarks
-              .visibility_at_secondary_location_not_available = Some(location.to_string());
+            metar.remarks.visibility_at_secondary_location_not_available =
+              Some(location.to_string());
           } else if remark == "CHINO" {
             let location = metar_parts[0];
             metar_parts.remove(0);
@@ -713,7 +716,7 @@ impl Metar {
                 metar.temp_c = Some(t / 10.0 * -1.0);
               }
             }
-            let dewpoint_negation = &remark[6..7];
+            let dewpoint_negation = &remark[5..6];
             let dewpoint = &remark[6..9];
             if let Ok(d) = dewpoint.parse::<f64>() {
               if dewpoint_negation == "0" {
@@ -777,6 +780,16 @@ impl Metar {
         metar.flight_category = FlightCategory::LIFR;
       }
     }
+
+    // Calculate estimated humidity
+    if metar.temp_c.is_some() && metar.dewpoint_c.is_some() {
+      let estimated_humidity = 100.0 - ((metar.temp_c.unwrap() - metar.dewpoint_c.unwrap()) * 5.0);
+      metar.humidity = Some(estimated_humidity);
+    }
+
+    // Calculate estimated density
+    // let estimated_density = ;
+    // metar.density_altitude = Some(metar.density_altitude);
 
     Ok(metar)
   }
@@ -957,10 +970,16 @@ mod tests {
 RMK AO2 PK WND 20032/25 WSHFT 1715 VIS 3/4V1 1/2 VIS 3/4 RWY11 RAB07 CIG 013V017 CIG 017 RWY11 PRESFR
 SLP125 P0003 60009 T00640036 10066 21012 58033 TSNO $".to_string();
     let metar = Metar::parse(&metar_string).unwrap();
-    dbg!(&metar);
+    // dbg!(&metar);
 
-    metar_string = "KMRB 082253Z 30014G23KT 10SM CLR 05/M12 A3002 RMK AO2 PK WND 30028/2157 SLP168 T00501117".to_string();
+    metar_string = "KMIA 090053Z 33004KT 10SM FEW015 FEW024 SCT075 SCT250 25/22 A2990 RMK AO2 SLP126 T02500217 $".to_string();
     let metar = Metar::parse(&metar_string).unwrap();
     dbg!(&metar);
+
+    metar_string =
+      "KMRB 082253Z 30014G23KT 10SM CLR 05/M12 A3002 RMK AO2 PK WND 30028/2157 SLP168 T00501117"
+        .to_string();
+    let metar = Metar::parse(&metar_string).unwrap();
+    // dbg!(&metar);
   }
 }

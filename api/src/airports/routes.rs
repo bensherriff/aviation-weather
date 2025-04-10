@@ -58,7 +58,10 @@ async fn import_airports(mut payload: Multipart, auth: Auth) -> HttpResponse {
 async fn get_airports(req: HttpRequest) -> HttpResponse {
   let mut query = match web::Query::<AirportQuery>::from_query(req.query_string()) {
     Ok(q) => q.into_inner(),
-    Err(_) => AirportQuery::default(),
+    Err(err) => {
+      log::error!("{}", err);
+      AirportQuery::default()
+    }
   };
 
   let total = Airport::count(&query).await;
