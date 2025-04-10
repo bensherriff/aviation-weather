@@ -5,10 +5,11 @@ import './App.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-// import { Header } from '@components/Header';
 
 // Fix for default marker icon issues in React-Leaflet
 import L from 'leaflet';
+import { Header } from '@components/Header';
+import AirportLayer from '@components/AirportLayer.tsx';
 
 // Fix Leaflet's default icon path issues with Webpack
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -26,21 +27,24 @@ const tileLayerUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 function App() {
   return (
     <div className='App'>
-      {/*<Header />*/}
-      <MapContainer
-        className='leaflet-container'
-        center={[38.944444, -77.455833]}
-        zoom={6}
-        minZoom={3}
-        maxZoom={19}
-        maxBounds={[
-          [-85.06, -180],
-          [85.06, 180]
-        ]}
-        scrollWheelZoom={true}
-      >
-        <TileLayer url={tileLayerUrl} />
-      </MapContainer>
+      <Header />
+      <div className='map-wrapper'>
+        <MapContainer
+          className='leaflet-container'
+          center={[38.944444, -77.455833]}
+          zoom={6}
+          minZoom={3}
+          maxZoom={19}
+          maxBounds={[
+            [-85.06, -180],
+            [85.06, 180]
+          ]}
+          scrollWheelZoom={true}
+        >
+          <TileLayer url={tileLayerUrl} />
+          <AirportLayer />
+        </MapContainer>
+      </div>
     </div>
   );
 }

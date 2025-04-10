@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Burger, Container, Group, Text } from '@mantine/core';
+import { Avatar, Burger, Container, Group, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+// import { ReactComponent as Logo } from '../../../public/logo.svg';
 import classes from './Header.module.css';
 
 const links = [
   { link: '/', label: 'Map' },
   { link: '/airports', label: 'Airports' },
-  { link: '/metars', label: 'METARs' }
+  { link: '/metars', label: 'Metars' }
 ];
 
 export function Header() {
@@ -31,7 +32,11 @@ export function Header() {
   return (
     <header className={classes.header}>
       <Container size='md' className={classes.inner}>
-        <Text>Aviation Weather</Text>
+        <span style={{ display: 'flex', flexDirection: 'row' }}>
+          <Text>Aviation Weather</Text>
+          <Avatar src='../../../public/logo.svg' alt="it's me" />
+        </span>
+        {/*<Logo />*/}
         <Group gap={5} visibleFrom='xs'>
           {items}
         </Group>

@@ -216,7 +216,7 @@ impl MetarRow {
         raw_text,
         data
       )
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4)
       "#,
       TABLE_NAME,
     ))

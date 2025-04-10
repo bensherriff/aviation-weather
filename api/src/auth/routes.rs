@@ -2,7 +2,7 @@ use std::sync::OnceLock;
 use actix_web::{
   post, web, HttpResponse, ResponseError,
   cookie::{Cookie, time::Duration},
-  HttpRequest,
+  HttpRequest, put,
 };
 use crate::{
   auth::{verify_hash, Session, SESSION_COOKIE_NAME},
@@ -10,7 +10,9 @@ use crate::{
   users::{LoginRequest, RegisterRequest, User, UserResponse},
 };
 
-use crate::auth::{Auth, DEFAULT_SESSION_TTL};
+use crate::auth::{hash, Auth, DEFAULT_SESSION_TTL};
+use crate::error::ApiResult;
+use crate::users::UpdateUser;
 
 #[post("/register")]
 async fn register(user: web::Json<RegisterRequest>, req: HttpRequest) -> HttpResponse {
@@ -132,21 +134,61 @@ async fn logout(req: HttpRequest, auth: Auth) -> HttpResponse {
   HttpResponse::Ok().cookie(session_cookie).finish()
 }
 
-#[post("/key")]
-async fn create_api_key(req: HttpRequest, auth: Auth) -> HttpResponse {
+#[put("/password")]
+async fn change_password(
+  password: web::Json<String>,
+  req: HttpRequest,
+  auth: Auth,
+) -> HttpResponse {
   let ip_address = req.peer_addr().unwrap().ip().to_string();
-  let api_key = Session::new(128, &auth.user.email, &ip_address, None);
+  let email = auth.user.email;
 
-  // TODO: store api key
-  HttpResponse::Ok().body(api_key.session_id)
+  if let None = User::select(&email).await {
+    return HttpResponse::Unauthorized().finish();
+  };
+
+  let update_user = UpdateUser {
+    email: None,
+    password: Some(password.into_inner()),
+    role: None,
+    first_name: None,
+    last_name: None,
+  };
+
+  match update_user.update(&email).await {
+    Ok(user) => {
+      let response: UserResponse = user.into();
+      log::info!(
+        "Successful password change attempt [Email: {}] [IP Address: {}]",
+        &email,
+        ip_address
+      );
+      HttpResponse::Ok().json(response)
+    }
+    Err(err) => {
+      log::error!(
+        "Invalid password change attempt [Email: {}] [IP Address: {}]: {}",
+        &email,
+        ip_address,
+        err
+      );
+      ResponseError::error_response(&Error::new(500, err.to_string()))
+    }
+  }
+}
+
+#[post("/password-reset")]
+async fn password_reset(req: HttpRequest, auth: Auth) -> HttpResponse {
+  let ip_address = req.peer_addr().unwrap().ip().to_string();
+  HttpResponse::Ok().finish()
 }
 
 pub fn init_routes(config: &mut web::ServiceConfig) {
   config.service(
-    web::scope("auth")
+    web::scope("account")
       .service(register)
       .service(login)
       .service(logout)
-      .service(create_api_key),
+      .service(change_password),
   );
 }

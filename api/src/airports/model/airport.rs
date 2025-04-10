@@ -46,11 +46,12 @@ pub struct AirportQuery {
   pub icaos: Option<String>,
   pub iatas: Option<String>,
   pub locals: Option<String>,
-  pub names: Option<String>,
+  pub name: Option<String>,
   pub categories: Option<String>,
   pub iso_countries: Option<String>,
   pub iso_regions: Option<String>,
   pub municipalities: Option<String>,
+  pub bounds: Option<String>,
   pub metars: Option<bool>,
 }
 
@@ -62,13 +63,45 @@ impl Default for AirportQuery {
       icaos: None,
       iatas: None,
       locals: None,
-      names: None,
+      name: None,
       categories: None,
       iso_countries: None,
       iso_regions: None,
       municipalities: None,
+      bounds: None,
       metars: None,
     }
+  }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Bounds {
+  pub north_east_lat: f32,
+  pub north_east_lon: f32,
+  pub south_west_lat: f32,
+  pub south_west_lon: f32,
+}
+
+impl Bounds {
+  fn parse(input: &str) -> ApiResult<Bounds> {
+    let parts: Vec<&str> = input.split(',').collect();
+    if parts.len() != 4 {
+      return Err(Error::new(
+        400,
+        format!("Expected 4 fields in bounds but received {}", parts.len()),
+      ));
+    }
+    let north_east_lat = parts[0].trim().parse::<f32>()?;
+    let north_east_lon = parts[1].trim().parse::<f32>()?;
+    let south_west_lat = parts[2].trim().parse::<f32>()?;
+    let south_west_lon = parts[3].trim().parse::<f32>()?;
+
+    Ok(Bounds {
+      north_east_lat,
+      north_east_lon,
+      south_west_lat,
+      south_west_lon,
+    })
   }
 }
 
@@ -265,8 +298,20 @@ impl Airport {
       &query.municipalities,
     );
     Self::push_condition_array(&mut builder, &mut has_where, "local", &query.locals);
-    Self::push_condition_array(&mut builder, &mut has_where, "name", &query.names);
     Self::push_condition_array(&mut builder, &mut has_where, "category", &query.categories);
+    Self::push_condition_like(&mut builder, &mut has_where, "name", &query.name);
+    Self::push_condition_bounds(&mut builder, &mut has_where, &query.bounds)?;
+
+    // Order by AircraftCategory
+    builder.push(" ORDER BY CASE category ");
+    builder.push(" WHEN 'large_airport' THEN 1 ");
+    builder.push(" WHEN 'medium_airport' THEN 2 ");
+    builder.push(" WHEN 'small_airport' THEN 3 ");
+    builder.push(" WHEN 'seaplane_base' THEN 4 ");
+    builder.push(" WHEN 'heliport' THEN 5 ");
+    builder.push(" WHEN 'balloon_port' THEN 6 ");
+    builder.push(" WHEN 'unknown' THEN 7 ");
+    builder.push(" ELSE 8 END");
 
     // Apply pagination.
     if let Some(limit) = query.limit {
@@ -361,8 +406,12 @@ impl Airport {
       &query.municipalities,
     );
     Self::push_condition_array(&mut builder, &mut has_where, "local", &query.locals);
-    Self::push_condition_array(&mut builder, &mut has_where, "name", &query.names);
     Self::push_condition_array(&mut builder, &mut has_where, "category", &query.categories);
+    Self::push_condition_like(&mut builder, &mut has_where, "name", &query.name);
+    if let Err(err) = Self::push_condition_bounds(&mut builder, &mut has_where, &query.bounds) {
+      log::error!("Error parsing bounds string: {}", err);
+      return 0;
+    }
 
     let sql_query = builder.build_query_scalar();
     sql_query.fetch_one(pool).await.unwrap_or_else(|_| 0)
@@ -528,5 +577,57 @@ impl Airport {
         builder.push(")");
       }
     }
+  }
+
+  fn push_condition_like<'a>(
+    builder: &mut QueryBuilder<'a, Postgres>,
+    has_where: &mut bool,
+    column: &str,
+    field: &'a Option<String>,
+  ) {
+    // Query column like
+    if let Some(ref value) = field {
+      if !*has_where {
+        builder.push(" WHERE ");
+        *has_where = true;
+      } else {
+        builder.push(" AND ");
+      }
+      // Using ILIKE with wildcards for partial matching
+      builder
+        .push(column)
+        .push(" ILIKE ")
+        .push_bind(format!("%{}%", value));
+    }
+  }
+
+  fn push_condition_bounds<'a>(
+    builder: &mut QueryBuilder<'a, Postgres>,
+    has_where: &mut bool,
+    field: &'a Option<String>,
+  ) -> ApiResult<()> {
+    // Query bounds
+    if let Some(ref bounds_string) = field {
+      if !*has_where {
+        builder.push(" WHERE ");
+        *has_where = true;
+      } else {
+        builder.push(" AND ");
+      }
+      let bounds = Bounds::parse(bounds_string)?;
+      builder
+        .push("(")
+        .push("latitude BETWEEN ")
+        .push_bind(bounds.south_west_lat)
+        .push(" AND ")
+        .push_bind(bounds.north_east_lat)
+        .push(" AND ")
+        .push("longitude BETWEEN ")
+        .push_bind(bounds.south_west_lon)
+        .push(" AND ")
+        .push_bind(bounds.north_east_lon)
+        .push(")");
+    }
+    Ok(())
   }
 }

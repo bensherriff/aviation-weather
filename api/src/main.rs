@@ -33,6 +33,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       log::debug!("Creating default administrator");
       let password = admin_password.unwrap();
       let password_hash = hash(&password)?;
+      if email == "admin@example.com" || password == "CHANGEME" {
+        log::warn!(
+          "Default admin credentials are in use, update the ADMIN_EMAIL and ADMIN_PASSWORD."
+        );
+      }
       let admin_user = User {
         email,
         password_hash,

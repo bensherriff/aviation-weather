@@ -80,6 +80,12 @@ impl From<core::num::ParseIntError> for Error {
   }
 }
 
+impl From<core::num::ParseFloatError> for Error {
+  fn from(error: core::num::ParseFloatError) -> Self {
+    Self::new(500, format!("Parse error: {}", error))
+  }
+}
+
 impl From<std::env::VarError> for Error {
   fn from(error: std::env::VarError) -> Self {
     Self::new(
