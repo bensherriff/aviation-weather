@@ -160,7 +160,7 @@ impl From<AirportRow> for Airport {
 }
 
 impl Airport {
-  pub async fn select(icao: &str) -> Option<Self> {
+  pub async fn select(icao: &str, metar: bool) -> Option<Self> {
     let pool = db::pool();
 
     let airport_fut = async {
@@ -170,11 +170,25 @@ impl Airport {
         .await
     };
 
+    let metar_fut = async {
+      if metar {
+        match Metar::find_all(&[icao]).await {
+          Ok(m) => Some(m.into_iter().nth(0)),
+          Err(err) => {
+            log::error!("{}", err);
+            None
+          }
+        }
+      } else {
+        None
+      }
+    };
+
     let runways_fut = Runway::select_all(icao);
     let frequencies_fut = Frequency::select_all(icao);
 
-    let (airport_result, runways_result, frequencies_result) =
-      tokio::join!(airport_fut, runways_fut, frequencies_fut);
+    let (airport_result, runways_result, frequencies_result, metar_result) =
+      tokio::join!(airport_fut, runways_fut, frequencies_fut, metar_fut);
 
     let airport_row: Option<AirportRow> = match airport_result {
       Ok(opt) => opt,
@@ -204,10 +218,19 @@ impl Airport {
       }
     };
 
+    let metar: Option<Metar> = match metar_result {
+      Some(m_option) => match m_option {
+        Some(m) => Some(m),
+        None => None,
+      },
+      None => None
+    };
+
     airport_row.map(|row| {
       let mut airport: Airport = row.into();
       airport.runways = runways;
       airport.frequencies = frequencies;
+      airport.latest_metar = metar;
       airport
     })
   }
@@ -262,10 +285,19 @@ impl Airport {
     if !airports.is_empty() {
       let icaos: Vec<String> = airports.iter().map(|a| a.icao.clone()).collect();
       let mut runway_map = Runway::select_all_map(icaos.clone()).await?;
-      let mut frequency_map = Frequency::select_all_map(icaos).await?;
+      let mut frequency_map = Frequency::select_all_map(icaos.clone()).await?;
+      let mut metar_map: HashMap<String, Metar> = HashMap::new();
+      if query.metars.unwrap_or_else(|| false) {
+        let icaos_list: Vec<&str> = icaos.iter().map(|x| &**x).collect();
+        let metars = Metar::find_all(&icaos_list).await?;
+        metar_map = metars.into_iter()
+          .map(|metar| (metar.station_id.clone(), metar))
+          .collect();
+      }
       for airport in airports.iter_mut() {
         airport.runways = runway_map.remove(&airport.icao).unwrap_or_default();
         airport.frequencies = frequency_map.remove(&airport.icao).unwrap_or_default();
+        airport.latest_metar = metar_map.remove(&airport.icao);
       }
     }
 

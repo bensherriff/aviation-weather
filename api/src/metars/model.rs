@@ -981,5 +981,7 @@ SLP125 P0003 60009 T00640036 10066 21012 58033 TSNO $".to_string();
         .to_string();
     let metar = Metar::parse(&metar_string).unwrap();
     // dbg!(&metar);
+
+    // metar_string = "KHEF 092356Z 13009KT 10SM CLR 08/M03 A3022 RMK AO2 SLP239 6//// T00831033 10133 20078 53002 PNO $".to_string();
   }
 }

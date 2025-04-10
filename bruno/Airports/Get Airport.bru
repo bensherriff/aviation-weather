@@ -5,7 +5,11 @@ meta {
 }
 
 get {
-  url: {{BASE_URL}}/airports/KHEF
+  url: {{BASE_URL}}/airports/KHEF?metars=true
   body: none
   auth: none
+}
+
+params:query {
+  metars: true
 }

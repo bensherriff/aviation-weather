@@ -88,8 +88,16 @@ async fn get_airports(req: HttpRequest) -> HttpResponse {
 }
 
 #[get("/{icao}")]
-async fn get_airport(icao: web::Path<String>) -> HttpResponse {
-  match Airport::select(&icao.into_inner()).await {
+async fn get_airport(icao: web::Path<String>, req: HttpRequest) -> HttpResponse {
+  let metar = match web::Query::<AirportQuery>::from_query(req.query_string()) {
+    Ok(q) => q.metars.unwrap_or_else(|| false),
+    Err(err) => {
+      log::error!("{}", err);
+      false
+    }
+  };
+
+  match Airport::select(&icao.into_inner(), metar).await {
     Some(airport) => HttpResponse::Ok().json(airport),
     None => HttpResponse::NotFound().finish(),
   }
