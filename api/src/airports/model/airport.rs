@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 use actix_web::web::Json;
+use futures_util::try_join;
+use moka::future::Cache;
 use serde::{Deserialize, Serialize};
 use sqlx::{Execute, Postgres, QueryBuilder};
 use crate::airports::model::airport_category::AirportCategory;
@@ -172,7 +174,7 @@ impl Airport {
 
     let metar_fut = async {
       if metar {
-        match Metar::find_all(&[icao]).await {
+        match Metar::find_all(&vec![icao.to_string()]).await {
           Ok(m) => Some(m.into_iter().nth(0)),
           Err(err) => {
             log::error!("{}", err);
@@ -223,7 +225,7 @@ impl Airport {
         Some(m) => Some(m),
         None => None,
       },
-      None => None
+      None => None,
     };
 
     airport_row.map(|row| {
@@ -281,22 +283,49 @@ impl Airport {
     let airport_rows: Vec<AirportRow> = airport_query.fetch_all(pool).await?;
     let mut airports: Vec<Airport> = airport_rows.into_iter().map(From::from).collect();
 
-    // Bulk update airports with runways and frequencies
-    if !airports.is_empty() {
-      let icaos: Vec<String> = airports.iter().map(|a| a.icao.clone()).collect();
-      let mut runway_map = Runway::select_all_map(icaos.clone()).await?;
-      let mut frequency_map = Frequency::select_all_map(icaos.clone()).await?;
-      let mut metar_map: HashMap<String, Metar> = HashMap::new();
-      if query.metars.unwrap_or_else(|| false) {
-        let icaos_list: Vec<&str> = icaos.iter().map(|x| &**x).collect();
-        let metars = Metar::find_all(&icaos_list).await?;
-        metar_map = metars.into_iter()
-          .map(|metar| (metar.station_id.clone(), metar))
-          .collect();
+    if airports.is_empty() {
+      return Ok(airports);
+    }
+
+    // Bulk update airport sub-fields
+    let icaos: Vec<String> = airports.iter().map(|a| a.icao.clone()).collect();
+
+    let runway_future = Runway::select_all_map(icaos.clone());
+    let frequency_future = Frequency::select_all_map(icaos.clone());
+    let metar_future = if query.metars.unwrap_or(false) {
+      Some(Metar::find_all(&icaos))
+    } else {
+      None
+    };
+
+    let (runway_map, frequency_map, mut metars_opt) = match metar_future {
+      Some(future_metars) => {
+        let (runway_map, frequency_map, metars) =
+          try_join!(runway_future, frequency_future, future_metars)?;
+        (
+          runway_map,
+          frequency_map,
+          Some(
+            metars
+              .into_iter()
+              .map(|m| (m.station_id.clone(), m))
+              .collect::<HashMap<_, _>>(),
+          ),
+        )
       }
-      for airport in airports.iter_mut() {
-        airport.runways = runway_map.remove(&airport.icao).unwrap_or_default();
-        airport.frequencies = frequency_map.remove(&airport.icao).unwrap_or_default();
+      None => {
+        let (runway_map, frequency_map) = try_join!(runway_future, frequency_future)?;
+        (runway_map, frequency_map, None)
+      }
+    };
+
+    for airport in airports.iter_mut() {
+      airport.runways = runway_map.get(&airport.icao).cloned().unwrap_or_default();
+      airport.frequencies = frequency_map
+        .get(&airport.icao)
+        .cloned()
+        .unwrap_or_default();
+      if let Some(ref mut metar_map) = metars_opt {
         airport.latest_metar = metar_map.remove(&airport.icao);
       }
     }

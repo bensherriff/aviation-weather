@@ -7,7 +7,7 @@ use crate::error::ApiResult;
 
 const TABLE_NAME: &str = "frequencies";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Frequency {
   #[serde(rename = "id")]
   pub frequency_id: String,

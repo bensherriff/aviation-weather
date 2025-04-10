@@ -2,7 +2,10 @@ use crate::error::Error;
 use crate::{error::ApiResult, db};
 use chrono::{DateTime, Datelike, Utc};
 use std::collections::HashSet;
+use moka::future::Cache;
+use redis::{AsyncCommands, RedisResult};
 use serde::{Deserialize, Serialize};
+use crate::db::redis_async_connection;
 
 const TABLE_NAME: &str = "metars";
 
@@ -195,11 +198,37 @@ impl Default for Metar {
 }
 
 #[derive(Serialize, Deserialize, sqlx::FromRow, Debug)]
-struct MetarDb {
+struct MetarRow {
   icao: String,
   observation_time: DateTime<Utc>,
   raw_text: String,
   data: serde_json::Value,
+}
+
+impl MetarRow {
+  async fn insert(&self) -> ApiResult<()> {
+    let pool = db::pool();
+    sqlx::query(&format!(
+      r#"
+      INSERT INTO {} (
+        icao,
+        observation_time,
+        raw_text,
+        data
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      "#,
+      TABLE_NAME,
+    ))
+    .bind(self.icao.clone())
+    .bind(self.observation_time.clone())
+    .bind(self.raw_text.clone())
+    .bind(self.data.clone())
+    .execute(pool)
+    .await?;
+
+    Ok(())
+  }
 }
 
 impl Metar {
@@ -794,14 +823,17 @@ impl Metar {
     Ok(metar)
   }
 
-  fn get_missing_metar_icaos(db_metars: &Vec<Self>, station_icaos: &[&str]) -> Vec<String> {
+  async fn get_missing_metar_icaos(
+    db_metars: &Vec<Self>,
+    station_icaos: &Vec<String>,
+  ) -> Vec<String> {
     let mut missing_metar_icaos: Vec<String> = vec![];
     let current_time = chrono::Local::now().naive_local().and_utc().timestamp();
     let db_metars_set: HashSet<&str> = db_metars
       .iter()
       .map(|icao| icao.station_id.as_str())
       .collect();
-    let station_icaos_set: HashSet<&str> = station_icaos.to_owned().into_iter().collect();
+    let station_icaos_set: HashSet<&str> = station_icaos.iter().map(|s| s.as_str()).collect();
     for difference in db_metars_set.symmetric_difference(&station_icaos_set) {
       missing_metar_icaos.push(difference.to_string());
     }
@@ -865,14 +897,14 @@ impl Metar {
     Ok(metars)
   }
 
-  fn from_db(metar_db: MetarDb) -> ApiResult<Metar> {
+  fn from_db(metar_db: MetarRow) -> ApiResult<Metar> {
     let metar: Metar = serde_json::from_value(metar_db.data)?;
     Ok(metar)
   }
 
-  fn to_db(&self) -> ApiResult<MetarDb> {
+  fn to_db(&self) -> ApiResult<MetarRow> {
     let data = serde_json::to_value(self)?;
-    Ok(MetarDb {
+    Ok(MetarRow {
       icao: self.station_id.clone(),
       observation_time: self.observation_time,
       raw_text: self.raw_text.clone(),
@@ -880,13 +912,13 @@ impl Metar {
     })
   }
 
-  pub async fn find_all(icao_list: &[&str]) -> ApiResult<Vec<Self>> {
+  pub async fn find_all(icao_list: &Vec<String>) -> ApiResult<Vec<Self>> {
     if icao_list.is_empty() {
       return Ok(Vec::new());
     }
 
     let pool = db::pool();
-    let metar_dbs: Vec<MetarDb> = match sqlx::query_as::<_, MetarDb>(&format!(
+    let metar_rows: Vec<MetarRow> = sqlx::query_as::<_, MetarRow>(&format!(
       r#"
       SELECT DISTINCT ON (icao) * FROM {} WHERE icao = ANY($1) ORDER BY icao, observation_time DESC
       "#,
@@ -894,28 +926,34 @@ impl Metar {
     ))
     .bind(icao_list)
     .fetch_all(pool)
-    .await
-    {
-      Ok(m) => m,
-      Err(err) => {
-        return Err(Error::new(
-          500,
-          format!("Unable to find METARs with input {:?}: {}", icao_list, err),
-        ));
-      }
-    };
-    let mut metars: Vec<Metar> = metar_dbs
+    .await?;
+    let mut metars: Vec<Metar> = metar_rows
       .into_iter()
       .filter_map(|metar_db| Metar::from_db(metar_db).ok())
       .collect();
 
+    let mut conn = redis_async_connection().await?;
     // Check for missing metars
-    let missing_icao_list = Self::get_missing_metar_icaos(&metars, icao_list);
+    let missing_icao_list = Self::get_missing_metar_icaos(&metars, icao_list).await;
     if !missing_icao_list.is_empty() {
       log::trace!("Retrieving missing METAR data for {:?}", missing_icao_list);
 
-      let missing_icao_list: Vec<&str> = missing_icao_list.iter().map(|s| s.as_str()).collect();
-      let mut missing_icao_list = Self::get_remote_metars(&missing_icao_list)
+      let mut updated_missing_icao_list: Vec<&str> = Vec::new();
+      for icao in &missing_icao_list {
+        let result: RedisResult<Option<bool>> = conn.get(icao).await;
+        match result {
+          Ok(Some(value)) => {
+            if value {
+              updated_missing_icao_list.push(icao);
+            }
+          }
+          Ok(None) => {
+            updated_missing_icao_list.push(icao);
+          }
+          Err(err) => return Err(err.into()),
+        }
+      }
+      let mut missing_icao_list = Self::get_remote_metars(&updated_missing_icao_list)
         .await
         .unwrap_or_else(|err| {
           log::warn!("Unable to get remote METAR data; {}", err);
@@ -925,9 +963,19 @@ impl Metar {
       if missing_icao_list.len() > 0 {
         // Insert missing METARs
         for missing_metar in &missing_icao_list {
+          let _: RedisResult<()> = conn.set(&missing_metar.station_id, true).await;
           missing_metar.insert().await?;
         }
         metars.append(&mut missing_icao_list)
+      }
+
+      // Invalidate the still missing icaos
+      let still_missing_icao_list =
+        Self::get_missing_metar_icaos(&missing_icao_list, icao_list).await;
+      if !still_missing_icao_list.is_empty() {
+        for icao in still_missing_icao_list {
+          let _: RedisResult<()> = conn.set_ex(&icao, false, 3600).await;
+        }
       }
     }
 
@@ -935,27 +983,8 @@ impl Metar {
   }
 
   pub async fn insert(&self) -> ApiResult<()> {
-    let pool = db::pool();
-    let metar: MetarDb = self.to_db()?;
-    sqlx::query(&format!(
-      r#"
-      INSERT INTO {} (
-        icao,
-        observation_time,
-        raw_text,
-        data
-      )
-      VALUES ($1, $2, $3, $4)
-      "#,
-      TABLE_NAME,
-    ))
-    .bind(metar.icao)
-    .bind(metar.observation_time)
-    .bind(metar.raw_text)
-    .bind(metar.data)
-    .execute(pool)
-    .await?;
-
+    let metar: MetarRow = self.to_db()?;
+    metar.insert().await?;
     Ok(())
   }
 }

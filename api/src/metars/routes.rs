@@ -17,7 +17,7 @@ async fn find_all(req: HttpRequest) -> HttpResponse {
     Some(i) => i,
     None => return HttpResponse::UnprocessableEntity().body("Missing icaos parameter"),
   };
-  let icaos: Vec<&str> = icao_string.split(',').collect();
+  let icaos: Vec<String> = icao_string.split(',').map(|s| s.to_string()).collect();
 
   let metars = match Metar::find_all(&icaos).await {
     Ok(a) => a,
