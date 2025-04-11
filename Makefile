@@ -92,3 +92,6 @@ docker-up: ## Start the docker container
 	@docker compose --profile backend --profile api --profile frontend up -d
 
 docker-refresh: docker-clean up-backend ## Refresh the database
+
+docker-build: ## Build the docker images
+	@docker compose --profile backend --profile api build

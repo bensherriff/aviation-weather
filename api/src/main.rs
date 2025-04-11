@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   db::initialize().await?;
   // scheduler::update_airports();
 
-  let host = env::var("API_HOST").unwrap_or("localhost".to_string());
+  let host = "0.0.0.0".to_string();
   let port = env::var("API_PORT").unwrap_or("5000".to_string());
 
   // Initialize admin user
@@ -66,10 +66,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     App::new()
       .wrap(cors)
       .wrap(Logger::default())
-      .configure(airports::init_routes)
-      .configure(metars::init_routes)
-      .configure(auth::init_routes)
-      .configure(users::init_routes)
+      .service(web::scope("api")
+        .configure(airports::init_routes)
+        .configure(metars::init_routes)
+        .configure(auth::init_routes)
+        .configure(users::init_routes))
   })
   .bind(format!("{}:{}", host, port))
   {

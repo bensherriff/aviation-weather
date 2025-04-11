@@ -15,27 +15,27 @@ static REDIS: OnceLock<RedisClient> = OnceLock::new();
 static BUCKET: OnceLock<Bucket> = OnceLock::new();
 
 pub async fn initialize() -> ApiResult<()> {
-  log::info!("Initializing database...");
-  let db_user = std::env::var("POSTGRES_USER").unwrap_or("siren".to_string());
+  let db_user = std::env::var("POSTGRES_USER").unwrap_or("aviation".to_string());
   let db_password = std::env::var("POSTGRES_PASSWORD").expect("POSTGRES_PASSWORD must be set");
   let db_host: String = std::env::var("POSTGRES_HOST").expect("POSTGRES_HOST must be set");
   let db_port = std::env::var("POSTGRES_PORT").unwrap_or("5432".to_string());
-  let db_name = std::env::var("POSTGRES_NAME").unwrap_or("siren".to_string());
+  let db_name = std::env::var("POSTGRES_NAME").unwrap_or("aviation".to_string());
 
+  let db_url = format!(
+    "postgres://{}:{}@{}:{}/{}",
+    db_user, db_password, db_host, db_port, db_name
+  );
+
+  log::info!("Connecting to database at {}...", &db_url);
   // Setup Postgres pool connection
   let pool = PgPoolOptions::new()
     .max_connections(5)
     .acquire_timeout(Duration::from_secs(30))
-    .connect(&format!(
-      "postgres://{}:{}@{}:{}/{}",
-      db_user, db_password, db_host, db_port, db_name
-    ))
+    .connect(&db_url)
     .await?;
   match POOL.set(pool) {
-    Ok(_) => {}
-    Err(_) => {
-      log::warn!("Database pool already initialized");
-    }
+    Ok(_) => log::info!("Database connection established"),
+    Err(_) => log::warn!("Database pool already initialized")
   }
 
   // Setup Redis connection
@@ -46,10 +46,8 @@ pub async fn initialize() -> ApiResult<()> {
     RedisClient::open(url).expect("Failed to create redis client")
   };
   match REDIS.set(redis) {
-    Ok(_) => {}
-    Err(_) => {
-      log::warn!("Redis client already initialized");
-    }
+    Ok(_) => log::info!("Redis connection established"),
+    Err(_) => log::warn!("Redis client already initialized")
   }
 
   let schema = std::env::var("MINIO_SCHEMA").unwrap_or("http".to_string());
@@ -77,15 +75,13 @@ pub async fn initialize() -> ApiResult<()> {
     .with_path_style();
 
   match BUCKET.set(*bucket) {
-    Ok(_) => {}
-    Err(_) => {
-      log::warn!("Bucket client already initialized");
-    }
+    Ok(_) => log::info!("Bucket initialized"),
+    Err(_) => log::warn!("Bucket client already initialized")
   }
 
   // Run migrations
   match run_migrations().await {
-    Ok(_) => log::debug!("Successfully ran migrations"),
+    Ok(_) => log::debug!("Successfully ran database migrations"),
     Err(e) => log::error!("Failed to run migrations: {}", e),
   }
 
