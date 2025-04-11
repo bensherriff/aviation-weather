@@ -152,7 +152,7 @@
 //   }
 // }
 
-pub fn init_routes(config: &mut actix_web::web::ServiceConfig) {
+pub fn init_routes(_config: &mut actix_web::web::ServiceConfig) {
   // config.service(
   //   web::scope("users")
   //     .service(get_favorites)

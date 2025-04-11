@@ -23,10 +23,16 @@ pub async fn initialize() -> ApiResult<()> {
 
   let db_url = format!(
     "postgres://{}:{}@{}:{}/{}",
-    db_user, db_password, db_host, db_port, db_name
+    &db_user, &db_password, &db_host, &db_port, &db_name
   );
 
-  log::info!("Connecting to database at {}...", &db_url);
+  log::info!(
+    "Connecting to database at postgres://{}:*****@{}:{}/{}...",
+    &db_user,
+    &db_host,
+    &db_port,
+    &db_name
+  );
   // Setup Postgres pool connection
   let pool = PgPoolOptions::new()
     .max_connections(5)
@@ -35,7 +41,7 @@ pub async fn initialize() -> ApiResult<()> {
     .await?;
   match POOL.set(pool) {
     Ok(_) => log::info!("Database connection established"),
-    Err(_) => log::warn!("Database pool already initialized")
+    Err(_) => log::warn!("Database pool already initialized"),
   }
 
   // Setup Redis connection
@@ -47,7 +53,7 @@ pub async fn initialize() -> ApiResult<()> {
   };
   match REDIS.set(redis) {
     Ok(_) => log::info!("Redis connection established"),
-    Err(_) => log::warn!("Redis client already initialized")
+    Err(_) => log::warn!("Redis client already initialized"),
   }
 
   let schema = std::env::var("MINIO_SCHEMA").unwrap_or("http".to_string());
@@ -76,7 +82,7 @@ pub async fn initialize() -> ApiResult<()> {
 
   match BUCKET.set(*bucket) {
     Ok(_) => log::info!("Bucket initialized"),
-    Err(_) => log::warn!("Bucket client already initialized")
+    Err(_) => log::warn!("Bucket client already initialized"),
   }
 
   // Run migrations

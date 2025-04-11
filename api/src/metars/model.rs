@@ -2,7 +2,6 @@ use crate::error::Error;
 use crate::{error::ApiResult, db};
 use chrono::{DateTime, Datelike, Utc};
 use std::collections::HashSet;
-use moka::future::Cache;
 use redis::{AsyncCommands, RedisResult};
 use serde::{Deserialize, Serialize};
 use crate::db::redis_async_connection;
@@ -294,7 +293,7 @@ impl Metar {
       Ok(day) => day,
       Err(err) => return Err(err.into()),
     };
-    let mut observation_time_hour = match observation_time[2..4].parse::<u32>() {
+    let observation_time_hour = match observation_time[2..4].parse::<u32>() {
       Ok(hour) => hour,
       Err(err) => return Err(err.into()),
     };

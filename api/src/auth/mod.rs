@@ -5,7 +5,6 @@ use argon2::{
 use rand::distr::Alphanumeric;
 use rand::prelude::*;
 use rand_chacha::ChaCha20Rng;
-use serde::{Deserialize, Serialize};
 
 mod model;
 mod routes;

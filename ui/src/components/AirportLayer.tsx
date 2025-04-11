@@ -35,7 +35,6 @@ export default function AirportLayer({ setAirport }: { setAirport: (airport: Air
       limit: 200
     })
       .then((response) => {
-        console.log(response);
         setAirports(response.data);
       })
       .catch((error) => {

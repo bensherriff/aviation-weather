@@ -1,4 +1,3 @@
-use crate::error::Error;
 use crate::metars::Metar;
 use actix_web::{get, web, HttpResponse, HttpRequest};
 use log::error;

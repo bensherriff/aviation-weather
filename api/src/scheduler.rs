@@ -1,7 +1,7 @@
-use tokio::time::{sleep, Duration};
+// use tokio::time::{sleep, Duration};
 
 // use crate::airports::{AirportDb, AirportFilter};
-use crate::metars::Metar;
+// use crate::metars::Metar;
 
 pub fn update_airports() {
   // tokio::spawn(async {

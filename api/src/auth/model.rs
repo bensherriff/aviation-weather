@@ -27,9 +27,12 @@ impl FromRequest for Auth {
       Some(key_id) => {
         let fut = async move {
           // Check if the Session API key exists
-          let api_key = match Session::get(&key_id).await? {
-            Some(session) => session,
-            None => return Err(Error::new(401, "API Key does not exist".to_string()).into()),
+          let api_key = match Session::get(&key_id).await {
+            Ok(session) => session,
+            Err(err) => {
+              log::error!("Invalid session auth attempt: {}", err);
+              return Err(Error::new(401, "API Key does not exist".to_string()).into());
+            }
           };
           match User::select(&api_key.email).await {
             Some(user) => Ok(Auth {

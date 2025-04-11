@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::str::FromStr;
-use actix_web::web::Json;
 use futures_util::try_join;
-use moka::future::Cache;
 use serde::{Deserialize, Serialize};
-use sqlx::{Execute, Postgres, QueryBuilder};
-use crate::airports::model::airport_category::AirportCategory;
-use crate::airports::{Frequency, FrequencyRow, Runway, RunwayRow, UpdateFrequency, UpdateRunway};
+use sqlx::{Postgres, QueryBuilder};
+use crate::airports::{
+  AirportCategory, Frequency, FrequencyRow, Runway, RunwayRow, UpdateFrequency, UpdateRunway,
+};
 use crate::db;
 use crate::error::{ApiResult, Error};
 use crate::metars::Metar;
@@ -516,7 +515,7 @@ impl Airport {
   }
 
   // TODO
-  pub async fn update(icao: &str, airport: &UpdateAirport) -> ApiResult<()> {
+  pub async fn update(_icao: &str, _airport: &UpdateAirport) -> ApiResult<()> {
     Ok(())
   }
 

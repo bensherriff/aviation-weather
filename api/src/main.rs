@@ -3,7 +3,6 @@ use std::env;
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, middleware::Logger, web};
 use dotenv::from_filename;
-use moka::future::Cache;
 use crate::auth::hash;
 use crate::users::{User, ADMIN_ROLE};
 
@@ -63,14 +62,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       .allow_any_header()
       .supports_credentials()
       .max_age(3600);
-    App::new()
-      .wrap(cors)
-      .wrap(Logger::default())
-      .service(web::scope("api")
+    App::new().wrap(cors).wrap(Logger::default()).service(
+      web::scope("api")
         .configure(airports::init_routes)
         .configure(metars::init_routes)
         .configure(auth::init_routes)
-        .configure(users::init_routes))
+        .configure(users::init_routes),
+    )
   })
   .bind(format!("{}:{}", host, port))
   {

@@ -1,14 +1,12 @@
-use std::str::FromStr;
 use futures_util::stream::StreamExt as _;
 
 use crate::{
-  airports::{Airport, AirportCategory},
+  airports::Airport,
   db::Paged,
   auth::{Auth, verify_role},
 };
 use actix_multipart::Multipart;
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest, ResponseError};
-use serde::{Serialize, Deserialize};
 use crate::airports::{AirportQuery, UpdateAirport};
 use crate::users::ADMIN_ROLE;
 
