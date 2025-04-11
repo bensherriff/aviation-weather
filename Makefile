@@ -109,3 +109,7 @@ build: ## Build a specific docker image (`make build f=httpd`)
 	${folder}
 
 docker-build: build
+
+cert: domain=$(if $(d),$(d),aviation.bensherriff.com)
+cert: ## Generate a cert for the given domain
+	@./scripts/generate_cert.sh ${domain}

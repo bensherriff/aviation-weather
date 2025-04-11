@@ -84,9 +84,9 @@ export default function AirportLayer({ setAirport }: { setAirport: (airport: Air
 
   return (
     <>
-      {sortedAirports.map((airport, index) => {
-        return <AirportMarker airport={airport} index={index} setAirport={setAirport} />;
-      })}
+      {sortedAirports.map((airport, index) => (
+        <AirportMarker key={index} airport={airport} index={index} setAirport={setAirport} />
+      ))}
     </>
   );
 }

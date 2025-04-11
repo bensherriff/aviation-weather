@@ -13,22 +13,19 @@ async function getWeatherMaps(): Promise<WeatherMaps | undefined> {
   }
 }
 
-// const rainViewerUrl = 'https://tilecache.rainviewer.com/v2/radar/1744386000/256/{z}/{x}/{y}/2/1_1.png';
-// const rainViewerUrl = 'https://tilecache.rainviewer.com/v2/radar/1744386000/256/10/290/391/2/1_1.png'
-// https://api.rainviewer.com/public/weather-maps.json
 export async function getWeatherMapUrl(): Promise<string | null> {
   const weatherMaps = await getWeatherMaps();
   if (weatherMaps != undefined) {
     let url = weatherMaps.host;
+    // url = 'https://cdn.rainviewer.com';
     let latest = "";
-    if (weatherMaps.radar.nowcast.length > 0) {
-      latest = weatherMaps.radar.nowcast[weatherMaps.radar.nowcast.length - 1].path;
-    } else if (weatherMaps.radar.past.length > 0) {
+    if (weatherMaps.radar.past.length > 0) {
       latest = weatherMaps.radar.past[weatherMaps.radar.past.length - 1].path;
     } else {
       return null;
     }
     url += latest + "/256/{z}/{x}/{y}/2/1_1.png";
+    // url += latest + "/256/{z}/{x}/{y}/255/1_1_1_0.webp";
     return url;
   } else {
     return null;

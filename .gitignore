@@ -9,6 +9,7 @@ node_modules
 target/
 dist/
 Cargo.lock
+ssl/
 
 .DS_Store
 

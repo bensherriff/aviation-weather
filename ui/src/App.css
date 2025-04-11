@@ -29,3 +29,39 @@ body,
   height: 100%;
   width: 100%;
 }
+
+.map-button {
+  position: absolute;
+  right: 12px;
+  z-index: 1000;
+
+  color: #000;
+  background: #fff;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  border-bottom-width: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+
+  height: 30px;
+  width: 30px;
+  text-align: center;
+  line-height: 30px; /* Vertically center text */
+  font-weight: bold;
+
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.map-button.active {
+  background-color: #228be6;
+  color: #fff;
+}
+
+.map-button.active:hover {
+  background-color: #187ed7;
+}
+
+.map-button:hover {
+  background: #e6e6e6;
+}

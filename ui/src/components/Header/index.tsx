@@ -126,9 +126,6 @@ export function Header() {
     return false;
   }
 
-  console.log(Cookies.get('logged_in'));
-  console.log(Cookies.get('session'));
-
   return (
     <>
       <Box>
