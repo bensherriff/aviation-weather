@@ -93,5 +93,19 @@ docker-up: ## Start the docker container
 
 docker-refresh: docker-clean up-backend ## Refresh the database
 
-docker-build: ## Build the docker images
-	@docker compose --profile backend --profile api build
+refresh: docker-refresh
+
+build: version=$(if $(v),$(v),latest)
+build: folder=$(if $(f),$(f),httpd)
+build: image=aviation-${folder}:${version}
+build: ## Build a specific docker image (`make build f=httpd`)
+	docker buildx build \
+	-f ${folder}/Dockerfile \
+	-t ${image} \
+	--load \
+	--build-arg BUILD_DATE=$$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+	--build-arg BUILD_VERSION=${version} \
+	--build-arg VCS_REF=$$(git rev-parse head) \
+	${folder}
+
+docker-build: build

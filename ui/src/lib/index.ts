@@ -1,7 +1,3 @@
-// const protocol = process.env.HTTPD_PROTOCOL || 'http';
-// const host = process.env.HTTPD_HOST || 'localhost';
-// const port = process.env.HTTPD_PORT || 8080;
-// const baseUrl = `${protocol}://${host}:${port}/api`;
 const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 export async function getRequest(endpoint: string, params: Record<string, any> = {}): Promise<Response> {

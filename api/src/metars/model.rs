@@ -935,8 +935,6 @@ impl Metar {
     // Check for missing metars
     let missing_icao_list = Self::get_missing_metar_icaos(&metars, icao_list).await;
     if !missing_icao_list.is_empty() {
-      log::trace!("Retrieving missing METAR data for {:?}", missing_icao_list);
-
       let mut updated_missing_icao_list: Vec<&str> = Vec::new();
       for icao in &missing_icao_list {
         let result: RedisResult<Option<bool>> = conn.get(icao).await;
@@ -952,28 +950,34 @@ impl Metar {
           Err(err) => return Err(err.into()),
         }
       }
-      let mut missing_icao_list = Self::get_remote_metars(&updated_missing_icao_list)
-        .await
-        .unwrap_or_else(|err| {
-          log::warn!("Unable to get remote METAR data; {}", err);
-          vec![]
-        });
+      if !updated_missing_icao_list.is_empty() {
+        log::trace!(
+          "Retrieving missing METAR data for {:?}",
+          updated_missing_icao_list
+        );
+        let mut missing_icao_list = Self::get_remote_metars(&updated_missing_icao_list)
+          .await
+          .unwrap_or_else(|err| {
+            log::warn!("Unable to get remote METAR data; {}", err);
+            vec![]
+          });
 
-      if missing_icao_list.len() > 0 {
-        // Insert missing METARs
-        for missing_metar in &missing_icao_list {
-          let _: RedisResult<()> = conn.set(&missing_metar.station_id, true).await;
-          missing_metar.insert().await?;
+        if missing_icao_list.len() > 0 {
+          // Insert missing METARs
+          for missing_metar in &missing_icao_list {
+            let _: RedisResult<()> = conn.set(&missing_metar.station_id, true).await;
+            missing_metar.insert().await?;
+          }
+          metars.append(&mut missing_icao_list)
         }
-        metars.append(&mut missing_icao_list)
-      }
 
-      // Invalidate the still missing icaos
-      let still_missing_icao_list =
-        Self::get_missing_metar_icaos(&missing_icao_list, icao_list).await;
-      if !still_missing_icao_list.is_empty() {
-        for icao in still_missing_icao_list {
-          let _: RedisResult<()> = conn.set_ex(&icao, false, 3600).await;
+        // Invalidate the still missing icaos
+        let still_missing_icao_list =
+          Self::get_missing_metar_icaos(&missing_icao_list, icao_list).await;
+        if !still_missing_icao_list.is_empty() {
+          for icao in still_missing_icao_list {
+            let _: RedisResult<()> = conn.set_ex(&icao, false, 3600).await;
+          }
         }
       }
     }

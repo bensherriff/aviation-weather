@@ -23,7 +23,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow
 });
 
-const tileLayerUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const openStreetMapUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+// const rainViewerUrl = 'https://tilecache.rainviewer.com/v2/radar/{time}/256/10/290/391/2/1_1.png'
+// https://api.rainviewer.com/public/weather-maps.json
 const defaultZoom = 6;
 const defaultCenter: L.LatLngExpression = [38.944444, -77.455833];
 
@@ -42,14 +44,14 @@ function App() {
           minZoom={3}
           maxZoom={19}
           maxBounds={[
-            [-85.06, -180],
-            [85.06, 180]
+            [-85.06, -181],
+            [85.06, 181]
           ]}
           scrollWheelZoom={true}
           zoomControl={false}
         >
           <ZoomControl position={'bottomright'} />
-          <TileLayer url={tileLayerUrl} />
+          <TileLayer url={openStreetMapUrl} />
           <AirportLayer setAirport={setAirport} />
         </MapContainer>
       </div>

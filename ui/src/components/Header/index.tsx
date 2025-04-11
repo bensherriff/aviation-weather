@@ -137,7 +137,7 @@ export function Header() {
             <Group align='center' gap='xs'>
               <Burger opened={opened} onClick={toggle} hiddenFrom='xs' size='sm' />
               <Avatar src='/logo.svg' alt='logo' />
-              <Text>FlightLink</Text>
+              <Text>Aviation Data</Text>
             </Group>
             {/*<Group gap={5} visibleFrom='xs' className={classes.navGroup}>*/}
             {/*  {navItems}*/}
