@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Avatar, Burger, Container, Group, Text } from '@mantine/core';
+import { Avatar, Box, Burger, Button, Container, Group, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-// import { ReactComponent as Logo } from '../../../public/logo.svg';
 import classes from './Header.module.css';
 
 const links = [
@@ -13,8 +12,9 @@ const links = [
 export function Header() {
   const [opened, { toggle }] = useDisclosure(false);
   const [active, setActive] = useState(links[0].link);
+  const isSignedIn = false;
 
-  const items = links.map((link) => (
+  const navItems = links.map((link) => (
     <a
       key={link.label}
       href={link.link}
@@ -30,19 +30,35 @@ export function Header() {
   ));
 
   return (
-    <header className={classes.header}>
-      <Container size='md' className={classes.inner}>
-        <span style={{ display: 'flex', flexDirection: 'row' }}>
-          <Text>Aviation Weather</Text>
-          <Avatar src='../../../public/logo.svg' alt="it's me" />
-        </span>
-        {/*<Logo />*/}
-        <Group gap={5} visibleFrom='xs'>
-          {items}
+    <Box>
+      <header className={classes.header}>
+        <Group justify='space-between' h='100%'>
+          <Group align='center' gap='xs'>
+            <Burger opened={opened} onClick={toggle} hiddenFrom='xs' size='sm' />
+            <Avatar src='/logo.svg' alt='logo' />
+            <Text>Aviation</Text>
+          </Group>
+          <Group gap={5} visibleFrom='xs' className={classes.navGroup}>
+            {navItems}
+          </Group>
+          <Group align='center' gap='xs'>
+            {isSignedIn ? (
+              // Clickable avatar if signed in
+              <Avatar
+                src='/user-avatar.jpg' // replace with dynamic source when available
+                alt='User avatar'
+                style={{ cursor: 'pointer' }}
+                // Add click handler for user dropdown if needed
+              />
+            ) : (
+              <>
+                <Button variant='default'>Login</Button>
+                <Button>Signup</Button>
+              </>
+            )}
+          </Group>
         </Group>
-
-        <Burger opened={opened} onClick={toggle} hiddenFrom='xs' size='sm' />
-      </Container>
-    </header>
+      </header>
+    </Box>
   );
 }

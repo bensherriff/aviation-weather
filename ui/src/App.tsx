@@ -1,15 +1,16 @@
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
 import '@mantine/core/styles.css';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-// Fix for default marker icon issues in React-Leaflet
 import L from 'leaflet';
 import { Header } from '@components/Header';
 import AirportLayer from '@components/AirportLayer.tsx';
+import { useState } from 'react';
+import { Airport } from '@lib/airport.types.ts';
+import AirportDrawer from '@components/AirportDrawer.tsx';
 
 // Fix Leaflet's default icon path issues with Webpack
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -23,16 +24,21 @@ L.Icon.Default.mergeOptions({
 });
 
 const tileLayerUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const defaultZoom = 6;
+const defaultCenter: L.LatLngExpression = [38.944444, -77.455833];
 
 function App() {
+  const [airport, setAirport] = useState<Airport | null>(null);
   return (
     <div className='App'>
       <Header />
       <div className='map-wrapper'>
+        <AirportDrawer airport={airport} setAirport={setAirport} />
         <MapContainer
           className='leaflet-container'
-          center={[38.944444, -77.455833]}
-          zoom={6}
+          attributionControl={false}
+          center={defaultCenter}
+          zoom={defaultZoom}
           minZoom={3}
           maxZoom={19}
           maxBounds={[
@@ -40,9 +46,11 @@ function App() {
             [85.06, 180]
           ]}
           scrollWheelZoom={true}
+          zoomControl={false}
         >
+          <ZoomControl position={'bottomright'} />
           <TileLayer url={tileLayerUrl} />
-          <AirportLayer />
+          <AirportLayer setAirport={setAirport} />
         </MapContainer>
       </div>
     </div>

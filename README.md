@@ -1,4 +1,4 @@
-# Aviation Weather
+# Aviation
 
 ## Makefile
 `make help` to list all commands

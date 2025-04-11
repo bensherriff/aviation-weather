@@ -11,37 +11,6 @@ export enum AirportCategory {
   UNKNOWN = 'unknown'
 }
 
-export function airportCategoryToText(category: AirportCategory): string {
-  switch (category) {
-    case AirportCategory.SMALL:
-      return 'Small';
-    case AirportCategory.MEDIUM:
-      return 'Medium';
-    case AirportCategory.LARGE:
-      return 'Large';
-    case AirportCategory.HELIPORT:
-      return 'Helipad';
-    case AirportCategory.CLOSED:
-      return 'Closed';
-    case AirportCategory.SEAPLANE:
-      return 'Seaplane Base';
-    case AirportCategory.BALLOONPORT:
-      return 'Balloon Port';
-    default:
-      return 'Unknown';
-  }
-}
-
-export enum AirportOrderField {
-  ICAO = 'icao',
-  NAME = 'name',
-  CATEGORY = 'category',
-  CONTINENT = 'continent',
-  ISO_COUNTRY = 'iso_country',
-  ISO_REGION = 'iso_region',
-  MUNICIPALITY = 'municipality'
-}
-
 export interface Bounds {
   northEast: Coordinate;
   southWest: Coordinate;
@@ -66,10 +35,9 @@ export interface Airport {
   longitude: number;
   has_tower: boolean;
   has_beacon: boolean;
-  has_metar: boolean;
-  public: boolean;
   runways: Runway[];
   frequencies: Frequency[];
+  public: boolean;
   latest_metar?: Metar;
 }
 

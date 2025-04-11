@@ -6,7 +6,7 @@ WORKDIR /builder
 COPY . .
 RUN \
   if [ -f package.json ]; then npm i && npm run build; \
-  else echo "Lockfile not found." && exit 1; \
+  else echo "package.json not found." && exit 2; \
   fi
 
 FROM base AS runner

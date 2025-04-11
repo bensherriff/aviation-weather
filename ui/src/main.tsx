@@ -11,7 +11,7 @@ const theme = createTheme({
 });
 
 export const metadata = {
-  title: 'Aviation Weather',
+  title: 'Aviation',
   description: ''
 };
 

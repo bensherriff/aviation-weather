@@ -1,7 +1,7 @@
 # =========
 #  Builder
 # =========
-FROM rust:bookworm as builder
+FROM rust:bookworm AS builder
 WORKDIR /builder
 
 COPY migrations ./migrations
@@ -14,7 +14,7 @@ RUN cargo build --release
 # ======
 #  Keys
 # ======
-FROM debian:bookworm-slim as keys
+FROM debian:bookworm-slim AS keys
 WORKDIR /keys
 
 RUN apt-get update && apt-get install -y openssl libpq-dev
@@ -26,7 +26,7 @@ RUN openssl rsa -in refresh.pem -pubout -outform PEM -out refresh.pem.pub
 # =========
 #  Runtime
 # =========
-FROM keys as runtime
+FROM keys AS runtime
 WORKDIR /api
 USER root
 
