@@ -42,14 +42,14 @@ function App() {
 
   useEffect(() => {
     if (showRadar) {
-      getWeatherMapUrl().then(url => {
+      getWeatherMapUrl().then((url) => {
         setRainViewerUrl(url);
       });
     }
   }, [showRadar]);
 
   function toggleRadar() {
-    setShowRadar(prev => {
+    setShowRadar((prev) => {
       const newValue = !prev;
       Cookies.set('showRadar', newValue.toString(), { expires: 7 });
       return newValue;
@@ -96,7 +96,7 @@ function App() {
               <TileLayer url={darkLayerUrl} />
             </LayersControl.BaseLayer>
           </LayersControl>
-          {rainViewerUrl && showRadar && <TileLayer url={rainViewerUrl} opacity={0.5} zIndex={5} />}
+          {rainViewerUrl && showRadar && <TileLayer url={rainViewerUrl} opacity={0.5} zIndex={10} />}
           <ZoomControl position={'bottomright'} />
           <AirportLayer setAirport={setAirport} />
           <BaseLayerChangeHandler />

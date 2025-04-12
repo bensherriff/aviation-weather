@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 use futures_util::try_join;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, QueryBuilder};
 use crate::airports::{
@@ -194,7 +195,7 @@ impl From<AirportRow> for Airport {
 }
 
 impl Airport {
-  pub async fn select(icao: &str, metar: bool) -> Option<Self> {
+  pub async fn select(client: &Client, icao: &str, metar: bool) -> Option<Self> {
     let pool = db::pool();
 
     let airport_fut = async {
@@ -206,7 +207,7 @@ impl Airport {
 
     let metar_fut = async {
       if metar {
-        match Metar::find_all(&vec![icao.to_string()]).await {
+        match Metar::find_all(client, &vec![icao.to_string()], &false).await {
           Ok(m) => Some(m.into_iter().nth(0)),
           Err(err) => {
             log::error!("{}", err);
@@ -269,7 +270,7 @@ impl Airport {
     })
   }
 
-  pub async fn select_all(query: &AirportQuery) -> ApiResult<Vec<Self>> {
+  pub async fn select_all(client: &Client, query: &AirportQuery) -> ApiResult<Vec<Self>> {
     let pool = db::pool();
 
     let mut builder = QueryBuilder::<Postgres>::new("SELECT * FROM ");
@@ -337,7 +338,7 @@ impl Airport {
     let runway_future = Runway::select_all_map(icaos.clone());
     let frequency_future = Frequency::select_all_map(icaos.clone());
     let metar_future = if query.metars.unwrap_or(false) {
-      Some(Metar::find_all(&icaos))
+      Some(Metar::find_all(client, &icaos, &false))
     } else {
       None
     };

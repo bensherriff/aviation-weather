@@ -4,6 +4,7 @@ use crate::{
   airports::Airport,
   db::Paged,
   auth::{Auth, verify_role},
+  AppState,
 };
 use actix_multipart::Multipart;
 use actix_web::{delete, get, post, put, web, HttpResponse, HttpRequest, ResponseError};
@@ -53,7 +54,7 @@ async fn import_airports(mut payload: Multipart, auth: Auth) -> HttpResponse {
 }
 
 #[get("")]
-async fn get_airports(req: HttpRequest) -> HttpResponse {
+async fn get_airports(data: web::Data<AppState>, req: HttpRequest) -> HttpResponse {
   let mut query = match web::Query::<AirportQuery>::from_query(req.query_string()) {
     Ok(q) => q.into_inner(),
     Err(err) => {
@@ -71,7 +72,8 @@ async fn get_airports(req: HttpRequest) -> HttpResponse {
   query.limit = Some(limit);
   query.page = Some(page);
 
-  match Airport::select_all(&query).await {
+  let client = &data.client;
+  match Airport::select_all(client, &query).await {
     Ok(airports) => HttpResponse::Ok().json(Paged {
       data: airports,
       page,
@@ -86,7 +88,11 @@ async fn get_airports(req: HttpRequest) -> HttpResponse {
 }
 
 #[get("/{icao}")]
-async fn get_airport(icao: web::Path<String>, req: HttpRequest) -> HttpResponse {
+async fn get_airport(
+  data: web::Data<AppState>,
+  icao: web::Path<String>,
+  req: HttpRequest,
+) -> HttpResponse {
   let metar = match web::Query::<AirportQuery>::from_query(req.query_string()) {
     Ok(q) => q.metars.unwrap_or_else(|| false),
     Err(err) => {
@@ -95,7 +101,8 @@ async fn get_airport(icao: web::Path<String>, req: HttpRequest) -> HttpResponse 
     }
   };
 
-  match Airport::select(&icao.into_inner(), metar).await {
+  let client = &data.client;
+  match Airport::select(client, &icao.into_inner(), metar).await {
     Some(airport) => HttpResponse::Ok().json(airport),
     None => HttpResponse::NotFound().finish(),
   }

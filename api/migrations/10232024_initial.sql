@@ -17,6 +17,15 @@ CREATE TABLE IF NOT EXISTS airports (
     public BOOLEAN DEFAULT false
 );
 
+CREATE INDEX ON airports (iata);
+CREATE INDEX ON airports (local);
+CREATE INDEX ON airports (name);
+CREATE INDEX ON airports (category);
+CREATE INDEX ON airports (iso_country);
+CREATE INDEX ON airports (iso_region);
+CREATE INDEX ON airports (municipality);
+CREATE INDEX ON airports (longitude, latitude);
+
 CREATE TABLE IF NOT EXISTS runways (
     id UUID PRIMARY KEY NOT NULL,
     icao TEXT NOT NULL,
@@ -26,6 +35,9 @@ CREATE TABLE IF NOT EXISTS runways (
     surface TEXT NOT NULL
 );
 
+CREATE INDEX ON runways (icao);
+CREATE INDEX ON runways (surface);
+
 CREATE TABLE IF NOT EXISTS frequencies (
     id UUID PRIMARY KEY NOT NULL,
     icao TEXT NOT NULL,
@@ -33,12 +45,17 @@ CREATE TABLE IF NOT EXISTS frequencies (
     frequency_mhz REAL NOT NULL
 );
 
+CREATE INDEX ON frequencies (icao);
+CREATE INDEX ON frequencies (frequency_mhz);
+
 CREATE TABLE IF NOT EXISTS metars (
     icao TEXT NOT NULL,
     observation_time TIMESTAMPTZ NOT NULL,
     raw_text TEXT NOT NULL,
     data JSONB NOT NULL
 );
+
+CREATE INDEX ON metars (observation_time DESC);
 
 CREATE TABLE IF NOT EXISTS users (
     email TEXT PRIMARY KEY NOT NULL,

@@ -1,5 +1,5 @@
 use std::env;
-
+use std::time::Duration;
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, middleware::Logger, web};
 use dotenv::from_filename;
@@ -14,14 +14,16 @@ mod metars;
 mod scheduler;
 mod users;
 
+#[derive(Debug, Clone)]
+struct AppState {
+  client: reqwest::Client,
+}
+
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
   initialize_environment()?;
   db::initialize().await?;
   // scheduler::update_airports();
-
-  let host = "0.0.0.0".to_string();
-  let port = env::var("API_PORT").unwrap_or("5000".to_string());
 
   // Initialize admin user
   let admin_email = env::var("ADMIN_EMAIL");
@@ -55,6 +57,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
   }
 
+  let client = reqwest::Client::builder()
+    .timeout(Duration::from_secs(10))
+    .no_proxy()
+    .danger_accept_invalid_certs(true)
+    .build()
+    .expect("Failed to create reqwest client");
+
+  let state = AppState { client };
+  let host = env::var("API_HOST").unwrap_or("localhost".to_string());
+  let port = env::var("API_PORT").unwrap_or("5000".to_string());
+
   let server = match HttpServer::new(move || {
     let cors = Cors::default()
       .allow_any_origin()
@@ -62,18 +75,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       .allow_any_header()
       .supports_credentials()
       .max_age(3600);
-    App::new().wrap(cors).wrap(Logger::default()).service(
-      web::scope("api")
-        .configure(airports::init_routes)
-        .configure(metars::init_routes)
-        .configure(auth::init_routes)
-        .configure(users::init_routes),
-    )
+    App::new()
+      .wrap(cors)
+      .wrap(Logger::default())
+      .app_data(web::Data::new(state.clone()))
+      .service(
+        web::scope("api")
+          .configure(airports::init_routes)
+          .configure(metars::init_routes)
+          .configure(auth::init_routes)
+          .configure(users::init_routes),
+      )
   })
   .bind(format!("{}:{}", host, port))
   {
     Ok(b) => {
-      log::info!("Binding server to {}:{}", host, port);
+      log::info!("Server bound to {}:{}", host, port);
       b
     }
     Err(err) => {

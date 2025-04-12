@@ -97,7 +97,18 @@ impl From<std::env::VarError> for Error {
 
 impl From<reqwest::Error> for Error {
   fn from(error: reqwest::Error) -> Self {
-    Self::new(500, format!("Unknown reqwest error: {}", error))
+    match error.status() {
+      Some(status_code) => {
+        if status_code.is_client_error() {
+          Self::new(500, format!("Client reqwest error: {}", error))
+        } else if status_code.is_server_error() {
+          Self::new(500, format!("Server reqwest error: {}", error))
+        } else {
+          Self::new(500, format!("Unknown reqwest error: {:?}", error))
+        }
+      }
+      _ => Self::new(500, format!("Unknown reqwest error: {:?}", error)),
+    }
   }
 }
 

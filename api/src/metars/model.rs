@@ -3,6 +3,7 @@ use crate::{error::ApiResult, db};
 use chrono::{DateTime, Datelike, Utc};
 use std::collections::HashSet;
 use redis::{AsyncCommands, RedisResult};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use crate::db::redis_async_connection;
 
@@ -845,8 +846,8 @@ impl Metar {
     missing_metar_icaos
   }
 
-  async fn get_remote_metars(icaos: &[&str]) -> ApiResult<Vec<Metar>> {
-    let gov_api_url = std::env::var("GOV_API_URL").expect("GOV_API_URL must be set");
+  async fn get_remote_metars(client: &Client, icaos: &[&str]) -> ApiResult<Vec<Metar>> {
+    let base_url = std::env::var("AVIATION_WEATHER_URL").expect("GOV_API_URL must be set");
     // Query the remote API for the missing METAR data 10 at a time
     let icao_chunks = icaos
       .chunks(10)
@@ -854,14 +855,14 @@ impl Metar {
       .collect::<Vec<String>>();
     let mut metars: Vec<Metar> = vec![];
     for icao_chunk in icao_chunks {
-      let url = format!("{}/metar.php?ids={}", gov_api_url, icao_chunk);
-      let mut m = match reqwest::get(url).await {
+      let url = format!("{}/metar?ids={}&order=id", base_url, icao_chunk);
+      let mut m = match client.get(url).send().await {
         Ok(r) => {
           // Check if the status code is 200
           if r.status() != 200 {
             return Err(Error::new(
               500,
-              format!("Unable to get METAR request: {}", r.status()),
+              format!("Request returned status {}", r.status()),
             ));
           }
           match r.text().await {
@@ -876,20 +877,10 @@ impl Metar {
                 Err(err) => return Err(err),
               }
             }
-            Err(err) => {
-              return Err(Error::new(
-                500,
-                format!("Unable to parse METAR request: {}", err),
-              ))
-            }
+            Err(err) => return Err(Error::new(500, format!("METAR parse failed: {}", err))),
           }
         }
-        Err(err) => {
-          return Err(Error::new(
-            500,
-            format!("Unable to get METAR request: {}", err),
-          ))
-        }
+        Err(err) => return Err(err.into()),
       };
       metars.append(&mut m);
     }
@@ -911,7 +902,11 @@ impl Metar {
     })
   }
 
-  pub async fn find_all(icao_list: &Vec<String>) -> ApiResult<Vec<Self>> {
+  pub async fn find_all(
+    client: &Client,
+    icao_list: &Vec<String>,
+    force: &bool,
+  ) -> ApiResult<Vec<Self>> {
     if icao_list.is_empty() {
       return Ok(Vec::new());
     }
@@ -937,17 +932,21 @@ impl Metar {
     if !missing_icao_list.is_empty() {
       let mut updated_missing_icao_list: Vec<&str> = Vec::new();
       for icao in &missing_icao_list {
-        let result: RedisResult<Option<bool>> = conn.get(icao).await;
-        match result {
-          Ok(Some(value)) => {
-            if value {
+        if *force {
+          updated_missing_icao_list.push(icao);
+        } else {
+          let result: RedisResult<Option<bool>> = conn.get(icao).await;
+          match result {
+            Ok(Some(value)) => {
+              if value {
+                updated_missing_icao_list.push(icao);
+              }
+            }
+            Ok(None) => {
               updated_missing_icao_list.push(icao);
             }
+            Err(err) => return Err(err.into()),
           }
-          Ok(None) => {
-            updated_missing_icao_list.push(icao);
-          }
-          Err(err) => return Err(err.into()),
         }
       }
       if !updated_missing_icao_list.is_empty() {
@@ -955,7 +954,7 @@ impl Metar {
           "Retrieving missing METAR data for {:?}",
           updated_missing_icao_list
         );
-        let mut missing_icao_list = Self::get_remote_metars(&updated_missing_icao_list)
+        let mut missing_icao_list = Self::get_remote_metars(client, &updated_missing_icao_list)
           .await
           .unwrap_or_else(|err| {
             log::warn!("Unable to get remote METAR data; {}", err);

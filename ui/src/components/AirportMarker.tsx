@@ -27,7 +27,7 @@ export default function AirportMarker({
         mouseout: () => markerRef.current?.closePopup()
       }}
     >
-      <Popup closeButton={false}>
+      <Popup closeButton={false} autoPan={false}>
         {airport.icao} - {airport.name}
       </Popup>
     </Marker>

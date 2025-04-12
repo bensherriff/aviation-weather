@@ -4,6 +4,9 @@ x-env_file: &env
   - path: .env.local
     required: false
 
+x-restart: &default_restart
+  restart: unless-stopped
+
 name: aviation
 services:
   httpd:
@@ -14,12 +17,11 @@ services:
       dockerfile: Dockerfile
     env_file: *env
     ports:
-      - "${HTTPD_HTTP_PORT:-8080}:80"
-      - "${HTTPD_HTTPS_PORT:-8443}:443"
+      - "${HTTPD_PORT:-8080}:80"
     networks:
       - frontend
       - backend
-    restart: unless-stopped
+    <<: *default_restart
 
   postgres:
     image: postgis/postgis:17-3.5
@@ -38,7 +40,7 @@ services:
       - backend
     profiles:
       - backend
-    restart: unless-stopped
+    <<: *default_restart
 
   redis:
     image: redis:8.0-M03 # Replace with valkey?
@@ -56,7 +58,7 @@ services:
       - backend
     profiles:
       - backend
-    restart: unless-stopped
+    <<: *default_restart
 
   minio:
     image: minio/minio:RELEASE.2025-02-28T09-55-16Z
@@ -76,7 +78,7 @@ services:
     profiles:
       - backend
     command: server --console-address ":9001" /data
-    restart: unless-stopped
+    <<: *default_restart
 
   api:
     image: aviation-api:latest
@@ -86,6 +88,7 @@ services:
       dockerfile: Dockerfile
     env_file: *env
     environment:
+      API_HOST: 0.0.0.0
       POSTGRES_HOST: aviation-postgres
       POSTGRES_PORT: 5432
       REDIS_HOST: aviation-redis
@@ -103,7 +106,7 @@ services:
       - backend
     profiles:
       - api
-    restart: unless-stopped
+    <<: *default_restart
 
   ui:
     image: aviation-ui:latest
@@ -125,7 +128,7 @@ services:
     profiles:
       - frontend
     command: ["npm", "run", "dev"]
-    restart: unless-stopped
+    <<: *default_restart
 
 volumes:
   postgres:
