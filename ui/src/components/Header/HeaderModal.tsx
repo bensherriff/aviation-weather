@@ -1,5 +1,3 @@
-'use client';
-
 import {
   Modal,
   Container,
@@ -18,15 +16,25 @@ import Cookies from 'js-cookie';
 
 interface HeaderModalProps {
   type?: string;
-  toggle: any;
-  login: ({ email, password }: { email: string, password: string }) => Promise<boolean>;
-  register: ({ firstName, lastName, email, password }: { firstName: string, lastName: string, email: string, password: string }) => Promise<boolean>;
+  toggle: (input: string | undefined) => void;
+  login: ({ email, password }: { email: string; password: string }) => Promise<boolean>;
+  register: ({
+    firstName,
+    lastName,
+    email,
+    password
+  }: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  }) => Promise<boolean>;
 }
 
 export function HeaderModal({ type, toggle, login, register }: HeaderModalProps) {
   function passwordValidator(value: string) {
-    if (value.trim().length < 10) {
-      return 'Password must be at least 10 characters';
+    if (value.trim().length < 8) {
+      return 'Password must be at least 8 characters';
     }
     if (value.trim().length >= 128) {
       return 'Password must be at most 128 characters';
@@ -95,7 +103,7 @@ export function HeaderModal({ type, toggle, login, register }: HeaderModalProps)
   }
 
   return (
-    <Modal opened={type !== undefined} onClose={onClose} withCloseButton={false}>
+    <Modal opened={type !== undefined} onClose={onClose} withCloseButton={false} zIndex={1000}>
       {type == 'reset' ? (
         <Container>
           <Title ta='center'>Reset password</Title>
@@ -195,7 +203,11 @@ export function HeaderModal({ type, toggle, login, register }: HeaderModalProps)
                 {...loginForm.getInputProps('password')}
               />
               <Group justify='space-between' mt='lg'>
-                <Checkbox label='Remember me' defaultChecked={loginForm.values.remember} {...loginForm.getInputProps('remember')} />
+                <Checkbox
+                  label='Remember me'
+                  defaultChecked={loginForm.values.remember}
+                  {...loginForm.getInputProps('remember')}
+                />
                 <Anchor component='a' size='sm' onClick={() => toggle('reset')}>
                   Forgot password?
                 </Anchor>

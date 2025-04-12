@@ -1,0 +1,28 @@
+meta {
+  name: Insert Airport
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{API_URL}}/airports
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "icao": "TEST",
+    "name": "Test Airport",
+    "category": "unknown",
+    "iso_country": "",
+    "iso_region": "",
+    "municipality": "",
+    "elevation_ft": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "runways": [],
+    "frequencies": [],
+    "public": true
+  }
+}

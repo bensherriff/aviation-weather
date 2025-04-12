@@ -1,111 +1,160 @@
-'use client';
-
-import Link from 'next/link';
 import { useState } from 'react';
-import { getAirport, getAirports } from '@/api/airport';
-import { Autocomplete, Button, Group, UnstyledButton } from '@mantine/core';
-import { SetterOrUpdater, useRecoilState } from 'recoil';
-import { useToggle } from '@mantine/hooks';
-import { HeaderModal } from './HeaderModal';
-import { coordinatesState } from '@/state/map';
-import { User } from '@/api/auth.types';
-import { usePathname, useRouter } from 'next/navigation';
-import { FaMoon } from "react-icons/fa6";
-import { FaSun } from "react-icons/fa6";
-import UserMenu from './UserMenu';
-import './styles.css';
+import { Avatar, Box, Burger, Button, Group, Text } from '@mantine/core';
+import { useDisclosure, useToggle } from '@mantine/hooks';
+import classes from './Header.module.css';
+import { HeaderModal } from '@components/Header/HeaderModal.tsx';
+import { notifications } from '@mantine/notifications';
+import Cookies from 'js-cookie';
+import { User } from '@lib/account.types.ts';
+import { login, logout, register } from '@lib/account.ts';
+import HeaderUser from '@components/Header/HeaderUser.tsx';
 
-interface HeaderProps {
-  user: User | undefined;
-  profilePicture: File | undefined;
-  setProfilePicture: SetterOrUpdater<File | undefined>;
-  login: ({ email, password }: { email: string, password: string }) => Promise<boolean>;
-  logout: () => Promise<void>;
-  register: ({ firstName, lastName, email, password }: { firstName: string, lastName: string, email: string, password: string }) => Promise<boolean>;
-}
+// const links = [
+//   { link: '/', label: 'Map' },
+//   { link: '/airports', label: 'Airports' },
+//   { link: '/metars', label: 'Metars' }
+// ];
 
-export default function Header({ user, profilePicture, setProfilePicture, login, logout, register }: HeaderProps) {
-  const [searchValue, setSearchValue] = useState('');
-  const [airports, setAirports] = useState<{ key: string; value: string; label: string }[]>([]);
-  const [modalType, toggle] = useToggle([undefined, 'login', 'register', 'reset']);
-  const [_, setCoordinates] = useRecoilState(coordinatesState);
-  const pathname = usePathname();
-  const router = useRouter();
+export function Header() {
+  const [opened, { toggle }] = useDisclosure(false);
+  const [modalType, modalToggle] = useToggle([undefined, 'login', 'register', 'reset']);
+  const [user, setUser] = useState<User | undefined>(undefined);
+  // const [active, setActive] = useState(links[0].link);
 
-  async function onChange(value: string) {
-    setSearchValue(value);
-    const airportData = await getAirports({ icaos: [value], name: value });
-    setAirports(
-      airportData.data.map((airport) => ({
-        key: airport.icao,
-        value: airport.icao,
-        label: `${airport.icao} - ${airport.name}`
-      }))
-    );
+  // const navItems = links.map((link) => (
+  //   <a
+  //     key={link.label}
+  //     href={link.link}
+  //     className={classes.link}
+  //     data-active={active === link.link || undefined}
+  //     onClick={(event) => {
+  //       event.preventDefault();
+  //       setActive(link.link);
+  //     }}
+  //   >
+  //     {link.label}
+  //   </a>
+  // ));
+
+  async function loginUser({ email, password }: { email: string; password: string }): Promise<boolean> {
+    const loginResponse = await login(email, password);
+    if (loginResponse) {
+      setUser(loginResponse);
+      notifications.show({
+        title: `Welcome back ${loginResponse.first_name}!`,
+        message: `You have been logged in.`,
+        color: 'green',
+        autoClose: 2000,
+        loading: false
+      });
+      return true;
+    } else {
+      notifications.show({
+        title: `Unable to Login`,
+        message: `Please try again.`,
+        color: 'red',
+        autoClose: 2000,
+        loading: false
+      });
+    }
+    return false;
   }
 
-  async function onClick(value: string) {
-    setSearchValue('');
-    // Get current path
-    if (pathname == '/') {
-      const airport = await getAirport({ icao: value });
-      if (airport) {
-        setCoordinates({ lat: airport.data.latitude, lon: airport.data.longitude });
+  async function logoutUser(): Promise<void> {
+    await logout();
+    Cookies.remove('logged_in');
+    setUser(undefined);
+  }
+
+  async function registerUser({
+    firstName,
+    lastName,
+    email,
+    password
+  }: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  }): Promise<boolean> {
+    const id = notifications.show({
+      loading: true,
+      title: `Creating account`,
+      message: `Please wait...`,
+      autoClose: false,
+      withCloseButton: false
+    });
+    const registerResponse = await register({
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      password: password
+    });
+    if (registerResponse) {
+      const loginResponse = await login(email, password);
+      if (loginResponse) {
+        setUser(loginResponse);
+        notifications.update({
+          id,
+          title: `Account created`,
+          message: `Welcome ${loginResponse.first_name}!`,
+          color: 'green',
+          autoClose: 2000,
+          loading: false
+        });
+        return true;
+      } else {
+        notifications.update({
+          id,
+          title: `Unable to Login`,
+          message: `Please try again.`,
+          color: 'red',
+          autoClose: 2000,
+          loading: false
+        });
       }
     } else {
-      router.push(`/airport/${value}`)
+      notifications.update({
+        id,
+        title: `Unable to Register`,
+        message: `Please try again.`,
+        color: 'error',
+        autoClose: 2000,
+        loading: false
+      });
     }
+    return false;
   }
 
   return (
     <>
-      <nav className='navbar'>
-        <div className='left'>
-          <Link href={'/'} className='title'>
-            <span>Aviation Weather</span>
-          </Link>
-          <div className='search'>
-            <Autocomplete
-              radius='xl'
-              placeholder='Search Airports...'
-              data={airports}
-              limit={10}
-              value={searchValue}
-              onChange={onChange}
-              onOptionSubmit={onClick}
-              onBlur={() => setSearchValue('')}
-            />
-          </div>
-        </div>
-        <div className='right'>
-          <UnstyledButton style={{ paddingRight: '1em', margin: 'auto' }}>
-            <FaMoon />
-            {/* <FaSun /> */}
-          </UnstyledButton>
-          {user ? (
-            <UserMenu
-              user={user}
-              profilePicture={profilePicture}
-              setProfilePicture={setProfilePicture}
-              toggle={toggle}
-              logout={logout}
-            />
-          ) : (
-            <Group className='user'>
-              <Button onClick={() => toggle('login')}>Login</Button>
-              <Button variant='outline' onClick={() => toggle('register')}>
-                Sign up
-              </Button>
+      <Box>
+        <header className={classes.header}>
+          <Group justify='space-between' h='100%'>
+            <Group align='center' gap='xs'>
+              <Burger opened={opened} onClick={toggle} hiddenFrom='xs' size='sm' />
+              <Avatar src='/logo.svg' alt='logo' />
+              <Text>Aviation Data</Text>
             </Group>
-          )}
-        </div>
-      </nav>
-      <HeaderModal
-        type={modalType}
-        toggle={toggle}
-        login={login}
-        register={register}
-      />
+            {/*<Group gap={5} visibleFrom='xs' className={classes.navGroup}>*/}
+            {/*  {navItems}*/}
+            {/*</Group>*/}
+            <Group align='center' gap='xs'>
+              {user ? (
+                <HeaderUser user={user} profilePicture={undefined} logout={logoutUser} />
+              ) : (
+                <Group className={'user'}>
+                  <Button variant='default' onClick={() => modalToggle('login')}>
+                    Login
+                  </Button>
+                  <Button onClick={() => modalToggle('register')}>Signup</Button>
+                </Group>
+              )}
+            </Group>
+          </Group>
+        </header>
+      </Box>
+      <HeaderModal type={modalType} toggle={modalToggle} login={loginUser} register={registerUser} />
     </>
   );
 }

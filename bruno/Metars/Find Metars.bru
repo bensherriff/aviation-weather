@@ -1,0 +1,16 @@
+meta {
+  name: Find Metars
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{API_URL}}/metars?icaos=KJYO,KOKV,KMRB,KHEF,KIAD&force=true
+  body: none
+  auth: none
+}
+
+params:query {
+  icaos: KJYO,KOKV,KMRB,KHEF,KIAD
+  force: true
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get Airport
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{API_URL}}/airports/KHEF?metars=true
+  body: none
+  auth: none
+}
+
+params:query {
+  metars: true
+}

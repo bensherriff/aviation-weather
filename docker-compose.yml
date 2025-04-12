@@ -4,67 +4,112 @@ x-env_file: &env
   - path: .env.local
     required: false
 
+x-restart: &default_restart
+  restart: unless-stopped
+
 name: aviation
 services:
-  db:
-    image: postgis/postgis:latest
-    container_name: aviation-db
+  nginx:
+#    image: nginx
+    image: aviation-nginx:latest
+    container_name: aviation-nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     env_file: *env
     environment:
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_NAME}
-    volumes:
-     - db:/var/lib/postgresql/data
-     - db_logs:/var/log
+      SSL_CERT_PATH: /etc/nginx/ssl/localhost.crt
+      SSL_CERT_KEY_PATH: /etc/nginx/ssl/localhost.key
+      NGINX_HOST: ${NGINX_HOST:-localhost}
     ports:
-      - "${DATABASE_PORT:-5432}:5432"
+      - "${NGINX_HTTP_PORT:-8080}:80"
+      - "${NGINX_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./ssl:/etc/nginx/ssl/
+    networks:
+      - frontend
+      - backend
+    <<: *default_restart
+
+  postgres:
+    image: postgis/postgis:17-3.5
+    container_name: aviation-postgres
+    env_file: *env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_NAME}
+    volumes:
+     - postgres:/var/lib/postgresql/data
+     - postgres_logs:/var/log
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     networks:
       - backend
     profiles:
       - backend
-    restart: unless-stopped
+    <<: *default_restart
 
   redis:
-    image: redis:latest
+    image: redis:8.0-M03 # Replace with valkey?
     container_name: aviation-redis
     volumes:
       - redis:/data
     ports:
-      - ${REDIS_PORT:-6379}:6379
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - backend
     profiles:
       - backend
-    restart: unless-stopped
+    <<: *default_restart
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
     container_name: aviation-minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL}
+      MINIO_BROWSER_LOGIN_ANIMATION: false
     volumes:
       - minio:/data
     ports:
-      - ${MINIO_PORT:-9000}:9000
-      - ${MINIO_PORT_INTERNAL:-9001}:9001
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_PORT_INTERNAL:-9001}:9001"
     networks:
       - backend
     profiles:
       - backend
     command: server --console-address ":9001" /data
-    restart: unless-stopped
+    <<: *default_restart
 
   api:
+    image: aviation-api:latest
     container_name: aviation-api
+    build:
+      context: ./api
+      dockerfile: Dockerfile
     env_file: *env
+    environment:
+      API_HOST: 0.0.0.0
+      SSL_CA_PATH: /ssl/ca.pem
+      POSTGRES_HOST: aviation-postgres
+      POSTGRES_PORT: 5432
+      REDIS_HOST: aviation-redis
+      REDIS_PORT: 6379
+      MINIO_HOST: aviation-minio
+      MINIO_PORT: 9000
+    volumes:
+      - ./ssl:/ssl
     ports:
       - "${API_PORT:-5000}:5000"
-    build:
-      context: api
     depends_on:
-      - db
+      - postgres
       - redis
       - minio
     networks:
@@ -72,18 +117,19 @@ services:
       - backend
     profiles:
       - api
-    restart: unless-stopped
+    <<: *default_restart
 
   ui:
+    image: aviation-ui:latest
     container_name: aviation-ui
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
     env_file: *env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
     ports:
-      - ${UI_PORT:-3000}:3000
-    build:
-      context: ./ui/
-      target: dev
+      - "${UI_PORT:-3000}:3000"
     volumes:
       - ./ui/src:/app/src
       - ./ui/public:/app/public
@@ -93,11 +139,11 @@ services:
     profiles:
       - frontend
     command: ["npm", "run", "dev"]
-    restart: unless-stopped
+    <<: *default_restart
 
 volumes:
-  db:
-  db_logs:
+  postgres:
+  postgres_logs:
   redis:
   minio:
 

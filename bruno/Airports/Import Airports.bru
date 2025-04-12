@@ -1,0 +1,15 @@
+meta {
+  name: Import Airports
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{API_URL}}/airports/import
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  : @file(/Users/bsherriff/git/private/aviation-weather/data/airports_2023-12-21.json)
+}

@@ -1,0 +1,23 @@
+{
+  "version": "1",
+  "name": "Aviation",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "size": 0.0026407241821289062,
+  "filesCount": 14,
+  "clientCertificates": {
+    "enabled": true,
+    "certs": [
+      {
+        "domain": "localhost",
+        "type": "cert",
+        "certFilePath": "../ssl/localhost.crt",
+        "keyFilePath": "../ssl/localhost.key",
+        "passphrase": ""
+      }
+    ]
+  }
+}
