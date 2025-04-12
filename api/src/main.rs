@@ -3,6 +3,7 @@ use std::time::Duration;
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, middleware::Logger, web};
 use dotenv::from_filename;
+use reqwest::Certificate;
 use crate::auth::hash;
 use crate::users::{User, ADMIN_ROLE};
 
@@ -57,10 +58,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
   }
 
+  let certificate_path = env::var("SSL_CA_PATH")?;
+  let certificate_data = std::fs::read(certificate_path)?;
+  let certificate = Certificate::from_pem(&certificate_data)?;
+
   let client = reqwest::Client::builder()
     .timeout(Duration::from_secs(10))
-    .no_proxy()
-    .danger_accept_invalid_certs(true)
+    .add_root_certificate(certificate)
+    .tls_built_in_root_certs(true)
     .build()
     .expect("Failed to create reqwest client");
 

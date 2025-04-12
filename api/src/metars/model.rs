@@ -847,7 +847,7 @@ impl Metar {
   }
 
   async fn get_remote_metars(client: &Client, icaos: &[&str]) -> ApiResult<Vec<Metar>> {
-    let base_url = std::env::var("AVIATION_WEATHER_URL").expect("GOV_API_URL must be set");
+    let base_url = std::env::var("AVIATION_WEATHER_URL").expect("AVIATION_WEATHER_URL must be set");
     // Query the remote API for the missing METAR data 10 at a time
     let icao_chunks = icaos
       .chunks(10)

@@ -12,8 +12,9 @@ import { useEffect, useState } from 'react';
 import { Airport } from '@lib/airport.types.ts';
 import AirportDrawer from '@components/AirportDrawer.tsx';
 import { getWeatherMapUrl } from '@lib/rainViewer.ts';
-import { IconRadar } from '@tabler/icons-react';
+// import { IconRadar } from '@tabler/icons-react';
 import Cookies from 'js-cookie';
+import { UnstyledButton } from '@mantine/core';
 // Fix Leaflet's default icon path issues with Webpack
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
@@ -101,11 +102,13 @@ function App() {
           <AirportLayer setAirport={setAirport} />
           <BaseLayerChangeHandler />
         </MapContainer>
-        <IconRadar
+        <UnstyledButton
           onClick={toggleRadar}
           style={{ bottom: '80px' }}
           className={`map-button ${showRadar ? 'active' : ''}`}
-        />
+        >
+          Radar
+        </UnstyledButton>
       </div>
     </div>
   );

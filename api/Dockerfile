@@ -16,7 +16,7 @@ RUN cargo build --release
 # =========
 FROM debian:bookworm-slim AS runtime
 WORKDIR /api
-RUN apt-get update && apt-get install -y openssl libpq-dev
+RUN apt-get update && apt-get install -y openssl libpq-dev ca-certificates
 USER root
 
 COPY --from=builder /builder/target/release/api /usr/local/bin/api

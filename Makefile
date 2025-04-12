@@ -96,7 +96,7 @@ docker-refresh: docker-clean up-backend ## Refresh the database
 refresh: docker-refresh
 
 build: version=$(if $(v),$(v),latest)
-build: folder=$(if $(f),$(f),httpd)
+build: folder=$(if $(f),$(f),nginx)
 build: image=aviation-${folder}:${version}
 build: ## Build a specific docker image (`make build f=httpd`)
 	docker buildx build \
@@ -110,6 +110,6 @@ build: ## Build a specific docker image (`make build f=httpd`)
 
 docker-build: build
 
-cert: domain=$(if $(d),$(d),aviation.bensherriff.com)
+cert: domain=$(if $(d),$(d),${NGINX_HOST})
 cert: ## Generate a cert for the given domain
-	@./scripts/generate_cert.sh ${domain}
+	./scripts/generate_cert.sh ${domain}

@@ -1,0 +1,56 @@
+# HTTP server configuration
+server {
+    listen       80;
+    listen  [::]:80;
+    server_name  ${NGINX_HOST};
+
+    # Redirect all incoming requests to HTTPS
+    return 301 https://$host:${NGINX_HTTPS_PORT}$request_uri;
+}
+
+# HTTPS server configuration
+server {
+    listen       443 ssl;
+    listen  [::]:443 ssl;
+    server_name  ${NGINX_HOST};
+
+    # SSL settings
+    ssl_certificate     ${SSL_CERT_PATH};
+    ssl_certificate_key ${SSL_CERT_KEY_PATH};
+
+    # Optional: SSL session settings and ciphers (adjust as required)
+    #ssl_session_cache   shared:SSL:10m;
+    #ssl_session_timeout 10m;
+    #ssl_ciphers         HIGH:!aNULL:!MD5;
+    #ssl_prefer_server_ciphers on;
+
+    location /api/ {
+        proxy_pass         ${API_PROTOCOL}://${NGINX_API_HOST}:${API_PORT}/api/;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    location /minio/ {
+        proxy_pass         ${MINIO_PROTOCOL}://${NGINX_MINIO_HOST}:${MINIO_PORT_INTERNAL}/;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    # Reverse proxy for the UI and default catch-all
+    location / {
+        proxy_pass         ${UI_PROTOCOL}://${NGINX_UI_HOST}:${UI_PORT}/;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
